@@ -61,8 +61,8 @@ model PatientProfile {
   firstName   String
   lastName    String
   phone       String
-  dob         DateTime
-  gender      Gender
+  dob         DateTime?
+  gender      Gender?
   bloodGroup  String?
 
   appointments Appointment[]

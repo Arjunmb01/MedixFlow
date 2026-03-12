@@ -1,8 +1,11 @@
+import dotenv from "dotenv";
+dotenv.config({ path: "./.env" });
+
 import app from "./app";
 import { connectRedis } from "./infrastructure/cache/redisClient";
 
-
 const PORT = process.env.PORT || 5000;
+console.log("DB:", process.env.DATABASE_URL);
 
 async function startServer() {
   try {
