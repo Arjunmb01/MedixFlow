@@ -5,10 +5,9 @@ import loginUsecase from "../usecases/loginPatient.usecase";
 import { signupSchema } from "../dto/signup.dto";
 import { loginSchema } from "../dto/login.dto";
 import { verifyOtpSchema } from "../dto/verifyOtp.dto";
-import loginPatientUsecase from "../usecases/loginPatient.usecase";
-import strict from "node:assert/strict";
 import logoutUsecase from "../usecases/logout.usecase";
 import refreshTokenUsecase from "../usecases/refreshToken.usecase";
+import resendOtpUsecase from "../usecases/resendOtp.usecase";
 
 
 class PatientAuthController {
@@ -24,6 +23,7 @@ class PatientAuthController {
 
     async verifyOtp(req: Request, res: Response) {
         try {
+            console.log("Request Body:", req.body);
             const validatedData = verifyOtpSchema.parse(req.body);
             const result = await verifyOtpUsecase.execute(validatedData);
             res.json(result);
@@ -35,7 +35,7 @@ class PatientAuthController {
     async login(req: Request, res: Response) {
         try {
             const { email, password } = req.body
-            const result = await loginPatientUsecase.execute({ email, password })
+            const result = await loginUsecase.execute({ email, password })
 
             const { accessToken, refreshToken } = result
 
@@ -89,6 +89,19 @@ class PatientAuthController {
 
         }
 
+    }
+
+    async resendOtp(req: Request, res: Response) {
+        try {
+            const { email } = req.body;
+            if (!email) {
+                return res.status(400).json({ message: "Email is required" });
+            }
+            const result = await resendOtpUsecase.execute(email);
+            res.json(result);
+        } catch (error) {
+            res.status(400).json({ message: error instanceof Error ? error.message : "An unexpected error occurred" });
+        }
     }
 
 }
