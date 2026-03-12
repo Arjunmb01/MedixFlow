@@ -6,7 +6,7 @@ class OtpService {
         const otp = Math.floor(100000 + Math.random() * 900000).toString()
         
         await redisClient.set(`otp:${email}`,otp,{
-            EX:300
+            EX:120
         })
 
         return otp
