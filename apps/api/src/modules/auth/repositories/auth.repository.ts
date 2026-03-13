@@ -22,7 +22,7 @@ class AuthRepository {
         email: data.email,
         passwordHash: data.passwordHash,
         role: Role.PATIENT,
-        status: UserStatus.INACTIVE,
+        status: UserStatus.ACTIVE,
         patientProfile: {
           create: {
             firstName: data.firstName,

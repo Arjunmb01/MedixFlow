@@ -18,15 +18,13 @@ class SignUpUseCase {
 
         const passwordHash = await bcrypt.hash(data.password, 10)
 
-        await authRepository.createPatient({
+        const otp = await otpServices.generateOtp(data.email, {
             ...data,
             passwordHash
         });
 
-        const otp = await otpServices.generateOtp(data.email)
-
         return {
-            message: "OTP sent",
+            message: "OTP sent. Please verify to complete registration.",
             otp
         }
     }

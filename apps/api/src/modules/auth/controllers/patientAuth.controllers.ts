@@ -23,7 +23,6 @@ class PatientAuthController {
 
     async verifyOtp(req: Request, res: Response) {
         try {
-            console.log("Request Body:", req.body);
             const validatedData = verifyOtpSchema.parse(req.body);
             const result = await verifyOtpUsecase.execute(validatedData);
             res.json(result);

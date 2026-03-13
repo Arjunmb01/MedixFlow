@@ -6,19 +6,25 @@ class ResendOtpUseCase {
   async execute(email: string) {
     const user = await authRepository.findUserByEmail(email);
 
-    if (!user) {
-      throw new Error("User not found");
+    if (user && user.status === UserStatus.ACTIVE) {
+      throw new Error("User is already registered and verified");
     }
 
-    if (user.status === UserStatus.ACTIVE) {
-      throw new Error("User is already verified");
+    const tempRegData = await otpServices.getRegistrationData(email);
+    if (!tempRegData && !user) {
+        throw new Error("Registration session expired or does not exist. Please sign up again.");
     }
 
     const otp = await otpServices.generateOtp(email);
+    console.log(otp)
+
+    if (tempRegData) {
+        await otpServices.extendRegistrationData(email);
+    }
 
     return {
       message: "OTP resent successfully",
-      otp // In a real app, this would be sent via email
+      otp 
     };
   }
 }

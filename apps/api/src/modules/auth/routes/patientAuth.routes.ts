@@ -4,7 +4,7 @@ import { authMiddleware } from "../../../core/middleware/auth.middleware";
 
 const router = Router();
 
-router.post("/signup", authControllers.signUp);
+router.post("/register", authControllers.signUp);
 router.post("/verify-otp", authControllers.verifyOtp);
 router.post("/login", authControllers.login);
 router.post("/refresh-token", authControllers.refreshToken);
