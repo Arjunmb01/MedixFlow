@@ -12,12 +12,10 @@ import type { AxiosResponse } from "axios"
 
 interface SignupResponse {
   message: string
-  otp: string
 }
 
 interface ResendOtpResponse {
   message: string
-  otp: string
 }
 
 export const signup = (
@@ -44,6 +42,12 @@ export const patientLogin = (
   data: LoginPayload
 ): Promise<AxiosResponse<LoginResponse>> => {
   return api.post("/patient/login", data)
+}
+
+export const googleLogin = (
+  idToken: string
+): Promise<AxiosResponse<LoginResponse>> => {
+  return api.post("/auth/google-login", { idToken })
 }
 
 

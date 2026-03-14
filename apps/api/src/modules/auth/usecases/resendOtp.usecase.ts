@@ -1,5 +1,6 @@
 import authRepository from '../repositories/auth.repository';
 import otpServices from '../services/otp.services';
+import emailService from '../../../infrastructure/email/email.service';
 import { UserStatus } from "@prisma/client";
 
 class ResendOtpUseCase {
@@ -16,15 +17,15 @@ class ResendOtpUseCase {
     }
 
     const otp = await otpServices.generateOtp(email);
-    console.log(otp)
 
     if (tempRegData) {
         await otpServices.extendRegistrationData(email);
     }
 
+    await emailService.sendOtpEmail(email, otp);
+
     return {
       message: "OTP resent successfully",
-      otp 
     };
   }
 }

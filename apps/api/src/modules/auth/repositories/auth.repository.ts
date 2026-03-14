@@ -9,6 +9,12 @@ interface CreateUserData {
   phone: string;
 }
 
+interface CreateGoogleUserData {
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
 class AuthRepository {
   findUserByEmail(email: string) {
     return prisma.user.findUnique({
@@ -28,6 +34,24 @@ class AuthRepository {
             firstName: data.firstName,
             lastName: data.lastName,
             phone: data.phone,
+          },
+        },
+      },
+    });
+  }
+
+  async createGooglePatient(data: CreateGoogleUserData) {
+    return prisma.user.create({
+      data: {
+        email: data.email,
+        passwordHash: "",
+        role: Role.PATIENT,
+        status: UserStatus.ACTIVE,
+        patientProfile: {
+          create: {
+            firstName: data.firstName,
+            lastName: data.lastName,
+            phone: "",
           },
         },
       },
