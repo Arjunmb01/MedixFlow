@@ -7,11 +7,7 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("accessToken")
-
-    if(token){
-        config.headers.Authorization = `Bearer ${token}`
-    }
+    // HTTP-only cookies handle auth automatically
     return config
 })
 
@@ -25,23 +21,18 @@ api.interceptors.response.use(
 
             try {
                 
-                const res = await axios.post(
+                await axios.post(
                     "http://localhost:5000/api/auth/refresh-token",
                     {},
                     {withCredentials: true}
                 )
 
-                const newToken = res.data.accessToken
-                localStorage.setItem("accessToken",newToken)
-                originalRequest.headers.Authorization = `Bearer ${newToken}`
-
+                // Retry original request since the cookie was updated
                 return api(originalRequest)
 
             } catch (error) {
-                
-                localStorage.removeItem("accessToken")
-                window.location.href = "/login"
-
+                // Refresh token also failed/expired, redirect to landing page
+                window.location.href = "/"
             }
         } 
         return Promise.reject(error)

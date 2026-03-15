@@ -21,8 +21,22 @@ export interface LoginResponse {
   accessToken: string
 }
 
+export type Role = "ADMIN" | "PATIENT" | "DOCTOR"
+
+export interface User {
+  id: string
+  email: string
+  role: Role
+}
+
+export interface RoleState {
+  isAuthenticated: boolean
+  user: User | null
+}
+
 export interface AuthState {
-    accessToken : string | null
-    userRole : "ADMIN" | "PATIENT" | "DOCTOR" | null
-    loading : boolean
+  ADMIN: RoleState
+  PATIENT: RoleState
+  DOCTOR: RoleState
+  loading: boolean
 }
