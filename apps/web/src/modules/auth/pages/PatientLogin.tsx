@@ -40,10 +40,9 @@ export default function PatientLogin() {
         setErrorMessage(null)
 
         try {
-            const res = await patientLogin(form)
+            await patientLogin(form)
             dispatch(
                 setAuth({
-                    token: res.data.accessToken,
                     role: "PATIENT"
                 })
             )
@@ -68,10 +67,9 @@ export default function PatientLogin() {
         }
 
         try {
-            const res = await googleLogin(credentialResponse.credential)
+            await googleLogin(credentialResponse.credential)
             dispatch(
                 setAuth({
-                    token: res.data.accessToken,
                     role: "PATIENT"
                 })
             )
