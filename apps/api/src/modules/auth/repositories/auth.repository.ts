@@ -1,5 +1,6 @@
 import {prisma} from "../../../infrastructure/database/prismaClient";
 import { Role, UserStatus } from "@prisma/client";
+import { PatientIdGenerator } from "../services/PatientIdGenerator";
 
 interface CreateUserData {
   email: string;
@@ -23,6 +24,7 @@ class AuthRepository {
   }
 
   async createPatient(data: CreateUserData) {
+    const patientId = await PatientIdGenerator.generate();
     return prisma.user.create({
       data: {
         email: data.email,
@@ -31,6 +33,7 @@ class AuthRepository {
         status: UserStatus.ACTIVE,
         patientProfile: {
           create: {
+            patientId,
             firstName: data.firstName,
             lastName: data.lastName,
             phone: data.phone,
@@ -41,6 +44,7 @@ class AuthRepository {
   }
 
   async createGooglePatient(data: CreateGoogleUserData) {
+    const patientId = await PatientIdGenerator.generate();
     return prisma.user.create({
       data: {
         email: data.email,
@@ -49,6 +53,7 @@ class AuthRepository {
         status: UserStatus.ACTIVE,
         patientProfile: {
           create: {
+            patientId,
             firstName: data.firstName,
             lastName: data.lastName,
             phone: "",

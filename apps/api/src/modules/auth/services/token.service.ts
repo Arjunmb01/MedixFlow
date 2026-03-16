@@ -10,11 +10,11 @@ class TokenService {
         )
     }
 
-    generateRefreshToken(userId:string){
+    generateRefreshToken(userId: string, role: string) {
         return jwt.sign(
-            {userId},
+            { userId, role },
             process.env.JWT_REFRESH_SECRET as string,
-            {expiresIn:"7d"}
+            { expiresIn: "7d" }
         )
     }
 

@@ -33,7 +33,7 @@ export default function AdminLogin() {
     }
 
     const handleSubmit = async (
-        e: FormEvent<HTMLFormElement>
+        e: ChangeEvent<HTMLFormElement>
     ) => {
 
         e.preventDefault()
@@ -41,11 +41,12 @@ export default function AdminLogin() {
 
         try {
 
-            await adminLogin(form)
-
+            const response = await adminLogin(form)
+            const { accessToken } = response.data
             dispatch(
                 setAuth({
-                    role: "ADMIN"
+                    role: "ADMIN",
+                    accessToken
                 })
             )
 

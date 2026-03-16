@@ -9,15 +9,19 @@ interface GuestRouteProps {
 export default function GuestRoute({ children, forRole }: GuestRouteProps) {
     const authState = useAppSelector(state => state.auth)
 
+    // If a specific role is target, only redirect if THAT role is already logged in
     if (forRole) {
         if (authState[forRole].isAuthenticated) {
-            const path = forRole === "ADMIN" ? "/admin/dashboard" : "/patient/dashboard"
-            return <Navigate to={path} replace />
+            const dashboardPath = forRole === "ADMIN" ? "/admin/dashboard" : "/patient/dashboard";
+            return <Navigate to={dashboardPath} replace />
         }
-    } else {
-        if (authState.ADMIN.isAuthenticated) return <Navigate to="/admin/dashboard" replace />
-        if (authState.PATIENT.isAuthenticated) return <Navigate to="/patient/dashboard" replace />
+        return <>{children}</>
     }
+
+    // Generic check for landing page / general auth pages
+    if (authState.ADMIN.isAuthenticated) return <Navigate to="/admin/dashboard" replace />
+    if (authState.PATIENT.isAuthenticated) return <Navigate to="/patient/dashboard" replace />
+    if (authState.DOCTOR.isAuthenticated) return <Navigate to="/doctor/dashboard" replace />
 
     return <>{children}</>
 }
