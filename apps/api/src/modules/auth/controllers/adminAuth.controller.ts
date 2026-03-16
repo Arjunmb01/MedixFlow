@@ -5,7 +5,7 @@ import refreshTokenUsecase from "../usecases/refreshToken.usecase";
 import logoutUsecase from "../usecases/logout.usecase";
 
 
-class AdimnAuthController {
+class AdminAuthController {
     async login(req: Request, res: Response) {
         try {
             let validatedData = await loginSchema.parse(req.body)
@@ -13,9 +13,9 @@ class AdimnAuthController {
 
             const { accessToken, refreshToken } = result
 
-            res.cookie("refreshToken", refreshToken, {
+            res.cookie("admin_refreshToken", refreshToken, {
                 httpOnly: true,
-                secure: false,
+                secure: false, // Set to true in production
                 sameSite: "strict",
                 maxAge: 7 * 24 * 60 * 60 * 1000
             })
@@ -31,9 +31,9 @@ class AdimnAuthController {
 
         try {
 
-            const refreshToken = req.cookies.refreshToken;
+            const refreshToken = req.cookies.admin_refreshToken;
 
-            const result = await refreshTokenUsecase.execute(refreshToken);
+            const result = await refreshTokenUsecase.execute(refreshToken, "ADMIN");
 
             res.json(result);
 
@@ -53,7 +53,7 @@ class AdimnAuthController {
 
             await logoutUsecase.execute(userId);
 
-            res.clearCookie("refreshToken");
+            res.clearCookie("admin_refreshToken");
 
             res.json({ message: "Logged out successfully" });
 
@@ -67,4 +67,4 @@ class AdimnAuthController {
 
 }
 
-export default new AdimnAuthController();
+export default new AdminAuthController();

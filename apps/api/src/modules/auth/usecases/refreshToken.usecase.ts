@@ -3,18 +3,21 @@ import sessionService from "../services/session.service";
 
 class RefreshTokenUseCase {
 
-  async execute(refreshToken: string) {
+  async execute(refreshToken: string, expectedRole: string) {
 
     if (!refreshToken) {
       throw new Error("Refresh token required");
     }
 
-    // Verify refresh token
     const payload: any = tokenService.verifyRefreshToken(refreshToken);
 
     const userId = payload.userId;
+    const role = payload.role;
 
-    // Check session in Redis
+    if (role !== expectedRole) {
+      throw new Error("Invalid session for this role");
+    }
+
     const storedToken = await sessionService.getSession(userId);
 
     if (!storedToken) {
@@ -27,8 +30,8 @@ class RefreshTokenUseCase {
 
 
     const accessToken = tokenService.generateAccessToken(
-      payload.userId,
-      payload.role
+      userId,
+      role
     );
 
     return {

@@ -23,7 +23,7 @@ class LoginPatientUseCase{
             user.role
         )
 
-        const refreshToken = tokenService.generateRefreshToken(user.id)
+        const refreshToken = tokenService.generateRefreshToken(user.id, user.role)
 
         await sessionService.saveSession(user.id,refreshToken)
         return {accessToken,refreshToken}

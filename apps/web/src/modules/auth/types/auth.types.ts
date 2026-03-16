@@ -32,6 +32,7 @@ export interface User {
 export interface RoleState {
   isAuthenticated: boolean
   user: User | null
+  accessToken: string | null
 }
 
 export interface AuthState {

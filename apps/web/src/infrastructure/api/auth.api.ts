@@ -41,7 +41,7 @@ export const resendOtp = (
 export const patientLogin = (
   data: LoginPayload
 ): Promise<AxiosResponse<LoginResponse>> => {
-  return api.post("/patient/login", data)
+  return api.post("/auth/login", data)
 }
 
 export const googleLogin = (

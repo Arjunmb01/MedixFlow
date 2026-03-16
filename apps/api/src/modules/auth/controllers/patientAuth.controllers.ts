@@ -39,9 +39,9 @@ class PatientAuthController {
 
             const { accessToken, refreshToken } = result
 
-            res.cookie("refreshToken", refreshToken, {
+            res.cookie("patient_refreshToken", refreshToken, {
                 httpOnly: true,
-                secure: false,
+                secure: false, // Set to true in production
                 sameSite: "strict",
                 maxAge: 7 * 24 * 60 * 60 * 1000
             })
@@ -57,9 +57,9 @@ class PatientAuthController {
 
         try {
 
-            const refreshToken = req.cookies.refreshToken;
+            const refreshToken = req.cookies.patient_refreshToken;
 
-            const result = await refreshTokenUsecase.execute(refreshToken);
+            const result = await refreshTokenUsecase.execute(refreshToken, "PATIENT");
 
             res.json(result);
 
@@ -79,7 +79,7 @@ class PatientAuthController {
 
             await logoutUsecase.execute(userId);
 
-            res.clearCookie("refreshToken");
+            res.clearCookie("patient_refreshToken");
 
             res.json({ message: "Logged out successfully" });
 
@@ -114,9 +114,9 @@ class PatientAuthController {
 
             const { accessToken, refreshToken } = await googleAuthUsecase.execute(idToken);
 
-            res.cookie("refreshToken", refreshToken, {
+            res.cookie("patient_refreshToken", refreshToken, {
                 httpOnly: true,
-                secure: false,
+                secure: false, // Set to true in production
                 sameSite: "strict",
                 maxAge: 7 * 24 * 60 * 60 * 1000
             });
