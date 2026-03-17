@@ -14,7 +14,11 @@ class LoginPatientUseCase{
         const user = await authRepository.findUserByEmail(data.email)
 
         if(!user || user.role !== "PATIENT") throw new Error("Invalid Login")
-        
+
+        if(user.status === "INACTIVE" || user.status === "SUSPENDED") {
+            throw new Error("Your account has been blocked by the administrator. Please contact support.")
+        }
+
         const valid = await bcrypt.compare(data.password,user.passwordHash)
         if(!valid) throw new Error("Invalid Credentials")
             

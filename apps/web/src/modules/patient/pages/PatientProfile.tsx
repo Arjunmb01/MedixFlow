@@ -2,16 +2,18 @@ import { useState, useEffect } from "react"
 import Sidebar from "@/modules/patient/components/dashboard/Sidebar"
 import TopNav from "@/modules/patient/components/dashboard/TopNav"
 import Card from "@/modules/patient/components/ui/Card"
-import { Sparkles, Save, Lock } from "lucide-react"
+import { Save, Lock } from "lucide-react"
 import { getPatientProfile, updatePatientProfile, updateEmergencyContacts, updatePassword } from "../services/patient.api"
 import type { PatientProfile as PatientProfileType, EmergencyContact } from "../types/patient.types"
+import { toast } from "sonner"
 
 export default function PatientProfile() {
     const [profile, setProfile] = useState<PatientProfileType | null>(null)
     const [personalInfo, setPersonalInfo] = useState({
         name: "",
         mobile: "",
-        bloodGroup: ""
+        bloodGroup: "",
+        gender: ""
     })
     const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([
         { name: "", mobile: "" },
@@ -23,7 +25,6 @@ export default function PatientProfile() {
         confirmPassword: ""
     })
     const [loading, setLoading] = useState(true)
-    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -33,7 +34,8 @@ export default function PatientProfile() {
                 setPersonalInfo({
                     name: data.name,
                     mobile: data.mobile,
-                    bloodGroup: data.bloodGroup || ""
+                    bloodGroup: data.bloodGroup || "",
+                    gender: data.gender || ""
                 })
                 if (data.emergencyContacts?.length > 0) {
                     const contacts = [...data.emergencyContacts]
@@ -52,10 +54,15 @@ export default function PatientProfile() {
     const handlePersonalInfoSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            await updatePatientProfile(personalInfo)
-            setMessage({ type: 'success', text: "Personal information updated successfully!" })
+            await updatePatientProfile({
+                name: personalInfo.name,
+                mobile: personalInfo.mobile,
+                bloodGroup: personalInfo.bloodGroup || undefined,
+                gender: personalInfo.gender || undefined
+            })
+            toast.success("Personal information updated successfully!")
         } catch (error) {
-            setMessage({ type: 'error', text: "Failed to update personal information." })
+            toast.error("Failed to update personal information.")
         }
     }
 
@@ -63,16 +70,16 @@ export default function PatientProfile() {
         e.preventDefault()
         try {
             await updateEmergencyContacts(emergencyContacts)
-            setMessage({ type: 'success', text: "Emergency contacts updated successfully!" })
+            toast.success("Emergency contacts updated successfully!")
         } catch (error) {
-            setMessage({ type: 'error', text: "Failed to update emergency contacts." })
+            toast.error("Failed to update emergency contacts.")
         }
     }
 
     const handlePasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (passwords.newPassword !== passwords.confirmPassword) {
-            setMessage({ type: 'error', text: "New passwords do not match." })
+            toast.error("New passwords do not match.")
             return
         }
         try {
@@ -80,10 +87,10 @@ export default function PatientProfile() {
                 currentPassword: passwords.currentPassword,
                 newPassword: passwords.newPassword
             })
-            setMessage({ type: 'success', text: "Password updated successfully!" })
+            toast.success("Password updated successfully!")
             setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" })
         } catch (error) {
-            setMessage({ type: 'error', text: "Failed to update password. Please check your current password." })
+            toast.error("Failed to update password. Please check your current password.")
         }
     }
 
@@ -116,14 +123,6 @@ export default function PatientProfile() {
                             Manage your personal information, security, and notifications.
                         </p>
                     </div>
-
-                    {message && (
-                        <div className={`mb-6 p-4 rounded-2xl border ${
-                            message.type === 'success' ? 'bg-green-50 border-green-100 text-green-600' : 'bg-red-50 border-red-100 text-red-600'
-                        } text-sm font-medium animate-in fade-in slide-in-from-top-4`}>
-                            {message.text}
-                        </div>
-                    )}
 
                     <div className="grid grid-cols-3 gap-8">
                         {/* Main Settings */}
@@ -179,6 +178,19 @@ export default function PatientProfile() {
                                                 <option value="AB-">AB-</option>
                                                 <option value="O+">O+</option>
                                                 <option value="O-">O-</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[13px] font-bold text-gray-500 uppercase tracking-wider ml-1">Gender</label>
+                                            <select
+                                                value={personalInfo.gender}
+                                                onChange={(e) => setPersonalInfo({...personalInfo, gender: e.target.value})}
+                                                className="w-full bg-gray-50 border-none rounded-2xl py-3 px-5 text-[15px] font-medium text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer"
+                                            >
+                                                <option value="">Select Gender</option>
+                                                <option value="MALE">Male</option>
+                                                <option value="FEMALE">Female</option>
+                                                <option value="OTHER">Other / Prefer not to say</option>
                                             </select>
                                         </div>
                                     </div>

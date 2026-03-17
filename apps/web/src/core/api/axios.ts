@@ -1,7 +1,8 @@
 import axios from "axios";
-import type { InternalAxiosRequestConfig, AxiosResponse } from "axios";
+import type { InternalAxiosRequestConfig } from "axios";
 import { store } from "../store/store";
-import { setAccessToken } from "@/modules/store/authSlice";
+import { setAccessToken, logout } from "@/modules/store/authSlice";
+import { toast } from "sonner";
 
 const api = axios.create({
     baseURL: "http://localhost:5000/api",
@@ -32,6 +33,17 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config
 
+        // Handle account blocked — force logout immediately (but skip if this is a login request)
+        const isLoginRequest = originalRequest.url?.includes("/auth/login") || originalRequest.url?.includes("/admin/auth/login") || originalRequest.url?.includes("/auth/google-login");
+        if (error.response?.status === 403 && error.response?.data?.code === "ACCOUNT_BLOCKED" && !isLoginRequest) {
+            const isAdmin = originalRequest.url?.includes("/admin");
+            const role = isAdmin ? "ADMIN" : "PATIENT";
+            store.dispatch(logout({ role: role as any }));
+            toast.error("Your account has been blocked by the administrator. Please contact support.");
+            window.location.href = role === "ADMIN" ? "/admin/login" : "/patient/login";
+            return Promise.reject(error);
+        }
+
         if(error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true
 
@@ -53,8 +65,17 @@ api.interceptors.response.use(
                 store.dispatch(setAccessToken({ role, accessToken }))
                 return api(originalRequest)
 
-            } catch (error) {
-                window.location.href = "/"
+            } catch (refreshError: any) {
+                // If refresh failed because account is blocked, show specific message
+                const isAdmin = originalRequest.url?.includes("/admin");
+                const role = isAdmin ? "ADMIN" : "PATIENT";
+                store.dispatch(logout({ role: role as any }));
+                
+                if (refreshError.response?.data?.message?.includes("blocked")) {
+                    toast.error("Your account has been blocked by the administrator.");
+                }
+                
+                window.location.href = role === "ADMIN" ? "/admin/login" : "/patient/login";
             }
         } 
         return Promise.reject(error)

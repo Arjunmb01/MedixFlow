@@ -13,6 +13,7 @@ export interface PatientProfile {
   email: string
   mobile: string
   bloodGroup?: string
+  gender?: string
 
   profileCompletion: number
 

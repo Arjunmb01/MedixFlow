@@ -12,7 +12,6 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
      const authState = useAppSelector(state => state.auth)
 
-     // Check if the specific role required for this route is authenticated
      if (!authState[role].isAuthenticated) {
          if (role === "ADMIN") return <Navigate to="/admin/login" replace/>
          return <Navigate to="/patient/login" replace/>

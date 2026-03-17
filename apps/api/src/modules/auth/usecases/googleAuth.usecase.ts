@@ -32,6 +32,11 @@ class GoogleAuthUseCase {
       });
     }
 
+    // Check if user is blocked
+    if (user.status === "INACTIVE" || user.status === "SUSPENDED") {
+      throw new Error("Your account has been blocked by the administrator. Please contact support.");
+    }
+
     // Generate tokens
     const accessToken = tokenService.generateAccessToken(user.id, user.role);
     const refreshToken = tokenService.generateRefreshToken(user.id, user.role);

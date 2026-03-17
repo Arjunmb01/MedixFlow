@@ -38,108 +38,126 @@ enum AppointmentStatus {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  passwordHash  String
-  role          Role
-  status        UserStatus
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  role         Role
+  status       UserStatus
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  deletedAt     DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   patientProfile PatientProfile?
   doctorProfile  DoctorProfile?
 
-  notifications Notification[]
+  notifications       Notification[]
+  passwordSetupTokens PasswordSetupToken[]
 }
 
 model PatientProfile {
-  id          String @id
-  user        User   @relation(fields: [id], references: [id])
+  id   String @id
+  user User   @relation(fields: [id], references: [id])
 
-  patientId   String @unique
-  firstName   String
-  lastName    String
-  phone       String
-  dob         DateTime?
-  gender      Gender?
-  bloodGroup  String?
+  patientId  String    @unique
+  firstName  String
+  lastName   String
+  phone      String
+  dob        DateTime?
+  gender     Gender?
+  bloodGroup String?
 
   emergencyContacts EmergencyContact[]
-  appointments Appointment[]
+  appointments      Appointment[]
 }
 
 model DoctorProfile {
-  id              String @id
-  user            User   @relation(fields: [id], references: [id])
+  id   String @id
+  user User   @relation(fields: [id], references: [id])
 
-  firstName       String
-  lastName        String
+  firstName String
+  lastName  String
+  phone     String?
+
   specialty       String
   licenseNumber   String
   consultationFee Float
 
-  rating          Float   @default(0)
+  rating Float @default(0)
 
-  schedules       DoctorSchedule[]
-  appointments    Appointment[]
+  schedules    DoctorSchedule[]
+  appointments Appointment[]
+
+  @@index([specialty])
 }
 
 model DoctorSchedule {
-  id         String @id @default(uuid())
+  id String @id @default(uuid())
 
-  doctorId   String
-  doctor     DoctorProfile @relation(fields: [doctorId], references: [id])
+  doctorId String
+  doctor   DoctorProfile @relation(fields: [doctorId], references: [id])
 
-  dayOfWeek  Int
+  dayOfWeek Int
 
-  startTime  String
-  endTime    String
+  startTime String
+  endTime   String
+
+  fullDay Boolean @default(false)
 
   slotDurationMinutes Int @default(30)
 }
 
 model Appointment {
-  id          String @id @default(uuid())
+  id String @id @default(uuid())
 
-  patientId   String
-  doctorId    String
+  patientId String
+  doctorId  String
 
-  patient     PatientProfile @relation(fields: [patientId], references: [id])
-  doctor      DoctorProfile  @relation(fields: [doctorId], references: [id])
+  patient PatientProfile @relation(fields: [patientId], references: [id])
+  doctor  DoctorProfile  @relation(fields: [doctorId], references: [id])
 
   appointmentDate DateTime
   status          AppointmentStatus
 
-  reason          String?
-  notes           String?
+  reason String?
+  notes  String?
 
   createdAt DateTime @default(now())
 }
 
 model Notification {
-  id        String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  type      String
-  title     String
-  message   String
+  type    String
+  title   String
+  message String
 
-  isRead    Boolean  @default(false)
+  isRead Boolean @default(false)
 
   createdAt DateTime @default(now())
 }
 
 model EmergencyContact {
-  id        String  @id @default(uuid())
+  id        String @id @default(uuid())
   name      String
   mobile    String
   patientId String
 
-  patient   PatientProfile @relation(fields: [patientId], references: [id])
+  patient PatientProfile @relation(fields: [patientId], references: [id])
 
+  createdAt DateTime @default(now())
+}
+
+model PasswordSetupToken {
+  id     String @id @default(uuid())
+  token  String @unique
+  userId String
+
+  user User @relation(fields: [userId], references: [id])
+
+  expiresAt DateTime
   createdAt DateTime @default(now())
 }
