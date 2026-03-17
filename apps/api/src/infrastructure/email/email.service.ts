@@ -71,6 +71,138 @@ class EmailService {
     await transporter.sendMail(mailOptions)
     console.log(`[EmailService] OTP email sent to ${to}`)
   }
+
+  async sendSetPasswordEmail(to: string, token: string, doctorName: string) {
+
+    const link = `${process.env.FRONTEND_URL}/setup-password?token=${token}`
+
+    const mailOptions = {
+      from: process.env.SMTP_FROM?.trim() || `"MedixFlow" <${process.env.SMTP_USER?.trim()}>`,
+      to,
+      subject: "Set your MedixFlow password",
+      html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+          <tr>
+            <td align="center">
+              <table width="480" style="background:#ffffff;border-radius:12px;overflow:hidden;">
+                
+                <tr>
+                  <td style="background:#0066cc;padding:24px;text-align:center;color:#fff;font-size:22px;font-weight:bold;">
+                    MedixFlow
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:40px">
+                    <h2 style="margin-top:0">Welcome Dr. ${doctorName}</h2>
+
+                    <p style="color:#6b7280;font-size:14px">
+                      Your staff account has been created by the administrator.
+                      Please click the button below to set your password.
+                    </p>
+
+                    <div style="text-align:center;margin:30px 0">
+                      <a href="${link}"
+                        style="background:#0066cc;color:white;padding:12px 24px;
+                        text-decoration:none;border-radius:6px;font-weight:bold">
+                        Set Password
+                      </a>
+                    </div>
+
+                    <p style="font-size:12px;color:#9ca3af">
+                      This link expires in 24 hours.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:20px;text-align:center;font-size:12px;color:#9ca3af">
+                    © 2026 MedixFlow
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+      `
+    }
+
+    await transporter.sendMail(mailOptions)
+
+    console.log(`[EmailService] Password setup email sent to ${to}`)
+  }
+
+  async sendDoctorCredentialsEmail(to: string, doctorName: string, tempPassword: string) {
+    const loginLink = `${process.env.FRONTEND_URL}/login`
+
+    const mailOptions = {
+      from: process.env.SMTP_FROM?.trim() || `"MedixFlow" <${process.env.SMTP_USER?.trim()}>`,
+      to,
+      subject: "Welcome to MedixFlow - Your Account Credentials",
+      html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+          <tr>
+            <td align="center">
+              <table width="480" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+                <tr>
+                  <td style="background:#0066cc;padding:24px;text-align:center;color:#fff;font-size:22px;font-weight:bold;">
+                    MedixFlow
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:40px">
+                    <h2 style="margin-top:0;color:#111827;">Welcome Dr. ${doctorName}</h2>
+                    <p style="color:#6b7280;font-size:14px;line-height:1.6;">
+                      Your staff account has been created by the administrator. 
+                      You can now login using the credentials below:
+                    </p>
+                    <div style="background:#f9fafb;padding:20px;border-radius:8px;margin:24px 0;border:1px solid #e5e7eb;">
+                      <p style="margin:0 0 12px;font-size:14px;color:#374151;">
+                        <strong style="color:#111827;">Email:</strong> ${to}
+                      </p>
+                      <p style="margin:0;font-size:14px;color:#374151;">
+                        <strong style="color:#111827;">Temporary Password:</strong> 
+                        <code style="background:#f3f4f6;padding:4px 8px;border-radius:4px;font-family:monospace;font-weight:bold;color:#0066cc;font-size:15px;">${tempPassword}</code>
+                      </p>
+                    </div>
+                    <div style="text-align:center;margin:32px 0">
+                      <a href="${loginLink}"
+                        style="background:#0066cc;color:white;padding:12px 32px;
+                        text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;display:inline-block;">
+                        Login to Portal
+                      </a>
+                    </div>
+                    <p style="font-size:12px;color:#ef4444;text-align:center;background:#fff1f2;padding:8px;border-radius:4px;margin:0;">
+                      Important: For security reasons, please change your password after your first login.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:24px;text-align:center;font-size:12px;color:#9ca3af;border-top:1px solid #f3f4f6;">
+                    © 2026 MedixFlow • All rights reserved
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+      `
+    }
+
+    await transporter.sendMail(mailOptions)
+    console.log(`[EmailService] Welcome email with password sent to ${to}`)
+  }
 }
 
 export default new EmailService()

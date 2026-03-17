@@ -6,6 +6,7 @@ import { useAppDispatch } from "@/core/store/hooks"
 import { setAuth } from "../../store/authSlice"
 
 import { patientLogin, googleLogin } from "@/infrastructure/api/auth.api"
+import { toast } from "sonner"
 
 import type { LoginPayload } from "../types/auth.types"
 
@@ -51,10 +52,10 @@ export default function PatientLogin() {
             navigate("/patient/dashboard")
         } catch (error: any) {
             console.error("Login failed:", error)
-            if (error.response?.data?.message) {
-               setErrorMessage(error.response.data.message)
-            } else {
-               setErrorMessage("Login failed. Please check your credentials.")
+            const msg = error.response?.data?.message || "Login failed. Please check your credentials."
+            setErrorMessage(msg)
+            if (error.response?.data?.code === "ACCOUNT_BLOCKED") {
+                toast.error(msg)
             }
         }
     }
@@ -80,10 +81,10 @@ export default function PatientLogin() {
             navigate("/patient/dashboard")
         } catch (error: any) {
             console.error("Google login failed:", error)
-            if (error.response?.data?.message) {
-                setErrorMessage(error.response.data.message)
-            } else {
-                setErrorMessage("Google login failed. Please try again.")
+            const msg = error.response?.data?.message || "Google login failed. Please try again."
+            setErrorMessage(msg)
+            if (error.response?.data?.code === "ACCOUNT_BLOCKED") {
+                toast.error(msg)
             }
         }
     }

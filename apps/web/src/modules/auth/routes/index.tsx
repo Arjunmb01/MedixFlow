@@ -4,16 +4,18 @@ import Register from "../pages/Register"
 import VerifyOtp from "../pages/VerifyOtp"
 import PatientLogin from "../pages/PatientLogin"
 import AdminLogin from "../pages/AdminLogin"
+import SetPassword from "../pages/SetPassword"
 
 export const AuthRoutes = (
     <>
+        <Route path="/setup-password" element={<SetPassword />} />
         <Route path="/auth/register" element={
-            <GuestRoute>
+            <GuestRoute forRole="PATIENT">
                 <Register />
             </GuestRoute>
         } />
         <Route path="/auth/verify-otp" element={
-            <GuestRoute>
+            <GuestRoute forRole="PATIENT">
                 <VerifyOtp />
             </GuestRoute>
         } />

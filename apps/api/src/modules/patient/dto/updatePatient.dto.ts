@@ -7,11 +7,21 @@ export const updatePatientSchema = z.object({
 
   mobile: z
     .string()
-    .regex(/^[0-9]{10}$/, "Invalid mobile number"),
+    .min(7, "Mobile number is too short")
+    .max(15, "Mobile number is too long")
+    .regex(/^[+\d\s\-()]+$/, "Invalid mobile number format"),
 
   bloodGroup: z
-    .enum(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
-    .optional()
+    .preprocess(
+      (val) => (val === "" ? undefined : val),
+      z.enum(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]).optional()
+    ),
+
+  gender: z
+    .preprocess(
+      (val) => (val === "" ? undefined : val),
+      z.enum(["MALE", "FEMALE", "OTHER"]).optional()
+    )
 })
 
 export type UpdatePatientDTO = z.infer<typeof updatePatientSchema>

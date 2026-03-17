@@ -21,6 +21,7 @@ export class GetPatientProfileUseCase {
       email: patientData.user.email,
       mobile: patientData.phone,
       bloodGroup: patientData.bloodGroup,
+      gender: patientData.gender,
       emergencyContacts: patientData.emergencyContacts.map(c => ({
         id: c.id,
         name: c.name,

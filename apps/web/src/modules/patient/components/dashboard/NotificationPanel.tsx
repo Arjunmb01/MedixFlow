@@ -16,7 +16,7 @@ const notifications = [
     },
     {
         title: "Wallet Credit Added",
-        desc: "Your top-up of $50 has been processed successfully.",
+        desc: "Your top-up of ₹50 has been processed successfully.",
         icon: Wallet,
         iconBg: "bg-green-50 text-green-600",
     },

@@ -49,7 +49,9 @@ class PatientAuthController {
             res.json({ accessToken })
 
         } catch (error) {
-            res.status(401).json({ message: error instanceof Error ? error.message : "An unexpected error occurred" });
+            const message = error instanceof Error ? error.message : "An unexpected error occurred";
+            const isBlocked = message.toLowerCase().includes("blocked");
+            res.status(isBlocked ? 403 : 401).json({ message, code: isBlocked ? "ACCOUNT_BLOCKED" : undefined });
         }
     }
     
@@ -124,7 +126,9 @@ class PatientAuthController {
             res.json({ accessToken });
 
         } catch (error) {
-            res.status(401).json({ message: error instanceof Error ? error.message : "Google authentication failed" });
+            const message = error instanceof Error ? error.message : "Google authentication failed";
+            const isBlocked = message.toLowerCase().includes("blocked");
+            res.status(isBlocked ? 403 : 401).json({ message, code: isBlocked ? "ACCOUNT_BLOCKED" : undefined });
         }
     }
 

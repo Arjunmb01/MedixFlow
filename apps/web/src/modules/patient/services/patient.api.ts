@@ -11,6 +11,7 @@ export const updatePatientProfile = async (payload: {
   name: string;
   mobile: string;
   bloodGroup?: string;
+  gender?: string;
 }) => {
 
   const { data } = await axios.put("/patient/profile", payload);

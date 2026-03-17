@@ -5,6 +5,7 @@ export interface PatientProfile {
   email: string
   mobile: string
   bloodGroup?: string | null
+  gender?: string | null
   emergencyContacts: EmergencyContact[]
 }
 
@@ -18,6 +19,7 @@ export interface UpdatePatientInput {
   name: string
   mobile: string
   bloodGroup?: string
+  gender?: string
 }
 
 export interface EmergencyContactInput {

@@ -1,5 +1,6 @@
 import tokenService from "../services/token.service";
 import sessionService from "../services/session.service";
+import { prisma } from "../../../infrastructure/database/prismaClient";
 
 class RefreshTokenUseCase {
 
@@ -28,6 +29,12 @@ class RefreshTokenUseCase {
       throw new Error("Invalid refresh token");
     }
 
+    // Check if user is blocked/inactive
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { status: true } });
+    if (!user || user.status === "INACTIVE" || user.status === "SUSPENDED") {
+      await sessionService.deleteSession(userId);
+      throw new Error("Account blocked");
+    }
 
     const accessToken = tokenService.generateAccessToken(
       userId,

@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { z } from "zod"
+import { toast } from "sonner"
 
 import { signup } from "@/infrastructure/api/auth.api"
 import type { RegisterPayload } from "../types/auth.types"
@@ -29,7 +30,6 @@ export default function Register() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
@@ -43,7 +43,6 @@ export default function Register() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setErrors({})
-    setErrorMessage(null)
 
     const result = signupSchema.safeParse(form)
     if (!result.success) {
@@ -59,7 +58,7 @@ export default function Register() {
 
     try {
       await signup(form)
-
+      toast.success("Account created successfully!")
       navigate("/auth/verify-otp", {
         state: {
           email: form.email,
@@ -82,7 +81,7 @@ export default function Register() {
           // not json, leave as is
         }
       }
-      setErrorMessage(msg)
+      toast.error(msg)
     }
   }
 
@@ -109,12 +108,6 @@ export default function Register() {
         <p className="text-sm text-gray-500 text-center mt-1 mb-6">
           Join thousands of patients managing health better
         </p>
-
-        {errorMessage && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded-md border border-red-200">
-            {errorMessage}
-          </div>
-        )}
 
         {/* Name Fields */}
         <div className="flex gap-3 mb-4">
