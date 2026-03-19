@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MESSAGES } from "../../../core/constants";
 
 export const signupSchema = z.object({
 
@@ -24,7 +25,7 @@ export const signupSchema = z.object({
     ),
 
  acceptedTerms: z.literal(true, {
-  message: "You must accept the terms"
+  message: MESSAGES.TERMS_ACCEPTED_REQUIRED
 }),
 
 });

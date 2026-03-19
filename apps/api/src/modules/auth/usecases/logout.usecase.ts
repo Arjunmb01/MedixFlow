@@ -1,20 +1,18 @@
-import sessionService from "../services/session.service";
+import { MESSAGES } from "../../../core/constants";
+import { ISessionService } from "../interfaces/ISessionService";
 
-class LogoutUseCase {
-    async execute(userId: string) {
+export class LogoutUseCase {
+  constructor(private sessionService: ISessionService) {}
 
+  async execute(userId: string) {
     if (!userId) {
-      throw new Error("User ID required");
+      throw new Error(MESSAGES.USER_ID_REQUIRED);
     }
 
-    await sessionService.deleteSession(userId);
+    await this.sessionService.deleteSession(userId);
 
     return {
-      message: "Logout successful"
+      message: MESSAGES.LOGOUT_SUCCESS
     };
-
   }
-
 }
-
-export default new LogoutUseCase();

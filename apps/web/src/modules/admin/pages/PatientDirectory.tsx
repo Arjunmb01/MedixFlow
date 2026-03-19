@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import AdminSidebar from "../components/AdminSidebar"
 import AdminTopNav from "../components/AdminTopNav"
 import { Search, Trash2, ChevronLeft, ChevronRight, User, SlidersHorizontal, X } from "lucide-react"
+import ConfirmModal from "../components/ConfirmModal"
 import { getPatientsList, deletePatient, updatePatientStatus } from "../services/patient.service"
 import { toast } from "sonner"
 
@@ -40,6 +41,21 @@ export default function PatientDirectory() {
     const [totalActive, setTotalActive] = useState(0)
     const [totalPages, setTotalPages] = useState(1)
 
+    const [confirmModalConfig, setConfirmModalConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        actionText: string;
+        onConfirm: () => void;
+        isDestructive?: boolean;
+    }>({
+        isOpen: false,
+        title: "",
+        message: "",
+        actionText: "",
+        onConfirm: () => {},
+    })
+
     const activeFilterCount = [status, gender].filter(Boolean).length
 
     const fetchPatients = async () => {
@@ -58,7 +74,6 @@ export default function PatientDirectory() {
     }
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm("Are you sure you want to delete this patient?")) return
         try {
             await deletePatient(id)
             toast.success("Patient deleted successfully")
@@ -296,7 +311,20 @@ export default function PatientDirectory() {
                                                         View
                                                     </button>
                                                     <button
-                                                        onClick={() => handleToggleBlock(patient.id, patient.user.status)}
+                                                        onClick={() => {
+                                                            const actionText = patient.user.status === 'ACTIVE' ? 'block' : 'unblock'
+                                                            setConfirmModalConfig({
+                                                                isOpen: true,
+                                                                title: `${actionText === 'block' ? 'Block' : 'Unblock'} Patient`,
+                                                                message: `Are you sure you want to ${actionText} this patient? Their access will immediately be updated.`,
+                                                                actionText: actionText.charAt(0).toUpperCase() + actionText.slice(1),
+                                                                isDestructive: actionText === 'block',
+                                                                onConfirm: () => {
+                                                                    setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))
+                                                                    handleToggleBlock(patient.id, patient.user.status)
+                                                                }
+                                                            })
+                                                        }}
                                                         className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border active:scale-95 ${
                                                             patient.user.status === 'ACTIVE'
                                                                 ? 'text-amber-600 border-amber-100 bg-amber-50 hover:bg-amber-100'
@@ -307,7 +335,19 @@ export default function PatientDirectory() {
                                                         {patient.user.status === 'ACTIVE' ? 'Block' : 'Unblock'}
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDelete(patient.id)}
+                                                        onClick={() => {
+                                                            setConfirmModalConfig({
+                                                                isOpen: true,
+                                                                title: "Delete Patient",
+                                                                message: "Are you sure you want to permanently delete this patient? This action cannot be undone.",
+                                                                actionText: "Delete Patient",
+                                                                isDestructive: true,
+                                                                onConfirm: () => {
+                                                                    setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))
+                                                                    handleDelete(patient.id)
+                                                                }
+                                                            })
+                                                        }}
                                                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
@@ -360,6 +400,16 @@ export default function PatientDirectory() {
                     </div>
                 </div>
             </main>
+
+            <ConfirmModal
+                isOpen={confirmModalConfig.isOpen}
+                title={confirmModalConfig.title}
+                message={confirmModalConfig.message}
+                confirmText={confirmModalConfig.actionText}
+                isDestructive={confirmModalConfig.isDestructive}
+                onConfirm={confirmModalConfig.onConfirm}
+                onClose={() => setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     )
 }

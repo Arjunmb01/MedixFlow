@@ -1,12 +1,15 @@
-import { useState, type ChangeEvent, type FormEvent } from "react"
+import { useState, type ChangeEvent } from "react"
 import { useNavigate } from "react-router-dom"
 
 import { useAppDispatch } from "@/core/store/hooks"
 import { setAuth } from "../../store/authSlice"
 
 import { adminLogin } from "@/infrastructure/api/auth.api"
+import { toast } from "sonner"
 
 import type { LoginPayload } from "../types/auth.types"
+
+import { Eye, EyeOff } from "lucide-react"
 
 export default function AdminLogin() {
 
@@ -17,6 +20,7 @@ export default function AdminLogin() {
         email: "",
         password: ""
     })
+    const [showPassword, setShowPassword] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
     const handleChange = (
@@ -49,7 +53,7 @@ export default function AdminLogin() {
                     accessToken
                 })
             )
-
+            toast.success("Welcome back, Admin!")
             navigate("/admin/dashboard")
 
         } catch (error: any) {
@@ -109,15 +113,24 @@ export default function AdminLogin() {
                     <label className="block text-[12px] text-gray-300 mb-1.5 font-medium">
                         Secure Password
                     </label>
-                    <input
-                        name="password"
-                        type="password"
-                        placeholder="••••••••"
-                        className="w-full bg-[#666666] text-white border-none rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#10b981] outline-none placeholder:text-gray-300/80 transition-all font-bold tracking-widest"
-                        value={form.password}
-                        onChange={handleChange}
-                        required
-                    />
+                    <div className="relative">
+                        <input
+                            name="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            className={`w-full bg-[#666666] text-white border-none rounded-md pl-3 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-[#10b981] outline-none placeholder:text-gray-300/80 transition-all font-bold ${!showPassword ? 'tracking-widest' : ''}`}
+                            value={form.password}
+                            onChange={handleChange}
+                            required
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                        >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
                 </div>
 
                 <button

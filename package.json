@@ -1,0 +1,25 @@
+{
+  "name": "medixflow-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MedixFlow - A modern healthcare platform",
+  "scripts": {
+    "dev:api": "npm run dev --workspace=@medixflow/api",
+    "dev:web": "npm run dev --workspace=@medixflow/web",
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "eslint": "^9.18.0",
+    "prettier": "^3.5.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.18.0"
+  }
+}

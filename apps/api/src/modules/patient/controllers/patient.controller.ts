@@ -1,9 +1,12 @@
 import { Request, Response, NextFunction } from "express"
-import { PatientRepository } from "../repostries/patient.repository"
-import { UpdatePatientProfileUseCase } from "../usesCases/updatePatientProfile.usecase"
-import { UpdateEmergencyContactUseCase } from "../usesCases/updateEmergencyContact.usecase"
-import { GetPatientProfileUseCase } from "../usesCases/getPatientProfile.usecase"
-import { UpdatePasswordUseCase } from "../usesCases/updatePassword.usecase"
+import { StatusCode, MESSAGES } from "../../../core/constants";
+import { PatientRepository } from "../repositories/patient.repository"
+import { UpdatePatientProfileUseCase } from "../usecases/updatePatientProfile.usecase"
+import { UpdateEmergencyContactUseCase } from "../usecases/updateEmergencyContact.usecase"
+import { GetPatientProfileUseCase } from "../usecases/getPatientProfile.usecase"
+import { UpdatePasswordUseCase } from "../usecases/updatePassword.usecase"
+import { GetAllPatientsUseCase } from "../usecases/getAllPatients.usecase"
+import { GetPatientByIdUseCase } from "../usecases/getPatientById.usecase"
 import { getPatientsQuerySchema } from "../dto/getPatientsQuery.dto"
 import sessionService from "../../auth/services/session.service"
 
@@ -19,8 +22,8 @@ export const updatePatientProfile = async (
     const usecase = new UpdatePatientProfileUseCase(repo)
     const result = await usecase.execute(patientId, req.body)
 
-    res.status(200).json({
-      message: "Profile updated successfully",
+    res.status(StatusCode.OK).json({
+      message: MESSAGES.PROFILE_UPDATED,
       data: result
     })
   } catch (error) {
@@ -41,7 +44,7 @@ export const updateEmergencyContacts = async (
       req.body.contacts
     )
 
-    res.status(200).json(result)
+    res.status(StatusCode.OK).json(result)
   } catch (error) {
     next(error)
   }
@@ -73,7 +76,7 @@ export const updatePassword = async (
     const usecase = new UpdatePasswordUseCase(repo)
     const result = await usecase.execute(patientId, req.body)
 
-    res.status(200).json(result)
+    res.status(StatusCode.OK).json(result)
   } catch (error) {
     next(error)
   }
@@ -87,7 +90,8 @@ export const getAllPatients = async (
 ) => {
   try {
     const query = getPatientsQuerySchema.parse(req.query)
-    const result = await repo.getPatients(query)
+    const usecase = new GetAllPatientsUseCase(repo)
+    const result = await usecase.execute(query)
     res.json(result)
   } catch (error) {
     next(error)
@@ -111,7 +115,7 @@ export const blockPatient = async (
     }
 
     res.json({
-      message: "Patient status updated successfully",
+      message: MESSAGES.PATIENT_STATUS_UPDATED,
       data: result
     })
   } catch (error) {
@@ -129,7 +133,7 @@ export const deletePatient = async (
   try {
     await repo.deletePatient(id)
     res.json({
-      message: "Patient deleted successfully"
+      message: MESSAGES.PATIENT_DELETED
     })
   } catch (error) {
     next(error)
@@ -144,10 +148,8 @@ export const getPatientById = async (
   const id = req.params.id as string
 
   try {
-    const patient = await repo.findById(id)
-    if (!patient) {
-      return res.status(404).json({ message: "Patient not found" })
-    }
+    const usecase = new GetPatientByIdUseCase(repo)
+    const patient = await usecase.execute(id)
     res.json(patient)
   } catch (error) {
     next(error)

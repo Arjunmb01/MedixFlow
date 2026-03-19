@@ -1,50 +1,70 @@
 import { OAuth2Client } from "google-auth-library";
-import authRepository from "../repositories/auth.repository";
+import { MESSAGES } from "../../../core/constants";
+import { config } from "../../../core/config";
+import { IAuthRepository } from "../interfaces/IAuthRepository";
 import tokenService from "../services/token.service";
 import sessionService from "../services/session.service";
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(config.googleClientId);
 
-class GoogleAuthUseCase {
+export class GoogleAuthUseCase {
+  constructor(private authRepository: IAuthRepository) {}
+
   async execute(idToken: string) {
+    console.time("google_auth_total");
+    
     // Verify the Google token
+    console.time("google_verify");
     const ticket = await client.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: config.googleClientId,
     });
+    console.timeEnd("google_verify");
 
     const payload = ticket.getPayload();
     if (!payload || !payload.email) {
-      throw new Error("Invalid Google token");
+      throw new Error(MESSAGES.INVALID_GOOGLE_TOKEN);
     }
 
     const { email, given_name, family_name } = payload;
 
     // Check if user already exists
-    let user = await authRepository.findUserByEmail(email);
+    console.time("db_find_user");
+    let user = await this.authRepository.findUserByEmail(email);
+    console.timeEnd("db_find_user");
 
-    if (!user) {
-      // Auto-register new Google user
-      user = await authRepository.createGooglePatient({
+    if (user) {
+      // If user exists and is not a patient, prevent login with helpful message
+      if (user.role !== "PATIENT") {
+        if (user.role === "DOCTOR") throw new Error("It looks like you have a Doctor account. Please login through the Doctor Portal.");
+        if (user.role === "ADMIN") throw new Error("This is an Admin account. Please login through the Admin Portal.");
+        throw new Error(MESSAGES.INVALID_ROLE_PATIENT);
+      }
+    } else {
+      // Auto-register new Google user as PATIENT
+      console.time("db_create_google_user");
+      user = await this.authRepository.createGooglePatient({
         email,
         firstName: given_name || "User",
         lastName: family_name || "",
       });
+      console.timeEnd("db_create_google_user");
     }
 
     // Check if user is blocked
     if (user.status === "INACTIVE" || user.status === "SUSPENDED") {
-      throw new Error("Your account has been blocked by the administrator. Please contact support.");
+      throw new Error(MESSAGES.ACCOUNT_BLOCKED);
     }
 
     // Generate tokens
-    const accessToken = tokenService.generateAccessToken(user.id, user.role);
-    const refreshToken = tokenService.generateRefreshToken(user.id, user.role);
+    const accessToken = tokenService.generateAccessToken(user.id, user.role, user.email);
+    const refreshToken = tokenService.generateRefreshToken(user.id, user.role, user.email);
 
+    console.time("session_save");
     await sessionService.saveSession(user.id, refreshToken);
+    console.timeEnd("session_save");
 
+    console.timeEnd("google_auth_total");
     return { accessToken, refreshToken };
   }
 }
-
-export default new GoogleAuthUseCase();

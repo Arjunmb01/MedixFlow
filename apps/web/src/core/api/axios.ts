@@ -6,26 +6,48 @@ import { toast } from "sonner";
 
 const api = axios.create({
     baseURL: "http://localhost:5000/api",
-    withCredentials:true
+    withCredentials: true
 })
 
+// Helper to determine role from URL
+function getRoleFromUrl(url?: string): "ADMIN" | "PATIENT" | "DOCTOR" {
+    if (url?.startsWith("/admin") || url?.includes("/admin/")) return "ADMIN"
+    // Use a more specific check to distinguish between '/doctor' (profile/auth) and '/doctors' (public listing)
+    if (url === "/doctor" || url?.startsWith("/doctor/") || (url?.includes("/doctor") && !url?.includes("/doctors"))) return "DOCTOR"
+    
+    // For shared routes like /common or /doctors, use the current page context
+    if ((url?.includes("/common/") || url?.includes("/doctors")) && typeof window !== "undefined") {
+        const path = window.location.pathname;
+        if (path.startsWith("/admin") || path.includes("/admin/")) return "ADMIN"
+        if (path.startsWith("/doctor") || path.includes("/doctor/")) return "DOCTOR"
+    }
+
+    return "PATIENT"
+}
+
+
+function getLoginPath(role: "ADMIN" | "PATIENT" | "DOCTOR") {
+    if (role === "ADMIN") return "/admin/login"
+    if (role === "DOCTOR") return "/doctor/login"
+    return "/patient/login"
+}
+
+function getRefreshUrl(role: "ADMIN" | "PATIENT" | "DOCTOR") {
+    if (role === "ADMIN") return "http://localhost:5000/api/admin/auth/refresh-token"
+    if (role === "DOCTOR") return "http://localhost:5000/api/doctor/auth/refresh-token"
+    return "http://localhost:5000/api/auth/refresh-token"
+}
+
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const state = store.getState();
-  const isAdminPath = config.url?.includes("/admin");
-  const isPatientPath = config.url?.includes("/patient") || config.url?.includes("/auth");
+    const state = store.getState();
+    const role = getRoleFromUrl(config.url);
+    const token = state.auth[role].accessToken;
 
-  let token = null;
-  if (isAdminPath) {
-    token = state.auth.ADMIN.accessToken;
-  } else if (isPatientPath) {
-    token = state.auth.PATIENT.accessToken;
-  }
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  return config;
+    return config;
 });
 
 api.interceptors.response.use(
@@ -34,31 +56,26 @@ api.interceptors.response.use(
         const originalRequest = error.config
 
         // Handle account blocked — force logout immediately (but skip if this is a login request)
-        const isLoginRequest = originalRequest.url?.includes("/auth/login") || originalRequest.url?.includes("/admin/auth/login") || originalRequest.url?.includes("/auth/google-login");
+        const isLoginRequest = originalRequest.url?.includes("/auth/login") || originalRequest.url?.includes("/auth/google-login");
         if (error.response?.status === 403 && error.response?.data?.code === "ACCOUNT_BLOCKED" && !isLoginRequest) {
-            const isAdmin = originalRequest.url?.includes("/admin");
-            const role = isAdmin ? "ADMIN" : "PATIENT";
+            const role = getRoleFromUrl(originalRequest.url);
             store.dispatch(logout({ role: role as any }));
             toast.error("Your account has been blocked by the administrator. Please contact support.");
-            window.location.href = role === "ADMIN" ? "/admin/login" : "/patient/login";
+            window.location.href = getLoginPath(role);
             return Promise.reject(error);
         }
 
-        if(error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true
 
             try {
-                const isAdmin = originalRequest.url?.includes("/admin");
-                const role = isAdmin ? "ADMIN" : "PATIENT";
-                
-                const refreshUrl = isAdmin 
-                    ? "http://localhost:5000/api/admin/auth/refresh-token" 
-                    : "http://localhost:5000/api/auth/refresh-token";
+                const role = getRoleFromUrl(originalRequest.url);
+                const refreshUrl = getRefreshUrl(role);
 
                 const response = await axios.post(
                     refreshUrl,
                     {},
-                    {withCredentials: true}
+                    { withCredentials: true }
                 )
 
                 const { accessToken } = response.data
@@ -66,18 +83,16 @@ api.interceptors.response.use(
                 return api(originalRequest)
 
             } catch (refreshError: any) {
-                // If refresh failed because account is blocked, show specific message
-                const isAdmin = originalRequest.url?.includes("/admin");
-                const role = isAdmin ? "ADMIN" : "PATIENT";
+                const role = getRoleFromUrl(originalRequest.url);
                 store.dispatch(logout({ role: role as any }));
-                
+
                 if (refreshError.response?.data?.message?.includes("blocked")) {
                     toast.error("Your account has been blocked by the administrator.");
                 }
-                
-                window.location.href = role === "ADMIN" ? "/admin/login" : "/patient/login";
+
+                window.location.href = getLoginPath(role);
             }
-        } 
+        }
         return Promise.reject(error)
     }
 )

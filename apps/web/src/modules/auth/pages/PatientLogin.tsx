@@ -11,6 +11,8 @@ import { toast } from "sonner"
 import type { LoginPayload } from "../types/auth.types"
 
 
+import { Eye, EyeOff, Lock, Mail } from "lucide-react"
+
 export default function PatientLogin() {
 
     const navigate = useNavigate()
@@ -20,6 +22,7 @@ export default function PatientLogin() {
         email: "",
         password: ""
     })
+    const [showPassword, setShowPassword] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
 
@@ -49,12 +52,30 @@ export default function PatientLogin() {
                     accessToken
                 })
             )
+            toast.success("Login successful!")
             navigate("/patient/dashboard")
         } catch (error: any) {
             console.error("Login failed:", error)
             const msg = error.response?.data?.message || "Login failed. Please check your credentials."
             setErrorMessage(msg)
-            if (error.response?.data?.code === "ACCOUNT_BLOCKED") {
+
+            if (msg.includes("Doctor account")) {
+                toast.error("Doctor account detected", {
+                    description: "Please log in through the Doctor Portal.",
+                    action: {
+                        label: "Go to Doctor Portal",
+                        onClick: () => navigate("/doctor/login")
+                    }
+                })
+            } else if (msg.includes("Admin account")) {
+                toast.error("Admin account detected", {
+                    description: "Please log in through the Admin Portal.",
+                    action: {
+                        label: "Go to Admin Portal",
+                        onClick: () => navigate("/admin/login")
+                    }
+                })
+            } else if (error.response?.data?.code === "ACCOUNT_BLOCKED") {
                 toast.error(msg)
             }
         }
@@ -78,12 +99,30 @@ export default function PatientLogin() {
                     accessToken
                 })
             )
+            toast.success("Login successful!")
             navigate("/patient/dashboard")
         } catch (error: any) {
             console.error("Google login failed:", error)
             const msg = error.response?.data?.message || "Google login failed. Please try again."
             setErrorMessage(msg)
-            if (error.response?.data?.code === "ACCOUNT_BLOCKED") {
+
+            if (msg.includes("Doctor account")) {
+              toast.error("Doctor account detected", {
+                description: "This Google account is linked to a Doctor profile.",
+                action: {
+                  label: "Go to Doctor Portal",
+                  onClick: () => navigate("/doctor/login")
+                }
+              })
+            } else if (msg.includes("Admin account")) {
+              toast.error("Admin account detected", {
+                description: "This Google account is linked to an Admin profile.",
+                action: {
+                  label: "Go to Admin Portal",
+                  onClick: () => navigate("/admin/login")
+                }
+              })
+            } else if (error.response?.data?.code === "ACCOUNT_BLOCKED") {
                 toast.error(msg)
             }
         }
@@ -146,15 +185,20 @@ export default function PatientLogin() {
                     <label className="block text-[13px] text-gray-600 font-medium mb-1">
                         Email Address
                     </label>
-                    <input
-                        name="email"
-                        type="email"
-                        placeholder="name@example.com"
-                        className="w-full border border-gray-200 rounded-md px-3 py-[10px] text-sm focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] outline-none transition-all placeholder:text-gray-400"
-                        value={form.email}
-                        onChange={handleChange}
-                        required
-                    />
+                    <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <Mail className="w-4 h-4" />
+                        </div>
+                        <input
+                            name="email"
+                            type="email"
+                            placeholder="name@example.com"
+                            className="w-full border border-gray-200 rounded-md pl-10 pr-3 py-[10px] text-sm focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] outline-none transition-all placeholder:text-gray-400"
+                            value={form.email}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
                 </div>
 
                 <div className="mb-8">
@@ -162,19 +206,31 @@ export default function PatientLogin() {
                         <label className="block text-[13px] text-gray-600 font-medium">
                             Password
                         </label>
-                        <Link to="/forgot-password" className="text-[13px] text-[#0066cc] font-medium hover:underline">
+                        <Link to="/forgot-password" title="Reset your password" className="text-[13px] text-[#0066cc] font-medium hover:underline">
                             Forgot?
                         </Link>
                     </div>
-                    <input
-                        name="password"
-                        type="password"
-                        placeholder="••••••••"
-                        className="w-full border border-gray-200 rounded-md px-3 py-[10px] text-sm focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] outline-none transition-all placeholder:text-gray-600"
-                        value={form.password}
-                        onChange={handleChange}
-                        required
-                    />
+                    <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <Lock className="w-4 h-4" />
+                        </div>
+                        <input
+                            name="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            className="w-full border border-gray-200 rounded-md pl-10 pr-10 py-[10px] text-sm focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] outline-none transition-all placeholder:text-gray-600"
+                            value={form.password}
+                            onChange={handleChange}
+                            required
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
                 </div>
 
                 <button

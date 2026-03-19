@@ -10,7 +10,9 @@ const transporter = nodemailer.createTransport({
   },
 })
 
-class EmailService {
+import { IEmailService } from "../../core/interfaces/IEmailService";
+
+class EmailService implements IEmailService {
   async sendOtpEmail(to: string, otp: string) {
     const mailOptions = {
       from: process.env.SMTP_FROM?.trim() || `"MedixFlow" <${process.env.SMTP_USER?.trim()}>`,
@@ -139,7 +141,7 @@ class EmailService {
   }
 
   async sendDoctorCredentialsEmail(to: string, doctorName: string, tempPassword: string) {
-    const loginLink = `${process.env.FRONTEND_URL}/login`
+    const loginLink = `${process.env.FRONTEND_URL}/doctor/login`
 
     const mailOptions = {
       from: process.env.SMTP_FROM?.trim() || `"MedixFlow" <${process.env.SMTP_USER?.trim()}>`,
@@ -202,6 +204,62 @@ class EmailService {
 
     await transporter.sendMail(mailOptions)
     console.log(`[EmailService] Welcome email with password sent to ${to}`)
+  }
+
+  async sendForgotPasswordEmail(to: string, token: string, userName: string) {
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`
+
+    const mailOptions = {
+      from: process.env.SMTP_FROM?.trim() || `"MedixFlow" <${process.env.SMTP_USER?.trim()}>`,
+      to,
+      subject: "Reset your MedixFlow password",
+      html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+          <tr>
+            <td align="center">
+              <table width="480" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+                <tr>
+                  <td style="background:#0066cc;padding:24px;text-align:center;color:#fff;font-size:22px;font-weight:bold;">
+                    MedixFlow
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:40px">
+                    <h2 style="margin-top:0;color:#111827;">Hello ${userName},</h2>
+                    <p style="color:#6b7280;font-size:14px;line-height:1.6;">
+                      We received a request to reset your password. If you didn't make this request, you can safely ignore this email.
+                    </p>
+                    <div style="text-align:center;margin:32px 0">
+                      <a href="${resetLink}"
+                        style="background:#0066cc;color:white;padding:12px 32px;
+                        text-decoration:none;border-radius:8px;font-weight:bold;font-size:16px;display:inline-block;">
+                        Reset Password
+                      </a>
+                    </div>
+                    <p style="font-size:12px;color:#9ca3af;text-align:center;">
+                      This link will expire in 1 hour.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:24px;text-align:center;font-size:12px;color:#9ca3af;border-top:1px solid #f3f4f6;">
+                    © 2026 MedixFlow • All rights reserved
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+      `
+    }
+
+    await transporter.sendMail(mailOptions)
+    console.log(`[EmailService] Forgot password email sent to ${to}`)
   }
 }
 

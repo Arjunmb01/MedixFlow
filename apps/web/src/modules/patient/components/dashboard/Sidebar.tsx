@@ -14,6 +14,7 @@ import {
 import { useAppDispatch } from "@/core/store/hooks"
 import { logout } from "@/modules/store/authSlice"
 import { logout as apiLogout } from "@/infrastructure/api/auth.api"
+import { toast } from "sonner"
 
 const menuItems = [
     { label: "Dashboard", icon: LayoutDashboard, path: "/patient/dashboard" },
@@ -39,6 +40,7 @@ export default function Sidebar() {
             console.error("Logout failed", e)
         }
         dispatch(logout({ role: "PATIENT" }))
+        toast.info("Logged out successfully")
         navigate("/patient/login")
     }
 

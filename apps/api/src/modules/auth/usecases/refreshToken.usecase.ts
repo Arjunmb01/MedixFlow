@@ -1,52 +1,41 @@
+import { MESSAGES } from "../../../core/constants";
 import tokenService from "../services/token.service";
-import sessionService from "../services/session.service";
-import { prisma } from "../../../infrastructure/database/prismaClient";
+import { ISessionService } from "../interfaces/ISessionService";
+import { IAuthRepository } from "../interfaces/IAuthRepository";
 
-class RefreshTokenUseCase {
+export class RefreshTokenUseCase {
+  constructor(
+    private sessionService: ISessionService,
+    private authRepository: IAuthRepository
+  ) {}
 
   async execute(refreshToken: string, expectedRole: string) {
-
     if (!refreshToken) {
-      throw new Error("Refresh token required");
+      throw new Error(MESSAGES.REFRESH_TOKEN_REQUIRED);
     }
 
     const payload: any = tokenService.verifyRefreshToken(refreshToken);
-
     const userId = payload.userId;
     const role = payload.role;
 
     if (role !== expectedRole) {
-      throw new Error("Invalid session for this role");
+      throw new Error(MESSAGES.INVALID_ROLE_SESSION);
     }
 
-    const storedToken = await sessionService.getSession(userId);
-
-    if (!storedToken) {
-      throw new Error("Session expired");
+    const storedToken = await this.sessionService.getSession(userId);
+    if (!storedToken || storedToken !== refreshToken) {
+      throw new Error(MESSAGES.SESSION_EXPIRED);
     }
 
-    if (storedToken !== refreshToken) {
-      throw new Error("Invalid refresh token");
-    }
-
-    // Check if user is blocked/inactive
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { status: true } });
+    // Check if user is blocked/inactive using IAuthRepository
+    const user = await this.authRepository.findUserById(userId);
     if (!user || user.status === "INACTIVE" || user.status === "SUSPENDED") {
-      await sessionService.deleteSession(userId);
-      throw new Error("Account blocked");
+      await this.sessionService.deleteSession(userId);
+      throw new Error(MESSAGES.ACCOUNT_BLOCKED);
     }
 
-    const accessToken = tokenService.generateAccessToken(
-      userId,
-      role
-    );
+    const accessToken = tokenService.generateAccessToken(userId, role, user.email);
 
-    return {
-      accessToken
-    };
-
+    return { accessToken };
   }
-
 }
-
-export default new RefreshTokenUseCase();

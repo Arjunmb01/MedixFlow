@@ -12,5 +12,7 @@ router.post("/refresh-token", authControllers.refreshToken);
 router.post("/resend-otp", authControllers.resendOtp);
 router.post("/google-login", authControllers.googleLogin);
 router.post("/logout", authMiddleware, authorize(["PATIENT"]), authControllers.logout);
+router.post("/forgot-password", authControllers.forgotPassword);
+router.post("/reset-password", authControllers.resetPassword);
 
 export default router;

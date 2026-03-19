@@ -3,24 +3,14 @@ import AdminSidebar from "../components/AdminSidebar"
 import AdminTopNav from "../components/AdminTopNav"
 import AddStaffModal from "../components/AddStaffModal"
 import { Search, UserPlus, Edit2, Trash2, ChevronLeft, ChevronRight, SlidersHorizontal, X } from "lucide-react"
+import ConfirmModal from "../components/ConfirmModal"
 import { getStaffList, toggleStaffStatus, deleteStaffMember } from "../services/staff.service"
 import { toast } from "sonner"
 import type { StaffMember } from "../types/staff.types"
 
 const STATUS_OPTIONS = ["ACTIVE", "INACTIVE", "SUSPENDED"] as const
 
-const SPECIALTY_OPTIONS = [
-    "Cardiologist",
-    "Dermatologist",
-    "General Physician",
-    "Neurologist",
-    "Orthopedist",
-    "Pediatrician",
-    "Psychiatrist",
-    "Radiologist",
-    "Surgeon",
-    "Urologist",
-]
+import { SPECIALTY_OPTIONS } from "../types/specialty"
 
 export default function StaffDirectory() {
     const [staff, setStaff] = useState<StaffMember[]>([])
@@ -34,6 +24,21 @@ export default function StaffDirectory() {
     const [page, setPage] = useState(1)
     const [totalActive, setTotalActive] = useState(0)
     const [totalPages, setTotalPages] = useState(1)
+
+    const [confirmModalConfig, setConfirmModalConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        actionText: string;
+        onConfirm: () => void;
+        isDestructive?: boolean;
+    }>({
+        isOpen: false,
+        title: "",
+        message: "",
+        actionText: "",
+        onConfirm: () => {},
+    })
 
     const activeFilterCount = [status, specialty].filter(Boolean).length
 
@@ -85,7 +90,6 @@ export default function StaffDirectory() {
     }
 
     const handleDelete = async (id: string) => {
-        if (!window.confirm("Are you sure you want to remove this staff member?")) return
         try {
             await deleteStaffMember(id)
             toast.success("Staff member removed successfully")
@@ -298,7 +302,20 @@ export default function StaffDirectory() {
                                                     ) : (
                                                         <>
                                                             <button
-                                                                onClick={() => handleToggleStatus(member.user.id, member.user.status)}
+                                                                onClick={() => {
+                                                                    const actionText = member.user.status === 'ACTIVE' ? 'suspend' : 'activate'
+                                                                    setConfirmModalConfig({
+                                                                        isOpen: true,
+                                                                        title: `${actionText === 'suspend' ? 'Suspend' : 'Activate'} Staff Member`,
+                                                                        message: `Are you sure you want to ${actionText} this staff member? Their access will immediately be updated.`,
+                                                                        actionText: actionText.charAt(0).toUpperCase() + actionText.slice(1),
+                                                                        isDestructive: actionText === 'suspend',
+                                                                        onConfirm: () => {
+                                                                            setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))
+                                                                            handleToggleStatus(member.user.id, member.user.status)
+                                                                        }
+                                                                    })
+                                                                }}
                                                                 className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${member.user.status === 'ACTIVE' ? 'bg-teal-500' : 'bg-gray-200'}`}
                                                             >
                                                                 <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${member.user.status === 'ACTIVE' ? 'translate-x-4' : 'translate-x-0'}`} />
@@ -320,7 +337,19 @@ export default function StaffDirectory() {
                                                         <Edit2 className="w-4 h-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDelete(member.user.id)}
+                                                        onClick={() => {
+                                                            setConfirmModalConfig({
+                                                                isOpen: true,
+                                                                title: "Remove Staff Member",
+                                                                message: "Are you sure you want to permanently remove this staff member? This action cannot be undone.",
+                                                                actionText: "Remove Staff",
+                                                                isDestructive: true,
+                                                                onConfirm: () => {
+                                                                    setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))
+                                                                    handleDelete(member.user.id)
+                                                                }
+                                                            })
+                                                        }}
                                                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
@@ -382,6 +411,16 @@ export default function StaffDirectory() {
                     setIsModalOpen(false)
                     setStaffToEdit(null)
                 }}
+            />
+
+            <ConfirmModal
+                isOpen={confirmModalConfig.isOpen}
+                title={confirmModalConfig.title}
+                message={confirmModalConfig.message}
+                confirmText={confirmModalConfig.actionText}
+                isDestructive={confirmModalConfig.isDestructive}
+                onConfirm={confirmModalConfig.onConfirm}
+                onClose={() => setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))}
             />
         </div>
     )

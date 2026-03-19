@@ -1,5 +1,6 @@
 /// <reference path="./core/types/express.d.ts" />
 import express, { Request, Response, NextFunction } from "express";
+
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -15,10 +16,9 @@ app.use(
   })
 )
 
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cookieParser());
 app.use(express.json());
-
 
 app.use("/api", router);
 

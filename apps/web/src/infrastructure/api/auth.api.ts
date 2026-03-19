@@ -57,6 +57,12 @@ export const adminLogin = (
   return api.post("/admin/auth/login", data)
 }
 
+export const doctorLogin = (
+  data: LoginPayload
+): Promise<AxiosResponse<LoginResponse>> => {
+  return api.post("/doctor/auth/login", data)
+}
+
 
 export const refreshToken = (): Promise<
   AxiosResponse<LoginResponse>
@@ -69,4 +75,34 @@ export const logout = (): Promise<
   AxiosResponse<{ message: string }>
 > => {
   return api.post("/auth/logout")
+}
+
+export const doctorLogout = (): Promise<
+  AxiosResponse<{ message: string }>
+> => {
+  return api.post("/doctor/auth/logout")
+}
+
+export const adminLogout = (): Promise<
+  AxiosResponse<{ message: string }>
+> => {
+  return api.post("/admin/auth/logout")
+}
+
+// Patient Password Reset
+export const patientForgotPassword = (email: string): Promise<AxiosResponse<{ message: string }>> => {
+  return api.post("/auth/forgot-password", { email })
+}
+
+export const patientResetPassword = (data: any): Promise<AxiosResponse<{ message: string }>> => {
+  return api.post("/auth/reset-password", data)
+}
+
+// Doctor Password Reset
+export const doctorForgotPassword = (email: string): Promise<AxiosResponse<{ message: string }>> => {
+  return api.post("/doctor/auth/forgot-password", { email })
+}
+
+export const doctorResetPassword = (data: any): Promise<AxiosResponse<{ message: string }>> => {
+  return api.post("/doctor/auth/reset-password", data)
 }

@@ -12,7 +12,8 @@ import {
 } from "lucide-react"
 import { useAppDispatch } from "@/core/store/hooks"
 import { logout } from "@/modules/store/authSlice"
-import { logout as apiLogout } from "@/infrastructure/api/auth.api"
+import { adminLogout } from "@/infrastructure/api/auth.api"
+import { toast } from "sonner"
 
 const menuItems = [
     { label: "Overview", icon: LayoutDashboard, path: "/admin/dashboard" },
@@ -32,11 +33,12 @@ export default function AdminSidebar() {
 
     const handleLogout = async () => {
         try {
-            await apiLogout()
+            await adminLogout()
         } catch (e) {
             console.error("Logout failed", e)
         }
         dispatch(logout({ role: "ADMIN" }))
+        toast.info("Logged out successfully")
         navigate("/admin/login")
     }
 

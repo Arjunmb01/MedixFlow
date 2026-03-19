@@ -12,6 +12,8 @@ datasource db {
   provider = "postgresql"
 }
 
+
+
 enum Role {
   ADMIN
   DOCTOR
@@ -53,6 +55,7 @@ model User {
 
   notifications       Notification[]
   passwordSetupTokens PasswordSetupToken[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model PatientProfile {
@@ -66,6 +69,7 @@ model PatientProfile {
   dob        DateTime?
   gender     Gender?
   bloodGroup String?
+  avatarUrl  String?
 
   emergencyContacts EmergencyContact[]
   appointments      Appointment[]
@@ -79,16 +83,20 @@ model DoctorProfile {
   lastName  String
   phone     String?
 
-  specialty       String
+  specializationId String
+  specialization   Specialization @relation(fields: [specializationId], references: [id])
+
   licenseNumber   String
   consultationFee Float
+  bio             String?   @db.Text
+  avatarUrl       String?
 
   rating Float @default(0)
 
   schedules    DoctorSchedule[]
   appointments Appointment[]
 
-  @@index([specialty])
+  @@index([specializationId])
 }
 
 model DoctorSchedule {
@@ -159,5 +167,24 @@ model PasswordSetupToken {
   user User @relation(fields: [userId], references: [id])
 
   expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id     String @id @default(uuid())
+  token  String @unique
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Specialization {
+  id   String @id @default(uuid())
+  name String @unique
+
+  doctors DoctorProfile[]
+
   createdAt DateTime @default(now())
 }

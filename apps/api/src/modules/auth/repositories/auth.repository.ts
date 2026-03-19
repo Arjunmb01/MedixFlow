@@ -1,8 +1,9 @@
-import {prisma} from "../../../infrastructure/database/prismaClient";
+import { prisma } from "../../../infrastructure/database/prismaClient";
 import { Role, UserStatus } from "@prisma/client";
 import { PatientIdGenerator } from "../services/PatientIdGenerator";
+import { IAuthRepository } from "../interfaces/IAuthRepository";
 
-interface CreateUserData {
+export interface CreateUserData {
   email: string;
   passwordHash: string;
   firstName: string;
@@ -10,14 +11,14 @@ interface CreateUserData {
   phone: string;
 }
 
-interface CreateGoogleUserData {
+export interface CreateGoogleUserData {
   email: string;
   firstName: string;
   lastName: string;
 }
 
-class AuthRepository {
-  findUserByEmail(email: string) {
+export class AuthRepository implements IAuthRepository {
+  async findUserByEmail(email: string) {
     return prisma.user.findUnique({
       where: { email },
     });
@@ -63,12 +64,60 @@ class AuthRepository {
     });
   }
 
-  activateUser(email: string) {
+  async activateUser(email: string) {
     return prisma.user.update({
       where: { email },
       data: { status: UserStatus.ACTIVE },
     });
   }
+
+  async createPasswordResetToken(userId: string, token: string, expiresAt: Date) {
+    return prisma.passwordResetToken.create({
+      data: {
+        userId,
+        token,
+        expiresAt,
+      },
+    });
+  }
+
+  async findPasswordResetToken(token: string) {
+    return prisma.passwordResetToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+  }
+
+  async deletePasswordResetToken(token: string) {
+    return prisma.passwordResetToken.delete({
+      where: { token },
+    });
+  }
+
+  async updateUserPassword(userId: string, passwordHash: string) {
+    return prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+  }
+
+  async findPatientProfileByUserId(userId: string) {
+    return prisma.patientProfile.findUnique({
+      where: { id: userId },
+    });
+  }
+
+  async findDoctorProfileByUserId(userId: string) {
+    return prisma.doctorProfile.findUnique({
+      where: { id: userId },
+    });
+  }
+
+  async findUserById(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+    });
+  }
 }
 
-export default new AuthRepository();
+export default new AuthRepository(); // Keep for backward compatibility if needed, but we'll migrate usecases.

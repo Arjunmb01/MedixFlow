@@ -7,6 +7,7 @@ import { toast } from "sonner"
 
 import { createStaffMember, updateStaffMember } from "../services/staff.service"
 import type { StaffMember } from "../types/staff.types"
+import { SPECIALTY_OPTIONS } from "../types/specialty"
 
 const schema = z.object({
     firstName: z.string()
@@ -338,13 +339,17 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess, staffToEdit 
 
                             {/* Medical Experience */}
                             <div className="space-y-4">
-                                <div className="space-y-2">
+                                 <div className="space-y-2">
                                      <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Medical Specialization</label>
-                                     <input 
+                                     <select 
                                         {...register("specialty")}
-                                        placeholder="e.g. Cardiologist"
                                         className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-teal-500/20 transition-all font-medium"
-                                    />
+                                    >
+                                        <option value="">Select Specialization</option>
+                                        {SPECIALTY_OPTIONS.map(sp => (
+                                            <option key={sp} value={sp}>{sp}</option>
+                                        ))}
+                                    </select>
                                     {errors.specialty && <p className="text-xs text-red-500 font-medium">{errors.specialty.message}</p>}
                                 </div>
 

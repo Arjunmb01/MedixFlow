@@ -12,7 +12,9 @@ export default function GuestRoute({ children, forRole }: GuestRouteProps) {
     // If a specific role is target, only redirect if THAT role is already logged in
     if (forRole) {
         if (authState[forRole].isAuthenticated) {
-            const dashboardPath = forRole === "ADMIN" ? "/admin/dashboard" : "/patient/dashboard";
+            let dashboardPath = "/patient/dashboard";
+            if (forRole === "ADMIN") dashboardPath = "/admin/dashboard";
+            if (forRole === "DOCTOR") dashboardPath = "/doctor/dashboard";
             return <Navigate to={dashboardPath} replace />
         }
         return <>{children}</>

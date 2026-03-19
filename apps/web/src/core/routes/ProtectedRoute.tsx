@@ -14,6 +14,7 @@ export default function ProtectedRoute({
 
      if (!authState[role].isAuthenticated) {
          if (role === "ADMIN") return <Navigate to="/admin/login" replace/>
+         if (role === "DOCTOR") return <Navigate to="/doctor/login" replace/>
          return <Navigate to="/patient/login" replace/>
      }
 

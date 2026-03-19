@@ -1,28 +1,29 @@
-import authRepository from "../repositories/auth.repository";
-import bcrypt from 'bcryptjs'
+import { MESSAGES } from "../../../core/constants";
+import { IAuthRepository } from "../interfaces/IAuthRepository";
+import bcrypt from "bcryptjs";
 import tokenService from "../services/token.service";
 import sessionService from "../services/session.service";
 
-export interface loginAdminData{
-    email : string;
-    password : string
+export interface loginAdminData {
+    email: string;
+    password: string;
 }
 
-class LoginAdminUsecase {
-    async execute(data : loginAdminData) {
-        const user = await authRepository.findUserByEmail(data.email)
+export class LoginAdminUseCase {
+    constructor(private authRepository: IAuthRepository) {}
 
-        if(!user || user.role !== "ADMIN") throw new Error("Invalid admin login")
+    async execute(data: loginAdminData) {
+        const user = await this.authRepository.findUserByEmail(data.email);
 
-        const valid = await bcrypt.compare(data.password,user.passwordHash)
-        if(!valid) throw new Error("Invalid credentials")
+        if (!user || user.role !== "ADMIN") throw new Error(MESSAGES.INVALID_ROLE_ADMIN);
 
-        const accessToken = tokenService.generateAccessToken(user.id,user.role)
-        const refreshToken = tokenService.generateRefreshToken(user.id, user.role)
-        await sessionService.saveSession(user.id,refreshToken)
+        const valid = await bcrypt.compare(data.password, user.passwordHash);
+        if (!valid) throw new Error(MESSAGES.LOGIN_FAILED);
 
-        return {accessToken,refreshToken}
+        const accessToken = tokenService.generateAccessToken(user.id, user.role, user.email);
+        const refreshToken = tokenService.generateRefreshToken(user.id, user.role, user.email);
+        await sessionService.saveSession(user.id, refreshToken);
+
+        return { accessToken, refreshToken };
     }
 }
-
-export default new LoginAdminUsecase()

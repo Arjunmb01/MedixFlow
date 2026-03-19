@@ -1,26 +1,29 @@
-import otpServices from "../services/otp.services";
-import authRepository from "../repositories/auth.repository";
+import { MESSAGES } from "../../../core/constants";
+import { IOtpService } from "../interfaces/IOtpService";
+import { IAuthRepository } from "../interfaces/IAuthRepository";
 
 export interface VerifyOtpData {
     email: string;
     otp: string
 }
 
-class verifyOtpUseCase {
+export class VerifyOtpUseCase {
+    constructor(
+        private authRepository: IAuthRepository,
+        private otpService: IOtpService
+    ) {}
+
     async execute(data: VerifyOtpData) {
+        await this.otpService.verifyOtp(data.email, data.otp)
 
-        await otpServices.verifyOtp(data.email, data.otp)
-
-        const userData = await otpServices.getRegistrationData(data.email)
+        const userData = await this.otpService.getRegistrationData(data.email)
         if (!userData) {
-            throw new Error("Registration session has expired. Please sign up again.")
+            throw new Error(MESSAGES.OTP_EXPIRED)
         }
 
-        await authRepository.createPatient(userData)
-        await otpServices.clearRegistrationData(data.email)
+        await this.authRepository.createPatient(userData)
+        await this.otpService.clearRegistrationData(data.email)
 
-        return { message: "Account verified and created successfully" }
+        return { message: MESSAGES.OTP_VERIFIED }
     }
 }
-
-export default new verifyOtpUseCase()

@@ -1,33 +1,37 @@
-import authRepository from '../repositories/auth.repository';
-import otpServices from '../services/otp.services';
-import emailService from '../../../infrastructure/email/email.service';
-import { UserStatus } from "@prisma/client";
+import { MESSAGES } from "../../../core/constants";
+import { IAuthRepository } from "../interfaces/IAuthRepository";
+import { IOtpService } from "../interfaces/IOtpService";
+import { IEmailService } from "../../../core/interfaces/IEmailService";
 
-class ResendOtpUseCase {
+export class ResendOtpUseCase {
+  constructor(
+    private authRepository: IAuthRepository,
+    private otpService: IOtpService,
+    private emailService: IEmailService
+  ) {}
+
   async execute(email: string) {
-    const user = await authRepository.findUserByEmail(email);
+    const user = await this.authRepository.findUserByEmail(email);
 
-    if (user && user.status === UserStatus.ACTIVE) {
-      throw new Error("User is already registered and verified");
+    if (user && user.status === "ACTIVE") {
+      throw new Error(MESSAGES.ALREADY_REGISTERED);
     }
 
-    const tempRegData = await otpServices.getRegistrationData(email);
+    const tempRegData = await this.otpService.getRegistrationData(email);
     if (!tempRegData && !user) {
-        throw new Error("Registration session expired or does not exist. Please sign up again.");
+        throw new Error(MESSAGES.OTP_EXPIRED);
     }
 
-    const otp = await otpServices.generateOtp(email);
+    const otp = await this.otpService.generateOtp(email);
 
     if (tempRegData) {
-        await otpServices.extendRegistrationData(email);
+        await this.otpService.extendRegistrationData(email);
     }
 
-    await emailService.sendOtpEmail(email, otp);
+    await this.emailService.sendOtpEmail(email, otp);
 
     return {
-      message: "OTP resent successfully",
+      message: MESSAGES.OTP_RESENT,
     };
   }
 }
-
-export default new ResendOtpUseCase();

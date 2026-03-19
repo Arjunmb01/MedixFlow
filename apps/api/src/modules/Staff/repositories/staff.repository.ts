@@ -1,11 +1,12 @@
 import { prisma } from "@/infrastructure/database/prismaClient"
+import { MESSAGES } from "../../../core/constants";
 import { CreateDoctorPayload, GetDoctorsQuery } from "../types/staff.types"
 import { UserStatus } from "@prisma/client"
 import { v4 as uuidv4 } from "uuid"
 import bcrypt from "bcryptjs"
 
 export const getDoctors = async (query: GetDoctorsQuery) => {
-    const { search, specialty, status, page = 1, limit = 10 } = query
+    const { search, specialty: specialization, status, page = 1, limit = 10 } = query
     const skip = (page - 1) * limit
 
     const where: any = {
@@ -18,12 +19,18 @@ export const getDoctors = async (query: GetDoctorsQuery) => {
         where.OR = [
             { firstName: { contains: search, mode: 'insensitive' } },
             { lastName: { contains: search, mode: 'insensitive' } },
-            { user: { email: { contains: search, mode: 'insensitive' } } }
+            { user: { email: { contains: search, mode: 'insensitive' } } },
+            { specialization: { name: { contains: search, mode: 'insensitive' } } }
         ]
     }
 
-    if (specialty) {
-        where.specialty = specialty
+    if (specialization) {
+        where.specialization = {
+            name: {
+                equals: specialization,
+                mode: 'insensitive'
+            }
+        }
     }
 
     if (status) {
@@ -42,6 +49,7 @@ export const getDoctors = async (query: GetDoctorsQuery) => {
                         createdAt: true
                     }
                 },
+                specialization: true,
                 schedules: true
             },
             skip,
@@ -54,7 +62,10 @@ export const getDoctors = async (query: GetDoctorsQuery) => {
     ])
 
     return {
-        data: doctors,
+        data: doctors.map(d => ({
+            ...d,
+            specialty: (d as any).specialization?.name
+        })),
         meta: {
             total,
             page,
@@ -71,7 +82,7 @@ export const createDoctor = async (data: CreateDoctorPayload, temporaryPassword?
     })
 
     if (existingUser) {
-        throw new Error("A user with this email already exists")
+        throw new Error(MESSAGES.USER_ALREADY_EXISTS)
     }
 
     const passwordHash = temporaryPassword 
@@ -90,7 +101,12 @@ export const createDoctor = async (data: CreateDoctorPayload, temporaryPassword?
                         firstName: data.firstName,
                         lastName: data.lastName,
                         phone: data.phone,
-                        specialty: data.specialty,
+                        specialization: {
+                            connectOrCreate: {
+                                where: { name: data.specialty },
+                                create: { name: data.specialty }
+                            }
+                        },
                         consultationFee: data.consultationFee,
                         licenseNumber: data.licenseNumber,
                         schedules: {
@@ -124,15 +140,23 @@ export const updateDoctor = async (doctorId: string, data: any) => {
                 firstName: data.firstName,
                 lastName: data.lastName,
                 phone: data.phone,
-                specialty: data.specialty,
+                specialization: data.specialty ? {
+                    connectOrCreate: {
+                        where: { name: data.specialty },
+                        create: { name: data.specialty }
+                    }
+                } : undefined,
                 licenseNumber: data.licenseNumber,
                 consultationFee: data.consultationFee
             },
-            include: { user: true }
+            include: { 
+                user: true,
+                specialization: true 
+            }
         })
 
         // Update User (Email)
-        if (data.email && data.email !== profile.user.email) {
+        if (data.email && data.email !== (profile as any).user.email) {
             await tx.user.update({
                 where: { id: profile.id },
                 data: { email: data.email }
@@ -155,9 +179,12 @@ export const updateDoctor = async (doctorId: string, data: any) => {
             })
         }
 
-        return profile
+        return {
+            ...profile,
+            specialty: (profile as any).specialization?.name
+        }
     }, {
-        timeout: 15000 // Increase timeout to 15s to handle database latencies
+        timeout: 15000 
     })
 }
 
@@ -194,13 +221,13 @@ export const setupPassword = async (token: string, password: string) => {
         })
 
         if (!setupToken) {
-            const error = new Error("Invalid setup token")
+            const error = new Error(MESSAGES.INVALID_SETUP_TOKEN)
             ;(error as any).status = 400
             throw error
         }
 
         if (setupToken.expiresAt < new Date()) {
-            const error = new Error("Setup token has expired")
+            const error = new Error(MESSAGES.SETUP_TOKEN_EXPIRED)
             ;(error as any).status = 400
             throw error
         }

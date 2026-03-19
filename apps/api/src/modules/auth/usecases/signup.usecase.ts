@@ -1,15 +1,20 @@
 import bcrypt from "bcryptjs"
-import authRepository from "../repositories/auth.repository"
-import otpServices from "../services/otp.services"
-import emailService from "../../../infrastructure/email/email.service"
+import { MESSAGES } from "../../../core/constants";
+import { IAuthRepository } from "../interfaces/IAuthRepository";
+import { IOtpService } from "../interfaces/IOtpService";
+import { IEmailService } from "../../../core/interfaces/IEmailService";
 import { SignupData, RegisterCacheData } from "../types/auth.types"
 
-class SignUpUseCase {
+export class SignUpUseCase {
+  constructor(
+    private authRepository: IAuthRepository,
+    private otpService: IOtpService,
+    private emailService: IEmailService
+  ) {}
 
   async execute(data: SignupData) {
-
-    const user = await authRepository.findUserByEmail(data.email)
-    if (user) throw new Error("Email already exists")
+    const user = await this.authRepository.findUserByEmail(data.email)
+    if (user) throw new Error(MESSAGES.EMAIL_ALREADY_EXISTS)
 
     const passwordHash = await bcrypt.hash(data.password, 10)
 
@@ -18,15 +23,12 @@ class SignUpUseCase {
       passwordHash
     }
 
-    const otp = await otpServices.generateOtp(data.email, cacheData)
+    const otp = await this.otpService.generateOtp(data.email, cacheData)
 
-    await emailService.sendOtpEmail(data.email, otp)
+    await this.emailService.sendOtpEmail(data.email, otp)
 
     return {
-      message: "OTP sent. Please verify to complete registration."
+      message: MESSAGES.OTP_SENT
     }
   }
-
 }
-
-export default new SignUpUseCase()

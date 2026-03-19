@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express"
+import { StatusCode, MESSAGES } from "../../../core/constants";
 import { randomBytes } from "crypto"
 import * as repo from "../repositories/staff.repository"
 import { createDoctorSchema, getDoctorsQuerySchema } from "../dto/staff.dto"
@@ -40,8 +41,8 @@ export const createDoctorController = async (req: Request, res: Response, next: 
             console.error("Failed to send welcome email:", emailError)
         }
 
-        res.status(201).json({
-            message: "Doctor created successfully and credentials sent to email",
+        res.status(StatusCode.CREATED).json({
+            message: MESSAGES.STAFF_CREATED,
             data: {
                 ...result.user,
                 temporaryPassword: tempPassword
@@ -58,7 +59,7 @@ export const updateDoctorController = async (req: Request, res: Response, next: 
     try {
         const doctor = await repo.updateDoctor(id, req.body)
         res.json({
-            message: "Doctor updated successfully",
+            message: MESSAGES.STAFF_UPDATED,
             data: doctor
         })
     } catch (error: any) {
@@ -79,7 +80,7 @@ export const blockDoctorController = async (req: Request, res: Response, next: N
         }
 
         res.json({
-            message: "Doctor status updated successfully",
+            message: MESSAGES.STAFF_STATUS_UPDATED,
             data: doctor
         })
     } catch (error: any) {
@@ -92,7 +93,7 @@ export const deleteDoctorController = async (req: Request, res: Response, next: 
     try {
         await repo.deleteDoctor(id)
         res.json({
-            message: "Doctor deleted successfully"
+            message: MESSAGES.STAFF_DELETED
         })
     } catch (error: any) {
         next(error)
@@ -103,10 +104,10 @@ export const setupPasswordController = async (req: Request, res: Response, next:
     const { token, password } = req.body
     try {
         if (!token || !password) {
-            return res.status(400).json({ error: "Token and password are required" })
+            return res.status(StatusCode.BAD_REQUEST).json({ error: MESSAGES.TOKEN_PASSWORD_REQUIRED })
         }
         await repo.setupPassword(token, password)
-        res.json({ message: "Password setup successful" })
+        res.json({ message: MESSAGES.PASSWORD_SETUP_SUCCESS })
     } catch (error: any) {
         next(error)
     }

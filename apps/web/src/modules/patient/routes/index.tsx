@@ -2,6 +2,8 @@ import { Route } from "react-router-dom"
 import ProtectedRoute from "@/core/routes/ProtectedRoute"
 import PatientDashboard from "../pages/PatientDashboard"
 import PatientProfile from "../pages/PatientProfile"
+import FindDoctors from "../pages/FindDoctors"
+import DoctorDetailsPage from "../pages/DoctorDetailsPage"
 
 export const PatientRoutes = (
     <>
@@ -23,5 +25,22 @@ export const PatientRoutes = (
             }
         />
 
+        <Route
+            path="/patient/find-doctors"
+            element={
+                <ProtectedRoute role="PATIENT">
+                    <FindDoctors />
+                </ProtectedRoute>
+            }
+        />
+
+        <Route
+            path="/patient/doctor/:id"
+            element={
+                <ProtectedRoute role="PATIENT">
+                    <DoctorDetailsPage />
+                </ProtectedRoute>
+            }
+        />
     </>
 )
