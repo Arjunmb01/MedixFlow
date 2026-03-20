@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { updateEmergencyContacts } from "../services/patient.api"
+import { updateEmergencyContacts } from "@/infrastructure/api/patient.api"
 
 export default function EmergencyContactsForm() {
 

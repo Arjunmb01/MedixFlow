@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react"
 import DoctorSidebar from "../components/DoctorSidebar"
 import DoctorTopNav from "../components/DoctorTopNav"
-import { getDoctorProfile, getDoctorDashboardStats } from "../services/doctor.api"
+import { useDoctorDashboard } from "@/application/doctor/hooks/useDoctorDashboard"
 import { 
     CheckCircle2, 
     RefreshCcw, 
@@ -10,35 +9,8 @@ import {
     ArrowRight
 } from "lucide-react"
 
-interface DashboardStats {
-    totalAppointments: number
-    todayAppointments: number
-    completedToday: number
-    pendingToday: number
-}
-
 export default function DoctorDashboard() {
-    const [profile, setProfile] = useState<any>(null)
-    const [stats, setStats] = useState<DashboardStats | null>(null)
-    const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [prof, st] = await Promise.all([
-                    getDoctorProfile(),
-                    getDoctorDashboardStats()
-                ])
-                setProfile(prof)
-                setStats(st)
-            } catch (error) {
-                console.error("Failed to fetch dashboard data:", error)
-            } finally {
-                setLoading(false)
-            }
-        }
-        fetchData()
-    }, [])
+    const { profile, stats, loading } = useDoctorDashboard()
 
     if (loading) {
         return (

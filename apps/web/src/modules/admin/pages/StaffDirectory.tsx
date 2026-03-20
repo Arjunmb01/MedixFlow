@@ -4,26 +4,31 @@ import AdminTopNav from "../components/AdminTopNav"
 import AddStaffModal from "../components/AddStaffModal"
 import { Search, UserPlus, Edit2, Trash2, ChevronLeft, ChevronRight, SlidersHorizontal, X } from "lucide-react"
 import ConfirmModal from "../components/ConfirmModal"
-import { getStaffList, toggleStaffStatus, deleteStaffMember } from "../services/staff.service"
-import { toast } from "sonner"
-import type { StaffMember } from "../types/staff.types"
+import { useStaffManagement } from "@/application/staff/hooks/useStaffManagement"
+import { SPECIALTY_OPTIONS } from "../types/specialty"
 
 const STATUS_OPTIONS = ["ACTIVE", "INACTIVE", "SUSPENDED"] as const
 
-import { SPECIALTY_OPTIONS } from "../types/specialty"
-
 export default function StaffDirectory() {
-    const [staff, setStaff] = useState<StaffMember[]>([])
-    const [loading, setLoading] = useState(true)
+    const {
+        doctors: staff,
+        loading,
+        stats,
+        fetchDoctors: fetchStaff,
+        handleBlockDoctor,
+        handleDeleteDoctor
+    } = useStaffManagement();
+
     const [isModalOpen, setIsModalOpen] = useState(false)
-    const [staffToEdit, setStaffToEdit] = useState<StaffMember | null>(null)
+    const [staffToEdit, setStaffToEdit] = useState<any | null>(null)
     const [search, setSearch] = useState("")
     const [status, setStatus] = useState("")
     const [specialty, setSpecialty] = useState("")
     const [showFilters, setShowFilters] = useState(false)
     const [page, setPage] = useState(1)
-    const [totalActive, setTotalActive] = useState(0)
-    const [totalPages, setTotalPages] = useState(1)
+
+    const totalActive = stats?.total || 0;
+    const totalPages = stats?.totalPages || 1;
 
     const [confirmModalConfig, setConfirmModalConfig] = useState<{
         isOpen: boolean;
@@ -42,62 +47,34 @@ export default function StaffDirectory() {
 
     const activeFilterCount = [status, specialty].filter(Boolean).length
 
-    const fetchStaff = async () => {
-        setLoading(true)
-        try {
-            const response = await getStaffList({
+    useEffect(() => {
+        setPage(1)
+    }, [search, status, specialty])
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchStaff({
                 search: search || undefined,
                 status: status || undefined,
                 specialty: specialty || undefined,
                 page,
                 limit: 10
             })
-            setStaff(response.data)
-            setTotalPages(response.meta.totalPages)
-            setTotalActive(response.meta.total)
-        } catch (error) {
-            console.error("Failed to fetch staff:", error)
-            toast.error("Failed to load staff members")
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    useEffect(() => {
-        setPage(1)
-    }, [search, status, specialty])
-
-    useEffect(() => {
-        const timer = setTimeout(fetchStaff, 300)
+        }, 300)
         return () => clearTimeout(timer)
-    }, [search, status, specialty, page])
+    }, [search, status, specialty, page, fetchStaff])
 
     const handleToggleStatus = async (id: string, currentStatus: string) => {
-        const newStatus = currentStatus === "ACTIVE" ? "SUSPENDED" : "ACTIVE"
-        try {
-            await toggleStaffStatus(id, newStatus)
-            toast.success(`Staff member ${newStatus.toLowerCase()} successfully`)
-            fetchStaff()
-        } catch (error) {
-            console.error("Failed to update status:", error)
-            toast.error("Failed to update staff status")
-        }
+        await handleBlockDoctor(id, currentStatus);
     }
 
-    const handleEdit = (member: StaffMember) => {
+    const handleEdit = (member: any) => {
         setStaffToEdit(member)
         setIsModalOpen(true)
     }
 
     const handleDelete = async (id: string) => {
-        try {
-            await deleteStaffMember(id)
-            toast.success("Staff member removed successfully")
-            fetchStaff()
-        } catch (error) {
-            console.error("Failed to delete staff:", error)
-            toast.error("Failed to delete staff member")
-        }
+        await handleDeleteDoctor(id);
     }
 
     const clearFilters = () => {
@@ -112,11 +89,13 @@ export default function StaffDirectory() {
             ACTIVE: 'bg-teal-50 text-teal-700 border-teal-100',
             INACTIVE: 'bg-amber-50 text-amber-700 border-amber-100',
             SUSPENDED: 'bg-red-50 text-red-700 border-red-100',
+            BLOCKED: 'bg-red-50 text-red-700 border-red-100',
         }
         const dot: Record<string, string> = {
             ACTIVE: 'bg-teal-500',
             INACTIVE: 'bg-amber-400',
             SUSPENDED: 'bg-red-500',
+            BLOCKED: 'bg-red-500',
         }
         return { badge: map[s] ?? 'bg-gray-50 text-gray-600 border-gray-100', dot: dot[s] ?? 'bg-gray-400' }
     }
@@ -261,7 +240,7 @@ export default function StaffDirectory() {
                                             </div>
                                         </td>
                                     </tr>
-                                ) : staff.map((member) => {
+                                ) : staff.map((member: any) => {
                                     const { badge, dot } = statusBadge(member.user.status)
                                     return (
                                         <tr key={member.id} className="hover:bg-gray-50/50 transition-colors group">
@@ -322,7 +301,7 @@ export default function StaffDirectory() {
                                                             </button>
                                                             <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-0.5 rounded-md border ${badge}`}>
                                                                 <span className={`w-1.5 h-1.5 rounded-full ${dot}`}></span>
-                                                                {member.user.status === 'ACTIVE' ? 'Active' : 'Suspended'}
+                                                                {member.user.status === 'ACTIVE' ? 'Active' : (member.user.status === 'BLOCKED' || member.user.status === 'SUSPENDED') ? 'Suspended' : member.user.status}
                                                             </span>
                                                         </>
                                                     )}

@@ -7,27 +7,13 @@ import AppointmentHistory from "@/modules/patient/components/dashboard/Appointme
 import DownloadCenter from "@/modules/patient/components/dashboard/DownloadCenter"
 import BillingSummary from "@/modules/patient/components/dashboard/BillingSummary"
 
-import { Calendar, ClipboardList, UserCircle, FileText, Sparkles } from "lucide-react"
-import { useEffect, useState } from "react"
-import type { PatientProfile } from "../types/patient.types"
-import { getPatientProfile } from "../services/patient.api"
+import { Calendar, ClipboardList, UserCircle, FileText } from "lucide-react"
+import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile"
 
 export default function PatientDashboard() {
-    const [profile, setProfile] = useState<PatientProfile | null>(null)
+    const { profile, loading } = usePatientProfile()
 
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const data = await getPatientProfile()
-                setProfile(data)
-            } catch (error) {
-                console.error("Failed to fetch profile", error)
-            }
-        }
-        fetchProfile()
-    }, [])
-
-    if (!profile) {
+    if (loading || !profile) {
         return (
             <div className="flex items-center justify-center h-screen bg-gray-50">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -35,13 +21,15 @@ export default function PatientDashboard() {
         )
     }
 
+    const userName = profile.name || "Patient"
+
     return (
         <div className="min-h-screen bg-gray-50 flex">
             <Sidebar />
 
             <div className="flex-1 ml-64">
                 <TopNav 
-                    userName={`${profile.name}`} 
+                    userName={userName} 
                     patientId={profile.patientId || "PX-202"} 
                 />
 
@@ -49,7 +37,7 @@ export default function PatientDashboard() {
                     {/* Welcome Header */}
                     <div className="mb-10">
                         <h1 className="text-[32px] font-bold text-gray-900 tracking-tight">
-                            Welcome back, {profile.name.split(' ')[0]} 👋
+                            Welcome back, {userName.split(' ')[0]} 👋
                         </h1>
                         <p className="text-[16px] font-medium text-gray-500 mt-2">
                             Here's your health overview today.

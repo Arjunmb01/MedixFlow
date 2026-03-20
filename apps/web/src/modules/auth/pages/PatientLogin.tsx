@@ -45,7 +45,7 @@ export default function PatientLogin() {
 
         try {
             const response = await patientLogin(form)
-            const { accessToken } = response.data
+            const { accessToken } = response
             dispatch(
                 setAuth({
                     role: "PATIENT",
@@ -92,7 +92,7 @@ export default function PatientLogin() {
 
         try {
             const response = await googleLogin(credentialResponse.credential)
-            const { accessToken } = response.data
+            const { accessToken } = response
             dispatch(
                 setAuth({
                     role: "PATIENT",

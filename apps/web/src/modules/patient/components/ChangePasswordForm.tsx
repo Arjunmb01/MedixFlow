@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { updatePassword } from "../services/patient.api"
+import { updatePassword } from "@/infrastructure/api/patient.api"
 
 export default function ChangePasswordForm() {
 

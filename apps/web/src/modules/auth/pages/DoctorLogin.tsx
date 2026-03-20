@@ -30,7 +30,7 @@ export default function DoctorLogin() {
 
         try {
             const response = await doctorLogin(form)
-            const { accessToken } = response.data
+            const { accessToken } = response
             dispatch(
                 setAuth({
                     role: "DOCTOR",

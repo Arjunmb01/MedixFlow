@@ -6,7 +6,7 @@ import DashboardChart from "../components/DashboardChart"
 import StaffActivityTable from "../components/StaffActivityTable"
 import PendingAbsences from "../components/PendingAbsences"
 import { Users, UserPlus, Calendar, DollarSign, ArrowUpRight } from "lucide-react"
-import { getAdminStats } from "../services/patient.service"
+import { getAdminStats } from "@/infrastructure/api/patient.api"
 
 export default function AdminDashboard() {
     const [stats, setStats] = useState({ patientCount: 0, doctorCount: 0 })
@@ -33,7 +33,7 @@ export default function AdminDashboard() {
             <main className="flex-1 ml-64 p-8">
                 <AdminTopNav 
                     title="Executive Dashboard" 
-                    subtitle="Sunday, February 22, 2026 - Executive Summary" 
+                    subtitle={`${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} - Executive Summary`} 
                 />
 
                 {/* Stat Cards */}

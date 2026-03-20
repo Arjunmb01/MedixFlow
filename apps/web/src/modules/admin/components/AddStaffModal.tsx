@@ -4,9 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { X, Clock } from "lucide-react"
 import { toast } from "sonner"
-
-import { createStaffMember, updateStaffMember } from "../services/staff.service"
-import type { StaffMember } from "../types/staff.types"
+import { createDoctor, updateStaffDoctor } from "@/infrastructure/api/staff.api"
+import type { DoctorProfile } from "@/domain/doctor/types/doctor.types"
 import { SPECIALTY_OPTIONS } from "../types/specialty"
 
 const schema = z.object({
@@ -37,7 +36,7 @@ interface Props {
     isOpen: boolean
     onClose: () => void
     onSuccess: () => void
-    staffToEdit?: StaffMember | null
+    staffToEdit?: DoctorProfile | null
 }
 
 const days = [
@@ -92,7 +91,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess, staffToEdit 
                 licenseNumber: staffToEdit.licenseNumber,
                 slotDuration: staffToEdit.schedules?.[0]?.slotDurationMinutes || 30,
                 schedules: days.map(day => {
-                    const existing = staffToEdit.schedules.find(s => s.dayOfWeek === day.value)
+                    const existing = (staffToEdit.schedules || []).find((s: any) => s.dayOfWeek === day.value)
                     return {
                         dayOfWeek: day.value,
                         active: !!existing,
@@ -141,19 +140,19 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess, staffToEdit 
             }
             
             if (staffToEdit) {
-                await updateStaffMember(staffToEdit.id, payload)
+                await updateStaffDoctor(staffToEdit.id, payload)
                 toast.success("Staff profile updated successfully")
                 onSuccess()
                 onClose()
             } else {
-                const result = await createStaffMember(payload)
+                const result = await createDoctor(payload as any)
                 toast.success("Doctor account created successfully")
                 setSetupUrl(result.setupLink)
                 onSuccess()
             }
         } catch (error: any) {
             console.error(error)
-            const msg = error.response?.data?.error || error.message || "Failed to process staff member"
+            const msg = error.response?.data?.error || error.response?.data?.message || "Failed to process staff member"
             toast.error(typeof msg === 'string' ? msg : "Validation failed. Please check your inputs.")
         } finally {
             setLoading(false)

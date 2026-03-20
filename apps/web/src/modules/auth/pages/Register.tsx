@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { z } from "zod"
 import { toast } from "sonner"
 
-import { signup } from "@/infrastructure/api/auth.api"
+import { patientRegister } from "@/infrastructure/api/auth.api"
 import type { RegisterPayload } from "../types/auth.types"
 
 const signupSchema = z.object({
@@ -57,7 +57,7 @@ export default function Register() {
     }
 
     try {
-      await signup(form)
+      await patientRegister(form)
       toast.success("Account created successfully!")
       navigate("/auth/verify-otp", {
         state: {
@@ -70,15 +70,13 @@ export default function Register() {
       let msg = "An unexpected error occurred during signup."
       if (error.response?.data?.message) {
         msg = error.response.data.message
-        
-        // Check if it's a stringified ZodError
         try {
           const parsed = JSON.parse(msg)
           if (Array.isArray(parsed) && parsed[0]?.message) {
             msg = parsed.map((e: any) => e.message).join(", ")
           }
         } catch (e) {
-          // not json, leave as is
+     
         }
       }
       toast.error(msg)

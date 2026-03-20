@@ -1,81 +1,64 @@
 import { useState, useEffect } from "react"
 import Sidebar from "../components/dashboard/Sidebar"
 import TopNav from "../components/dashboard/TopNav"
-import { getPatientProfile } from "../services/patient.api"
-import { getAllDoctors } from "../services/doctor.api"
 import { Search, Star, Clock, User, ChevronLeft, ChevronRight, SlidersHorizontal, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { SPECIALTY_OPTIONS } from "../../admin/types/specialty"
+import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile"
+import { useFindDoctors } from "@/application/doctor/hooks/useFindDoctors"
 
 export default function FindDoctors() {
     const navigate = useNavigate()
-    const [profile, setProfile] = useState<any>(null)
-    const [doctors, setDoctors] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
+    const { profile, loading: profileLoading } = usePatientProfile()
+    
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedSpecialty, setSelectedSpecialty] = useState("All")
     const [availableToday, setAvailableToday] = useState(false)
     const [priceRange, setPriceRange] = useState({ min: 0, max: 2000 })
-    
-    // Pagination state
     const [currentPage, setCurrentPage] = useState(1)
-    const [totalDoctors, setTotalDoctors] = useState(0)
-    const limit = 6
+
+    const { 
+        doctors, 
+        loading: doctorsLoading, 
+        total: totalDoctors, 
+        updateFilters 
+    } = useFindDoctors({
+        search: searchQuery,
+        specialty: selectedSpecialty,
+        availableToday,
+        minFee: priceRange.min,
+        maxFee: priceRange.max,
+        page: currentPage,
+        limit: 6
+    })
 
     const specialties = ["All", ...SPECIALTY_OPTIONS]
+    const limit = 6
+    const totalPages = Math.ceil(totalDoctors / limit)
 
-    const fetchDoctors = async (page: number = 1) => {
-        setLoading(true)
-        try {
-            const data = await getAllDoctors({
-                search: searchQuery,
-                specialty: selectedSpecialty,
-                availableToday: availableToday,
-                minFee: priceRange.min,
-                maxFee: priceRange.max,
-                page: page,
-                limit: limit
-            })
-            setDoctors(data.doctors)
-            setTotalDoctors(data.total)
-        } catch (error) {
-            console.error("Failed to fetch doctors", error)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    useEffect(() => {
-        const fetchInitialData = async () => {
-            try {
-                const profileData = await getPatientProfile()
-                setProfile(profileData)
-                await fetchDoctors(1)
-            } catch (error) {
-                console.error("Failed to fetch initial data", error)
-            }
-        }
-        fetchInitialData()
-    }, [])
-
-    // Debounced search & filter effect
+    // Debounced filter updates
     useEffect(() => {
         const timer = setTimeout(() => {
+            updateFilters({
+                search: searchQuery,
+                specialty: selectedSpecialty,
+                availableToday,
+                minFee: priceRange.min,
+                maxFee: priceRange.max,
+                page: 1
+            })
             setCurrentPage(1)
-            fetchDoctors(1)
         }, 500)
         return () => clearTimeout(timer)
     }, [searchQuery, selectedSpecialty, availableToday, priceRange])
 
     const handlePageChange = (newPage: number) => {
         setCurrentPage(newPage)
-        fetchDoctors(newPage)
+        updateFilters({ page: newPage })
         window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
-    const totalPages = Math.ceil(totalDoctors / limit)
-
-    if (!profile && loading) {
+    if (!profile && profileLoading) {
         return (
             <div className="flex h-screen items-center justify-center bg-gray-50 flex-col font-outfit">
                 <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
@@ -177,7 +160,7 @@ export default function FindDoctors() {
 
                     {/* Doctors Grid */}
                     <div className="w-full">
-                        {loading ? (
+                        {doctorsLoading ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 opacity-50">
                                 {[1, 2, 3, 4, 5, 6].map(i => (
                                     <div key={i} className="bg-white h-[400px] rounded-[2.5rem] animate-pulse"></div>

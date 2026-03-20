@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { updatePatientProfile } from "../services/patient.api"
+import { updatePatientProfile } from "@/infrastructure/api/patient.api"
 
 export default function ProfileForm() {
 

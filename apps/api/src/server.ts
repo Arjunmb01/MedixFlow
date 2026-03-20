@@ -1,9 +1,9 @@
-import { config } from "./core/config";
+import { config } from "./infrastructure/config";
 import dotenv from "dotenv";
 dotenv.config({ path: "./.env" });
 
 import app from "./app";
-import { connectRedis } from "./infrastructure/cache/redisClient";
+import { connectRedis } from "./infrastructure/services/redisClient";
 
 const PORT = config.port || 5000;
 console.log("DB:", process.env.DATABASE_URL);

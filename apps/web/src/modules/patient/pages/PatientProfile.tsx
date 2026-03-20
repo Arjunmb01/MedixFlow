@@ -1,98 +1,23 @@
-import { useState, useEffect } from "react"
 import Sidebar from "@/modules/patient/components/dashboard/Sidebar"
 import TopNav from "@/modules/patient/components/dashboard/TopNav"
 import Card from "@/modules/patient/components/ui/Card"
 import { Save, Lock } from "lucide-react"
-import { getPatientProfile, updatePatientProfile, updateEmergencyContacts, updatePassword } from "../services/patient.api"
-import type { PatientProfile as PatientProfileType, EmergencyContact } from "../types/patient.types"
-import { toast } from "sonner"
+import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile"
 
 export default function PatientProfile() {
-    const [profile, setProfile] = useState<PatientProfileType | null>(null)
-    const [personalInfo, setPersonalInfo] = useState({
-        name: "",
-        mobile: "",
-        bloodGroup: "",
-        gender: ""
-    })
-    const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([
-        { name: "", mobile: "" },
-        { name: "", mobile: "" }
-    ])
-    const [passwords, setPasswords] = useState({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: ""
-    })
-    const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const data = await getPatientProfile()
-                setProfile(data)
-                setPersonalInfo({
-                    name: data.name,
-                    mobile: data.mobile,
-                    bloodGroup: data.bloodGroup || "",
-                    gender: data.gender || ""
-                })
-                if (data.emergencyContacts?.length > 0) {
-                    const contacts = [...data.emergencyContacts]
-                    while (contacts.length < 2) contacts.push({ name: "", mobile: "" })
-                    setEmergencyContacts(contacts)
-                }
-            } catch (error) {
-                console.error("Failed to fetch profile", error)
-            } finally {
-                setLoading(false)
-            }
-        }
-        fetchProfile()
-    }, [])
-
-    const handlePersonalInfoSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        try {
-            await updatePatientProfile({
-                name: personalInfo.name,
-                mobile: personalInfo.mobile,
-                bloodGroup: personalInfo.bloodGroup || undefined,
-                gender: personalInfo.gender || undefined
-            })
-            toast.success("Personal information updated successfully!")
-        } catch (error) {
-            toast.error("Failed to update personal information.")
-        }
-    }
-
-    const handleEmergencySubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        try {
-            await updateEmergencyContacts(emergencyContacts)
-            toast.success("Emergency contacts updated successfully!")
-        } catch (error) {
-            toast.error("Failed to update emergency contacts.")
-        }
-    }
-
-    const handlePasswordSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (passwords.newPassword !== passwords.confirmPassword) {
-            toast.error("New passwords do not match.")
-            return
-        }
-        try {
-            await updatePassword({
-                currentPassword: passwords.currentPassword,
-                newPassword: passwords.newPassword
-            })
-            toast.success("Password updated successfully!")
-            setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" })
-        } catch (error) {
-            toast.error("Failed to update password. Please check your current password.")
-        }
-    }
+    const {
+        profile,
+        personalInfo,
+        setPersonalInfo,
+        emergencyContacts,
+        setEmergencyContacts,
+        passwords,
+        setPasswords,
+        loading,
+        handlePersonalInfoSubmit,
+        handleEmergencySubmit,
+        handlePasswordSubmit
+    } = usePatientProfile();
 
     if (loading || !profile) {
         return (
@@ -305,11 +230,6 @@ export default function PatientProfile() {
                         </div>
                     </div>
                 </main>
-
-                {/* Floating Action Button */}
-                {/* <button className="fixed bottom-10 right-10 w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center shadow-2xl shadow-blue-400 hover:scale-110 transition-transform z-20 group">
-                    <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-                </button> */}
             </div>
         </div>
     )

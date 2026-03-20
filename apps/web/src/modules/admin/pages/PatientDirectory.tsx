@@ -4,42 +4,30 @@ import AdminSidebar from "../components/AdminSidebar"
 import AdminTopNav from "../components/AdminTopNav"
 import { Search, Trash2, ChevronLeft, ChevronRight, User, SlidersHorizontal, X } from "lucide-react"
 import ConfirmModal from "../components/ConfirmModal"
-import { getPatientsList, deletePatient, updatePatientStatus } from "../services/patient.service"
-import { toast } from "sonner"
-
-interface Patient {
-    id: string
-    patientId: string
-    firstName: string
-    lastName: string
-    phone: string
-    gender: string | null
-    dob: string | null
-    _count: {
-        appointments: number
-    }
-    user: {
-        id: string
-        email: string
-        status: string
-        createdAt: string
-    }
-}
+import { usePatientManagement } from "@/application/patient/hooks/usePatientManagement"
 
 const STATUS_OPTIONS = ["", "ACTIVE", "INACTIVE", "SUSPENDED"] as const
 const GENDER_OPTIONS = ["", "MALE", "FEMALE", "OTHER"] as const
 
 export default function PatientDirectory() {
     const navigate = useNavigate()
-    const [patients, setPatients] = useState<Patient[]>([])
-    const [loading, setLoading] = useState(true)
+    const {
+        patients,
+        loading,
+        stats,
+        fetchPatients,
+        handleDeletePatient,
+        handleUpdatePatientStatus
+    } = usePatientManagement();
+
     const [search, setSearch] = useState("")
     const [status, setStatus] = useState("")
     const [gender, setGender] = useState("")
     const [showFilters, setShowFilters] = useState(false)
     const [page, setPage] = useState(1)
-    const [totalActive, setTotalActive] = useState(0)
-    const [totalPages, setTotalPages] = useState(1)
+
+    const totalActive = stats?.total || 0;
+    const totalPages = stats?.totalPages || 1;
 
     const [confirmModalConfig, setConfirmModalConfig] = useState<{
         isOpen: boolean;
@@ -58,42 +46,19 @@ export default function PatientDirectory() {
 
     const activeFilterCount = [status, gender].filter(Boolean).length
 
-    const fetchPatients = async () => {
-        setLoading(true)
-        try {
-            const response = await getPatientsList({ search, status: status || undefined, gender: gender || undefined, page, limit: 10 })
-            setPatients(response.data)
-            setTotalPages(response.meta.totalPages)
-            setTotalActive(response.meta.total)
-        } catch (error) {
-            console.error("Failed to fetch patients:", error)
-            toast.error("Failed to load patients")
-        } finally {
-            setLoading(false)
-        }
+    const handleFetch = () => {
+        fetchPatients({ search, status: status || undefined, gender: gender || undefined, page, limit: 10 })
     }
 
     const handleDelete = async (id: string) => {
-        try {
-            await deletePatient(id)
-            toast.success("Patient deleted successfully")
-            fetchPatients()
-        } catch (error) {
-            console.error("Failed to delete patient:", error)
-            toast.error("Failed to delete patient")
-        }
+        const success = await handleDeletePatient(id)
+        if (success) handleFetch()
     }
 
     const handleToggleBlock = async (id: string, currentStatus: string) => {
         const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
-        try {
-            await updatePatientStatus(id, newStatus)
-            toast.success(`Patient account ${newStatus === 'ACTIVE' ? 'activated' : 'deactivated'} successfully`)
-            fetchPatients()
-        } catch (error) {
-            console.error("Failed to update status:", error)
-            toast.error("Failed to update patient status")
-        }
+        const success = await handleUpdatePatientStatus(id, newStatus)
+        if (success) handleFetch()
     }
 
     const clearFilters = () => {
@@ -108,7 +73,7 @@ export default function PatientDirectory() {
     }, [search, status, gender])
 
     useEffect(() => {
-        const timer = setTimeout(fetchPatients, 300)
+        const timer = setTimeout(handleFetch, 300)
         return () => clearTimeout(timer)
     }, [search, status, gender, page])
 
@@ -230,136 +195,138 @@ export default function PatientDirectory() {
 
                 {/* Patients Table */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden min-h-[400px]">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-gray-50/50 border-b border-gray-100">
-                                <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Patient</th>
-                                <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Contact / Email</th>
-                                <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Gender</th>
-                                <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Registration Date</th>
-                                <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Account Status</th>
-                                <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Admin Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {loading ? (
-                                Array(5).fill(0).map((_, i) => (
-                                    <tr key={i} className="animate-pulse">
-                                        <td colSpan={6} className="px-8 py-4 h-16 bg-gray-50/30"></td>
-                                    </tr>
-                                ))
-                            ) : patients.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-8 py-20 text-center">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center">
-                                                <User className="w-8 h-8 text-gray-300" />
-                                            </div>
-                                            <p className="text-gray-400 font-medium">No patients found matching your criteria</p>
-                                            {(activeFilterCount > 0 || search) && (
-                                                <button onClick={clearFilters} className="text-teal-600 font-bold text-sm hover:underline">
-                                                    Clear filters
-                                                </button>
-                                            )}
-                                        </div>
-                                    </td>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-gray-50/50 border-b border-gray-100">
+                                    <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Patient</th>
+                                    <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Contact / Email</th>
+                                    <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Gender</th>
+                                    <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Registration Date</th>
+                                    <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">Account Status</th>
+                                    <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Admin Actions</th>
                                 </tr>
-                            ) : (
-                                patients.map((patient) => {
-                                    const { badge, dot } = statusBadge(patient.user.status)
-                                    return (
-                                        <tr key={patient.id} className="group hover:bg-gray-50/80 transition-all cursor-pointer">
-                                            <td className="px-8 py-5">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center border border-teal-100/50">
-                                                        <span className="text-teal-600 font-bold text-sm">
-                                                            {patient.firstName[0]}{patient.lastName[0]}
-                                                        </span>
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-bold text-gray-900 group-hover:text-teal-600 transition-colors">
-                                                            {patient.firstName} {patient.lastName}
-                                                        </p>
-                                                        <p className="text-xs text-gray-500 font-medium">#{patient.patientId}</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <div>
-                                                    <p className="font-bold text-gray-800">{patient.phone}</p>
-                                                    <p className="text-xs text-gray-500">{patient.user.email}</p>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <span className="text-sm font-medium text-gray-600">{patient.gender || '—'}</span>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <p className="text-sm font-bold text-gray-700">{formatDate(patient.user.createdAt)}</p>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${badge}`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${dot}`}></span>
-                                                    {patient.user.status.charAt(0) + patient.user.status.slice(1).toLowerCase()}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-5 text-right">
-                                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button
-                                                        onClick={() => navigate(`/admin/patients/${patient.id}`)}
-                                                        className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg transition-all shadow-md active:scale-95"
-                                                    >
-                                                        View
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            const actionText = patient.user.status === 'ACTIVE' ? 'block' : 'unblock'
-                                                            setConfirmModalConfig({
-                                                                isOpen: true,
-                                                                title: `${actionText === 'block' ? 'Block' : 'Unblock'} Patient`,
-                                                                message: `Are you sure you want to ${actionText} this patient? Their access will immediately be updated.`,
-                                                                actionText: actionText.charAt(0).toUpperCase() + actionText.slice(1),
-                                                                isDestructive: actionText === 'block',
-                                                                onConfirm: () => {
-                                                                    setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))
-                                                                    handleToggleBlock(patient.id, patient.user.status)
-                                                                }
-                                                            })
-                                                        }}
-                                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border active:scale-95 ${
-                                                            patient.user.status === 'ACTIVE'
-                                                                ? 'text-amber-600 border-amber-100 bg-amber-50 hover:bg-amber-100'
-                                                                : 'text-green-600 border-green-100 bg-green-50 hover:bg-green-100'
-                                                        }`}
-                                                        title={patient.user.status === 'ACTIVE' ? "Block Patient" : "Unblock Patient"}
-                                                    >
-                                                        {patient.user.status === 'ACTIVE' ? 'Block' : 'Unblock'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setConfirmModalConfig({
-                                                                isOpen: true,
-                                                                title: "Delete Patient",
-                                                                message: "Are you sure you want to permanently delete this patient? This action cannot be undone.",
-                                                                actionText: "Delete Patient",
-                                                                isDestructive: true,
-                                                                onConfirm: () => {
-                                                                    setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))
-                                                                    handleDelete(patient.id)
-                                                                }
-                                                            })
-                                                        }}
-                                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {loading ? (
+                                    Array(5).fill(0).map((_, i) => (
+                                        <tr key={i} className="animate-pulse">
+                                            <td colSpan={6} className="px-8 py-4 h-16 bg-gray-50/30"></td>
                                         </tr>
-                                    )
-                                })
-                            )}
-                        </tbody>
-                    </table>
+                                    ))
+                                ) : patients.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={6} className="px-8 py-20 text-center">
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center">
+                                                    <User className="w-8 h-8 text-gray-300" />
+                                                </div>
+                                                <p className="text-gray-400 font-medium">No patients found matching your criteria</p>
+                                                {(activeFilterCount > 0 || search) && (
+                                                    <button onClick={clearFilters} className="text-teal-600 font-bold text-sm hover:underline">
+                                                        Clear filters
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    patients.map((patient: any) => {
+                                        const { badge, dot } = statusBadge(patient.user.status)
+                                        return (
+                                            <tr key={patient.id} className="group hover:bg-gray-50/80 transition-all cursor-pointer">
+                                                <td className="px-8 py-5">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center border border-teal-100/50">
+                                                            <span className="text-teal-600 font-bold text-sm">
+                                                                {patient.firstName[0]}{patient.lastName[0]}
+                                                            </span>
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-gray-900 group-hover:text-teal-600 transition-colors">
+                                                                {patient.firstName} {patient.lastName}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500 font-medium">#{patient.patientId || patient.id.substring(0,8)}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <div>
+                                                        <p className="font-bold text-gray-800">{patient.phone}</p>
+                                                        <p className="text-xs text-gray-500">{patient.user.email}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <span className="text-sm font-medium text-gray-600">{patient.gender || '—'}</span>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <p className="text-sm font-bold text-gray-700">{formatDate(patient.user.createdAt)}</p>
+                                                </td>
+                                                <td className="px-8 py-5">
+                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${badge}`}>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${dot}`}></span>
+                                                        {(patient.user.status || '').charAt(0) + (patient.user.status || '').slice(1).toLowerCase()}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-5 text-right">
+                                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={() => navigate(`/admin/patients/${patient.id}`)}
+                                                            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg transition-all shadow-md active:scale-95"
+                                                        >
+                                                            View
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                const actionText = patient.user.status === 'ACTIVE' ? 'block' : 'unblock'
+                                                                setConfirmModalConfig({
+                                                                    isOpen: true,
+                                                                    title: `${actionText === 'block' ? 'Block' : 'Unblock'} Patient`,
+                                                                    message: `Are you sure you want to ${actionText} this patient? Their access will immediately be updated.`,
+                                                                    actionText: actionText.charAt(0).toUpperCase() + actionText.slice(1),
+                                                                    isDestructive: actionText === 'block',
+                                                                    onConfirm: () => {
+                                                                        setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))
+                                                                        handleToggleBlock(patient.id, patient.user.status)
+                                                                    }
+                                                                })
+                                                            }}
+                                                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border active:scale-95 ${
+                                                                patient.user.status === 'ACTIVE'
+                                                                    ? 'text-amber-600 border-amber-100 bg-amber-50 hover:bg-amber-100'
+                                                                    : 'text-green-600 border-green-100 bg-green-50 hover:bg-green-100'
+                                                            }`}
+                                                            title={patient.user.status === 'ACTIVE' ? "Block Patient" : "Unblock Patient"}
+                                                        >
+                                                            {patient.user.status === 'ACTIVE' ? 'Block' : 'Unblock'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setConfirmModalConfig({
+                                                                    isOpen: true,
+                                                                    title: "Delete Patient",
+                                                                    message: "Are you sure you want to permanently delete this patient? This action cannot be undone.",
+                                                                    actionText: "Delete Patient",
+                                                                    isDestructive: true,
+                                                                    onConfirm: () => {
+                                                                        setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))
+                                                                        handleDelete(patient.id)
+                                                                    }
+                                                                })
+                                                            }}
+                                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
 
                     {/* Pagination */}
                     <div className="px-8 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">

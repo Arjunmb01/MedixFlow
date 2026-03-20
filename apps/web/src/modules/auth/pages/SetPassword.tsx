@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useSearchParams, useNavigate } from "react-router-dom"
-import { setupPassword } from "@/modules/admin/services/staff.service"
+import { setupDoctorPassword as setupPassword } from "@/infrastructure/api/staff.api"
 
 export default function SetPassword() {
     const [searchParams] = useSearchParams()

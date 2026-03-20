@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import Sidebar from "../components/dashboard/Sidebar"
 import TopNav from "../components/dashboard/TopNav"
-import { getPatientProfile } from "../services/patient.api"
-import { getDoctorDetails } from "../services/doctor.api"
+import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile"
+import { useDoctorDetails } from "@/application/doctor/hooks/useDoctorDetails"
 import { 
     Star, 
     Clock, 
@@ -18,34 +18,28 @@ import {
 } from "lucide-react"
 
 export default function DoctorDetailsPage() {
-    const { id } = useParams()
-    const [profile, setProfile] = useState<any>(null)
-    const [doctor, setDoctor] = useState<any>(null)
-    const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState("About")
+    const { id = "" } = useParams()
+    const { profile, loading: profileLoading } = usePatientProfile()
+    const { doctor, loading: doctorLoading, error } = useDoctorDetails(id)
+    const [activeTab, setActiveTab ] = useState("About")
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [profileData, doctorData] = await Promise.all([
-                    getPatientProfile(),
-                    getDoctorDetails(id || "")
-                ])
-                setProfile(profileData)
-                setDoctor(doctorData)
-            } catch (error) {
-                console.error("Failed to fetch data", error)
-            } finally {
-                setLoading(false)
-            }
-        }
-        fetchData()
-    }, [id])
+    const loading = profileLoading || doctorLoading
 
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center bg-gray-50 flex-col font-outfit">
                 <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        )
+    }
+
+    if (error || !doctor) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-50 flex-col font-outfit">
+                <p className="text-red-500 font-bold">{error || "Doctor not found"}</p>
+                <Link to="/patient/find-doctors" className="mt-4 text-blue-600 font-bold hover:underline flex items-center gap-2">
+                    <ChevronLeft className="w-4 h-4" /> Back to Search
+                </Link>
             </div>
         )
     }

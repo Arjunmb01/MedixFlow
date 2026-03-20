@@ -1,0 +1,153 @@
+import { StatusCode, MESSAGES } from "@/shared/constants";
+import { Request, Response, NextFunction } from "express";
+import { SignUpUseCase } from "@/application/usecases/auth/signup.usecase";
+import { VerifyOtpUseCase } from "@/application/usecases/auth/verifyOtp.usecase";
+import { LoginPatientUseCase } from "@/application/usecases/auth/loginPatient.usecase";
+import { GoogleAuthUseCase } from "@/application/usecases/auth/googleAuth.usecase";
+import { RefreshTokenUseCase } from "@/application/usecases/auth/refreshToken.usecase";
+import { LogoutUseCase } from "@/application/usecases/auth/logout.usecase";
+import { ResendOtpUseCase } from "@/application/usecases/auth/resendOtp.usecase";
+import { ForgotPasswordUseCase } from "@/application/usecases/auth/forgotPassword.usecase";
+import { ResetPasswordUseCase } from "@/application/usecases/auth/resetPassword.usecase";
+import { signupSchema, verifyOtpSchema, forgotPasswordSchema, resetPasswordSchema, loginSchema } from "@/presentation/dtos/validation/auth.dtos";
+
+export class PatientAuthController {
+    constructor(
+        private signUpUseCase: SignUpUseCase,
+        private verifyOtpUseCase: VerifyOtpUseCase,
+        private loginPatientUseCase: LoginPatientUseCase,
+        private googleAuthUseCase: GoogleAuthUseCase,
+        private refreshTokenUseCase: RefreshTokenUseCase,
+        private logoutUseCase: LogoutUseCase,
+        private resendOtpUseCase: ResendOtpUseCase,
+        private forgotPasswordUseCase: ForgotPasswordUseCase,
+        private resetPasswordUseCase: ResetPasswordUseCase
+    ) {}
+
+    signUp = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const validatedData = signupSchema.parse(req.body);
+            const result = await this.signUpUseCase.execute(validatedData);
+            res.status(StatusCode.CREATED).json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    verifyOtp = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const validatedData = verifyOtpSchema.parse(req.body);
+            const result = await this.verifyOtpUseCase.execute(validatedData);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    login = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const validatedData = loginSchema.parse(req.body);
+            const result = await this.loginPatientUseCase.execute(validatedData);
+
+            const { accessToken, refreshToken } = result;
+
+            res.cookie("patient_refreshToken", refreshToken, {
+                httpOnly: true,
+                secure: false, // Set to true in production
+                sameSite: "strict",
+                maxAge: 7 * 24 * 60 * 60 * 1000
+            });
+
+            res.json({ accessToken });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "An unexpected error occurred";
+            const isBlocked = message.toLowerCase().includes("blocked");
+            res.status(isBlocked ? 403 : 401).json({ 
+                message, 
+                code: isBlocked ? "ACCOUNT_BLOCKED" : undefined 
+            });
+        }
+    }
+    
+    refreshToken = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const refreshToken = req.cookies.patient_refreshToken;
+            const result = await this.refreshTokenUseCase.execute(refreshToken, "PATIENT");
+            res.json(result);
+        } catch (error) {
+            res.status(StatusCode.UNAUTHORIZED).json({ message: error instanceof Error ? error.message : "An unexpected error occurred" });
+        }
+    }
+
+    logout = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.user.id;
+            await this.logoutUseCase.execute(userId);
+
+            res.clearCookie("patient_refreshToken");
+            res.json({ message: MESSAGES.LOGOUT_SUCCESS });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    resendOtp = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { email } = req.body;
+            if (!email) {
+                return res.status(StatusCode.BAD_REQUEST).json({ message: MESSAGES.EMAIL_REQUIRED });
+            }
+            const result = await this.resendOtpUseCase.execute(email);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    googleLogin = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { idToken } = req.body;
+            if (!idToken) {
+                return res.status(StatusCode.BAD_REQUEST).json({ message: MESSAGES.GOOGLE_ID_TOKEN_REQUIRED });
+            }
+
+            const { accessToken, refreshToken } = await this.googleAuthUseCase.execute(idToken);
+
+            res.cookie("patient_refreshToken", refreshToken, {
+                httpOnly: true,
+                secure: false, // Set to true in production
+                sameSite: "strict",
+                maxAge: 7 * 24 * 60 * 60 * 1000
+            });
+
+            res.json({ accessToken });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Google authentication failed";
+            const isBlocked = message.toLowerCase().includes("blocked");
+            res.status(isBlocked ? 403 : 401).json({ 
+                message, 
+                code: isBlocked ? "ACCOUNT_BLOCKED" : undefined 
+            });
+        }
+    }
+
+    forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const validatedData = forgotPasswordSchema.parse(req.body);
+            const result = await this.forgotPasswordUseCase.execute(validatedData);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    resetPassword = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const validatedData = resetPasswordSchema.parse(req.body);
+            const result = await this.resetPasswordUseCase.execute(validatedData);
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+}

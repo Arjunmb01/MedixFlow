@@ -46,7 +46,7 @@ export default function AdminLogin() {
         try {
 
             const response = await adminLogin(form)
-            const { accessToken } = response.data
+            const { accessToken } = response
             dispatch(
                 setAuth({
                     role: "ADMIN",

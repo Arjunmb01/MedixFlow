@@ -16,9 +16,9 @@ export default function ForgotPassword() {
         setLoading(true)
         try {
             if (isDoctor) {
-                await doctorForgotPassword(email)
+                await doctorForgotPassword({ email })
             } else {
-                await patientForgotPassword(email)
+                await patientForgotPassword({ email })
             }
             setSubmitted(true)
             toast.success("Reset link sent!")

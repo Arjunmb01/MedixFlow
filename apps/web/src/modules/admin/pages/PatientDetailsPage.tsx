@@ -2,10 +2,10 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import AdminSidebar from "../components/AdminSidebar"
 import { 
-    getPatientDetails, 
+    getPatientById as getPatientDetails, 
     updatePatientStatus, 
     deletePatient 
-} from "../services/patient.service"
+} from "@/infrastructure/api/patient.api"
 import { 
     User, 
     Phone, 

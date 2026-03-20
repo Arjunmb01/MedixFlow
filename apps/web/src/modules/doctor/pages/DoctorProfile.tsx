@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState } from "react"
 import DoctorSidebar from "../components/DoctorSidebar"
 import DoctorTopNav from "../components/DoctorTopNav"
-import { getDoctorProfile, updateDoctorProfile, updateDoctorPassword, updateDoctorSchedules, uploadImage } from "../services/doctor.api"
 import { toast } from "sonner"
 import Cropper from "react-easy-crop"
-import getCroppedImg from "../utils/cropImage"
+import { useDoctorProfile } from "@/application/doctor/hooks/useDoctorProfile"
+import { useDoctorImage } from "@/application/doctor/hooks/useDoctorImage"
 import { 
     User, 
     Camera, 
@@ -28,180 +28,68 @@ const DAYS = [
 ]
 
 export default function DoctorProfile() {
-    const [profile, setProfile] = useState<any>(null)
-    const [loading, setLoading] = useState(true)
-    const [saving, setSaving] = useState(false)
-    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
+    const {
+        profile,
+        loading,
+        saving,
+        personalInfo,
+        setPersonalInfo,
+        schedules,
+        setSchedules,
+        handleUpdateProfile,
+        handleUpdateSchedules,
+        handleUpdatePassword,
+        fetchProfile
+    } = useDoctorProfile()
 
-    // Cropping states
-    const [imageToCrop, setImageToCrop] = useState<string | null>(null)
-    const [crop, setCrop] = useState({ x: 0, y: 0 })
-    const [zoom, setZoom] = useState(1)
-    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
-    const [isCropModalOpen, setIsCropModalOpen] = useState(false)
-
-    // Form states
-    const [personalInfo, setPersonalInfo] = useState({
-        firstName: "",
-        lastName: "",
-        specialty: "",
-        consultationFee: 0,
-        licenseNumber: "",
-        phone: "",
-        bio: "",
-        avatarUrl: ""
+    const {
+        imageToCrop,
+        setImageToCrop,
+        crop,
+        setCrop,
+        zoom,
+        setZoom,
+        isCropModalOpen,
+        setIsCropModalOpen,
+        uploading,
+        onCropComplete,
+        handleImageSelect,
+        handleCropSave
+    } = useDoctorImage((url) => {
+        setPersonalInfo(prev => ({ ...prev, avatarUrl: url }))
     })
 
+    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
     const [passwordData, setPasswordData] = useState({
         currentPassword: "",
         newPassword: "",
         confirmPassword: ""
     })
 
-    const [schedules, setSchedules] = useState<any[]>([])
-
-    useEffect(() => {
-        fetchProfile()
-    }, [])
-
-    const fetchProfile = async () => {
-        try {
-            const data = await getDoctorProfile()
-            setProfile(data)
-            setPersonalInfo({
-                firstName: data.firstName,
-                lastName: data.lastName,
-                specialty: data.specialty,
-                consultationFee: data.consultationFee,
-                licenseNumber: data.licenseNumber,
-                phone: data.phone || "",
-                bio: data.bio || "",
-                avatarUrl: data.avatarUrl || ""
-            })
-            
-            // Initialize schedules from profile or default
-            const existingSchedules = data.schedules || []
-            const fullSchedules = DAYS.map(day => {
-                const found = existingSchedules.find((s: any) => s.dayOfWeek === day.value)
-                return {
-                    dayOfWeek: day.value,
-                    active: !!found,
-                    startTime: found?.startTime || "09:00",
-                    endTime: found?.endTime || "17:00",
-                    fullDay: found?.fullDay || false,
-                    slotDurationMinutes: found?.slotDurationMinutes || 30
-                }
-            })
-            setSchedules(fullSchedules)
-
-        } catch (error) {
-            console.error("Failed to fetch profile:", error)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const handleUpdateProfile = async (e: React.FormEvent) => {
+    const handleSubmitProfile = async (e: React.FormEvent) => {
         e.preventDefault()
-        setSaving(true)
-        try {
-            await updateDoctorProfile(personalInfo)
-            toast.success("Profile updated successfully")
-            fetchProfile()
-        } catch (error) {
-            console.error("Failed to update profile:", error)
-            toast.error("Failed to update profile")
-        } finally {
-            setSaving(false)
-        }
+        await handleUpdateProfile(personalInfo)
     }
 
-    const handleUpdatePassword = async (e: React.FormEvent) => {
+    const handleSubmitSchedules = async () => {
+        await handleUpdateSchedules(schedules)
+        setIsScheduleModalOpen(false)
+    }
+
+    const handleUpdatePasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (passwordData.newPassword !== passwordData.confirmPassword) {
             toast.error("Passwords do not match")
             return
         }
-        setSaving(true)
         try {
-            await updateDoctorPassword({
+            await handleUpdatePassword({
                 currentPassword: passwordData.currentPassword,
                 newPassword: passwordData.newPassword
             })
-            toast.success("Password updated successfully")
             setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" })
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to update password")
-        } finally {
-            setSaving(false)
-        }
-    }
-
-    const handleUpdateSchedules = async () => {
-        setSaving(true)
-        try {
-            const payload = schedules
-                .filter(s => s.active)
-                .map(s => ({
-                    dayOfWeek: s.dayOfWeek,
-                    startTime: s.startTime,
-                    endTime: s.endTime,
-                    fullDay: s.fullDay,
-                    slotDurationMinutes: s.slotDurationMinutes
-                }))
-            
-            await updateDoctorSchedules(payload)
-            toast.success("Schedule updated successfully")
-            setIsScheduleModalOpen(false)
-            fetchProfile()
         } catch (error) {
-            console.error("Failed to update schedule:", error)
-            toast.error("Failed to update schedule")
-        } finally {
-            setSaving(false)
-        }
-    }
-
-    const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
-        setCroppedAreaPixels(croppedAreaPixels)
-    }, [])
-
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file) return
-
-        const reader = new FileReader()
-        reader.onload = () => {
-            setImageToCrop(reader.result as string)
-            setIsCropModalOpen(true)
-        }
-        reader.readAsDataURL(file)
-        
-        // Reset the input value so the same file can be selected again
-        e.target.value = ""
-    }
-
-    const handleConfirmCrop = async () => {
-        if (!imageToCrop || !croppedAreaPixels) return
-
-        setSaving(true)
-        try {
-            const croppedImageBlob = await getCroppedImg(imageToCrop, croppedAreaPixels)
-            if (!croppedImageBlob) throw new Error("Failed to crop image")
-
-            const file = new File([croppedImageBlob], "profile.jpg", { type: "image/jpeg" })
-            const { url } = await uploadImage(file)
-            
-            setPersonalInfo(prev => ({ ...prev, avatarUrl: url }))
-            setProfile(prev => ({ ...prev, avatarUrl: url }))
-            setIsCropModalOpen(false)
-            setImageToCrop(null)
-            toast.success("Image cropped and uploaded. Save changes to persist.")
-        } catch (error) {
-            console.error("Failed to process image:", error)
-            toast.error("Failed to process image")
-        } finally {
-            setSaving(false)
+            // Error toast is handled by hook
         }
     }
 
@@ -234,7 +122,6 @@ export default function DoctorProfile() {
                         {/* Sidebar Info Card */}
                         <div className="lg:col-span-4 space-y-6">
                             <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm text-center relative overflow-hidden group">
-                                {/* FIXED: Removed group-hover:h-28 to prevent card from "moving" */}
                                 <div className="absolute top-0 inset-x-0 h-24 bg-teal-50 -z-10"></div>
                                 <div className="relative inline-block mb-6">
                                     <div className="w-28 h-28 rounded-full bg-white border-4 border-white shadow-xl flex items-center justify-center text-teal-600 font-black text-3xl overflow-hidden">
@@ -250,8 +137,8 @@ export default function DoctorProfile() {
                                             type="file" 
                                             className="hidden" 
                                             accept="image/*"
-                                            onChange={handleImageUpload}
-                                            disabled={saving}
+                                            onChange={handleImageSelect}
+                                            disabled={saving || uploading}
                                         />
                                     </label>
                                 </div>
@@ -276,7 +163,6 @@ export default function DoctorProfile() {
                                             <p className="text-xs text-gray-400 italic">No schedule set</p>
                                         )}
                                     </div>
-                                    {/* FIXED: Added onClick to open schedule modal */}
                                     <button 
                                         type="button"
                                         onClick={() => setIsScheduleModalOpen(true)}
@@ -296,7 +182,7 @@ export default function DoctorProfile() {
                                     <Award className="w-5 h-5 text-teal-500" />
                                     Personal & Professional Info
                                 </h3>
-                                <form onSubmit={handleUpdateProfile} className="space-y-6">
+                                <form onSubmit={handleSubmitProfile} className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">First Name</label>
@@ -380,7 +266,7 @@ export default function DoctorProfile() {
                                     <ShieldCheck className="w-5 h-5 text-teal-500" />
                                     Account Security
                                 </h3>
-                                <form onSubmit={handleUpdatePassword} className="space-y-6">
+                                <form onSubmit={handleUpdatePasswordSubmit} className="space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Current Password</label>
@@ -561,7 +447,7 @@ export default function DoctorProfile() {
                                 Discard
                             </button>
                             <button 
-                                onClick={handleUpdateSchedules}
+                                onClick={handleSubmitSchedules}
                                 disabled={saving}
                                 className="px-10 py-3.5 bg-teal-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-teal-200 hover:bg-teal-700 transition-all active:scale-95 disabled:opacity-50"
                             >
@@ -636,11 +522,11 @@ export default function DoctorProfile() {
                                 Cancel
                             </button>
                             <button 
-                                onClick={handleConfirmCrop}
-                                disabled={saving}
+                                onClick={handleCropSave}
+                                disabled={uploading}
                                 className="px-10 py-3.5 bg-teal-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-teal-200 hover:bg-teal-700 transition-all active:scale-95 disabled:opacity-50"
                             >
-                                {saving ? "Processing..." : "Apply & Upload"}
+                                {uploading ? "Processing..." : "Apply & Upload"}
                             </button>
                         </div>
                     </div>
