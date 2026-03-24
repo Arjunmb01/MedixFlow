@@ -6,13 +6,13 @@ import { container } from "@/infrastructure/container/AppContainer";
 const router = Router();
 const patientController = container.patientController;
 
-// All routes here require ADMIN role
 router.use(authMiddleware, authorize(["ADMIN"]));
 
 router.get("/patients", patientController.getAllPatients);
 router.get("/patients/:id", patientController.getPatientById);
 router.put("/patients/:id/status", patientController.blockPatient);
 router.delete("/patients/:id", patientController.deletePatient);
-router.get("/stats", patientController.getDashboardStats);
+router.get("/stats", patientController.getPatientStats);
+router.get("/appointments", patientController.getAllAppointments.bind(patientController));
 
 export default router;

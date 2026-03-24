@@ -4,6 +4,7 @@ import AdminDashboard from "../pages/AdminDashboard"
 import StaffDirectory from "../pages/StaffDirectory"
 import PatientDirectory from "../pages/PatientDirectory"
 import PatientDetailsPage from "../pages/PatientDetailsPage"
+import AdminAppointments from "../pages/AdminAppointments"
 
 export const AdminRoutes = (
     <>
@@ -36,6 +37,14 @@ export const AdminRoutes = (
             element={
                 <ProtectedRoute role="ADMIN">
                     <PatientDetailsPage />
+                </ProtectedRoute>
+            }
+        />
+        <Route
+            path="/admin/appointments"
+            element={
+                <ProtectedRoute role="ADMIN">
+                    <AdminAppointments />
                 </ProtectedRoute>
             }
         />

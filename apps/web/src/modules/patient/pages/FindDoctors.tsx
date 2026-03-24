@@ -18,7 +18,7 @@ export default function FindDoctors() {
     const [currentPage, setCurrentPage] = useState(1)
 
     const { 
-        doctors, 
+        doctors = [], 
         loading: doctorsLoading, 
         total: totalDoctors, 
         updateFilters 
@@ -29,14 +29,13 @@ export default function FindDoctors() {
         minFee: priceRange.min,
         maxFee: priceRange.max,
         page: currentPage,
-        limit: 6
+        limit: 9
     })
 
     const specialties = ["All", ...SPECIALTY_OPTIONS]
-    const limit = 6
+    const limit = 9
     const totalPages = Math.ceil(totalDoctors / limit)
 
-    // Debounced filter updates
     useEffect(() => {
         const timer = setTimeout(() => {
             updateFilters({
@@ -84,7 +83,7 @@ export default function FindDoctors() {
                     </div>
 
                     {/* Horizontal Filter Bar */}
-                    <div className="bg-white rounded-[2rem] p-4 border border-gray-100 shadow-sm mb-10 flex flex-wrap items-center gap-4 sticky top-24 z-20">
+                    <div className="bg-white rounded-[2rem] p-4 border border-gray-100 shadow-sm mb-10 flex flex-wrap items-center gap-4">
                         {/* Quick Search */}
                         <div className="flex-1 min-w-[240px] relative group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
@@ -161,60 +160,61 @@ export default function FindDoctors() {
                     {/* Doctors Grid */}
                     <div className="w-full">
                         {doctorsLoading ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 opacity-50">
-                                {[1, 2, 3, 4, 5, 6].map(i => (
-                                    <div key={i} className="bg-white h-[400px] rounded-[2.5rem] animate-pulse"></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-50">
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
+                                    <div key={i} className="bg-white h-[320px] rounded-[2rem] animate-pulse"></div>
                                 ))}
                             </div>
-                        ) : doctors.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        ) : doctors?.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {doctors.map((doctor: any) => (
                                     <div 
                                         key={doctor.id}
-                                        className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-blue-500/5 transition-all group flex flex-col items-center text-center relative overflow-hidden"
+                                        className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-blue-500/5 transition-all group flex flex-col items-center text-center relative overflow-hidden"
                                     >
-                                        <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-blue-50/50 to-transparent -z-10 group-hover:h-40 transition-all"></div>
+                                        <div className="absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-blue-50/50 to-transparent -z-10 group-hover:h-32 transition-all"></div>
                                         
-                                        <div className="w-36 h-36 rounded-full bg-white border-4 border-white shadow-2xl flex items-center justify-center text-blue-600 mb-8 relative group-hover:scale-105 transition-transform overflow-hidden">
+                                        <div className="w-24 h-24 rounded-full bg-white border-4 border-white shadow-2xl flex items-center justify-center text-blue-600 mb-5 relative group-hover:scale-105 transition-transform overflow-hidden">
                                             {doctor.avatarUrl ? (
                                                 <img src={doctor.avatarUrl} alt={doctor.firstName} className="w-full h-full object-cover" />
                                             ) : (
-                                                <User className="w-16 h-16" />
+                                                <User className="w-10 h-10" />
                                             )}
-                                            <div className="absolute bottom-0 right-0 w-10 h-10 bg-green-500 border-4 border-white rounded-full flex items-center justify-center">
-                                                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                                            <div className="absolute bottom-0 right-0 w-7 h-7 bg-green-500 border-[3px] border-white rounded-full flex items-center justify-center">
+                                                <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
                                             </div>
                                         </div>
 
-                                        <div className="space-y-2 mb-8">
-                                            <h3 className="text-2xl font-black text-gray-900 tracking-tight">Dr. {doctor.firstName} {doctor.lastName}</h3>
-                                            <p className="text-blue-600 font-bold text-sm uppercase tracking-widest">{doctor.specialty} • Expert</p>
+                                        <div className="space-y-1.5 mb-5">
+                                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Dr. {doctor.firstName} {doctor.lastName}</h3>
+                                            <p className="text-blue-600 font-bold text-xs uppercase tracking-widest">{doctor.specialty} • Expert</p>
                                         </div>
 
-                                        <div className="flex items-center gap-4 mb-10 w-full justify-center">
-                                            <div className="bg-orange-50 px-4 py-2 rounded-2xl flex items-center gap-2">
-                                                <Star className="w-4 h-4 text-orange-500 fill-orange-500" />
+                                        <div className="flex items-center gap-3 mb-6 w-full justify-center">
+                                            <div className="bg-orange-50 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                                                <Star className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
                                                 <span className="text-xs font-black text-orange-600">{doctor.rating || '4.9'}</span>
                                             </div>
-                                            <div className="bg-blue-50 px-4 py-2 rounded-2xl flex items-center gap-2">
-                                                <Clock className="w-4 h-4 text-blue-500" />
+                                            <div className="bg-blue-50 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                                                <Clock className="w-3.5 h-3.5 text-blue-500" />
                                                 <span className="text-xs font-black text-blue-600">Available</span>
                                             </div>
                                         </div>
 
-                                        <div className="w-full pt-8 border-t border-gray-50 flex items-center justify-between">
+                                        <div className="w-full pt-5 border-t border-gray-50 flex items-center justify-between">
                                             <div className="text-left">
                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Fee</p>
-                                                <span className="text-2xl font-black text-gray-900">₹{doctor.consultationFee}</span>
+                                                <span className="text-xl font-black text-gray-900">₹{doctor.consultationFee}</span>
                                             </div>
                                             <button 
                                                 onClick={() => navigate(`/patient/doctor/${doctor.id}`)}
-                                                className="px-8 py-4 bg-gray-900 text-white rounded-[1.2rem] text-xs font-black uppercase tracking-widest shadow-xl shadow-gray-200 hover:bg-black active:scale-95 transition-all"
+                                                className="px-6 py-3 bg-gray-900 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-xl shadow-gray-200 hover:bg-black active:scale-95 transition-all"
                                             >
-                                                Book Now
+                                                View Profile
                                             </button>
                                         </div>
                                     </div>
+
                                 ))}
                             </div>
                         ) : (

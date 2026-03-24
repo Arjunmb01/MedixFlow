@@ -1,7 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER } from "redux-persist";
-import storage from "redux-persist/lib/storage"; // Uses localStorage under the hood for persisting UI state
-import authReducer from "@/modules/store/authSlice"
+import storage from "redux-persist/lib/storage"; 
+import authReducer from "@/modules/store/authSlice";
 
 
 const persistConfig = {

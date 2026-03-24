@@ -139,9 +139,12 @@ export default function DoctorDetailsPage() {
                                             <MessageSquare className="w-4 h-4 group-hover:text-blue-600" />
                                             Chat with {doctor.firstName}
                                         </button>
-                                        <button className="px-10 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all">
+                                        <Link 
+                                            to={`/patient/book-appointment/${doctor.id}`}
+                                            className="px-10 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all text-center"
+                                        >
                                             Book Appointment
-                                        </button>
+                                        </Link>
                                     </div>
                                 </div>
                             </div>

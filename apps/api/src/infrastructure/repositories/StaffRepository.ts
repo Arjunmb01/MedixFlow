@@ -67,11 +67,11 @@ export class StaffRepository extends BaseRepository<any, any, any> implements IS
         ]);
 
         return {
-            data: doctors.map((d: any) => ({
+            doctors: doctors.map((d: any) => ({
                 ...d,
                 specialty: (d as any).specialization?.name
             })),
-            meta: {
+            stats: {
                 total,
                 page,
                 limit,

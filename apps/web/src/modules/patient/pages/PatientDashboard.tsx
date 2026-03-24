@@ -7,16 +7,19 @@ import AppointmentHistory from "@/modules/patient/components/dashboard/Appointme
 import DownloadCenter from "@/modules/patient/components/dashboard/DownloadCenter"
 import BillingSummary from "@/modules/patient/components/dashboard/BillingSummary"
 
-import { Calendar, ClipboardList, UserCircle, FileText } from "lucide-react"
+import { Calendar, ClipboardList, UserCircle, FileText, Loader2 } from "lucide-react"
 import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile"
+import { usePatientDashboard } from "@/application/patient/hooks/usePatientDashboard"
 
 export default function PatientDashboard() {
-    const { profile, loading } = usePatientProfile()
+    const { profile, loading: profileLoading } = usePatientProfile()
+    const { stats, notifications, loading: dashboardLoading } = usePatientDashboard()
 
-    if (loading || !profile) {
+    if (profileLoading || dashboardLoading || !profile) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gray-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="flex items-center justify-center h-screen bg-gray-50 flex-col font-outfit">
+                <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
+                <p className="mt-4 text-gray-500 font-bold">Loading dashboard...</p>
             </div>
         )
     }
@@ -24,7 +27,7 @@ export default function PatientDashboard() {
     const userName = profile.name || "Patient"
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="min-h-screen bg-gray-50 flex font-outfit">
             <Sidebar />
 
             <div className="flex-1 ml-64">
@@ -49,47 +52,47 @@ export default function PatientDashboard() {
                         <StatCard
                             icon={<Calendar className="w-5 h-5 text-red-500" />}
                             iconBg="bg-red-50"
-                            value="01"
+                            value={stats?.upcomingAppointmentsCount || 0}
                             label="Upcoming Appointments"
-                            subtitle={<span className="text-gray-400">Tomorrow 10:30 AM</span>}
+                            subtitle={<span className="text-gray-400">{stats?.nextAppointment ? stats.nextAppointment.slotStart : "No sessions scheduled"}</span>}
                         />
                         <StatCard
                             icon={<ClipboardList className="w-5 h-5 text-green-500" />}
                             iconBg="bg-green-50"
-                            value="02"
-                            label="Pending Follow-ups"
-                            subtitle={<span className="text-red-500 font-bold">Action required</span>}
+                            value={stats?.unreadNotificationsCount || 0}
+                            label="New Notifications"
+                            subtitle={<span className="text-blue-600 font-bold">Check activity</span>}
                         />
                         <StatCard
                             icon={<UserCircle className="w-5 h-5 text-blue-500" />}
                             iconBg="bg-blue-50"
-                            value={`${profile.profileCompletion}%`}
+                            value={`${stats?.profileCompletion || profile.profileCompletion}%`}
                             label="Profile Completion"
-                            subtitle={<button className="text-blue-600 font-bold hover:underline">add emergency contact</button>}
+                            subtitle={<button className="text-blue-600 font-bold hover:underline">Complete profile</button>}
                         />
                         <StatCard
                             icon={<FileText className="w-5 h-5 text-gray-500" />}
                             iconBg="bg-gray-50"
-                            value="12"
+                            value={stats?.medicalRecordsCount || 0}
                             label="Medical Records"
-                            subtitle={<span className="text-gray-400">last uploaded 2 days ago</span>}
+                            subtitle={<span className="text-gray-400">Manage documents</span>}
                         />
                     </div>
 
                     {/* Main Content Sections */}
                     <div className="grid grid-cols-3 gap-8 mb-10">
                         <div className="col-span-2">
-                            <UpcomingCareCard />
+                            <UpcomingCareCard appointment={stats?.nextAppointment} />
                         </div>
                         <div className="col-span-1">
-                            <NotificationPanel />
+                            <NotificationPanel notifications={notifications} />
                         </div>
                     </div>
 
                     {/* Bottom Sections */}
                     <div className="grid grid-cols-3 gap-8">
                         <div className="col-span-1">
-                            <AppointmentHistory />
+                            <AppointmentHistory appointments={stats?.recentAppointments || []} />
                         </div>
                         <div className="col-span-1">
                             <DownloadCenter />
@@ -99,11 +102,6 @@ export default function PatientDashboard() {
                         </div>
                     </div>
                 </main>
-
-                {/* Floating Action Button
-                <button className="fixed bottom-10 right-10 w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center shadow-2xl shadow-blue-400 hover:scale-110 transition-transform z-20 group">
-                    <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-                </button> */}
             </div>
         </div>
     )

@@ -11,7 +11,7 @@ export class DoctorRepository extends BaseRepository<any, any, any> implements I
             where: { id: userId },
             include: {
                 user: {
-                    select: { id: true, email: true, status: true, createdAt: true }
+                    select: { id: true, email: true, passwordHash: true, status: true, createdAt: true }
                 },
                 specialization: true,
                 schedules: true
@@ -78,7 +78,7 @@ export class DoctorRepository extends BaseRepository<any, any, any> implements I
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        const [totalAppointments, todayAppointments, completedToday, pendingToday] = await Promise.all([
+        const [totalAppointments, todayAppointmentsCount, completedToday, pendingToday, todayAppointments] = await Promise.all([
             prisma.appointment.count({ where: { doctorId: userId } }),
             prisma.appointment.count({
                 where: {
@@ -99,14 +99,28 @@ export class DoctorRepository extends BaseRepository<any, any, any> implements I
                     appointmentDate: { gte: today, lt: tomorrow },
                     status: { in: ["PENDING", "CONFIRMED"] }
                 }
+            }),
+            prisma.appointment.findMany({
+                where: {
+                    doctorId: userId,
+                    appointmentDate: { gte: today, lt: tomorrow },
+                    status: { not: "CANCELLED" }
+                },
+                include: {
+                    patient: true
+                },
+                orderBy: {
+                    slotStart: "asc"
+                }
             })
         ]);
 
         return {
             totalAppointments,
-            todayAppointments,
+            todayAppointmentsCount,
             completedToday,
-            pendingToday
+            pendingToday,
+            todayAppointments
         };
     }
 
@@ -175,7 +189,7 @@ export class DoctorRepository extends BaseRepository<any, any, any> implements I
         ]);
 
         // I'll refactor the DoctorMapper later or just return data as is for now.
-        return { data: doctors, total };
+        return { doctors: doctors, total };
     }
 
     async findProfileById(doctorId: string) {

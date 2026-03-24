@@ -14,7 +14,9 @@ import {
     X,
     Clock,
     Calendar,
-    Crop
+    Crop,
+    Eye,
+    EyeOff
 } from "lucide-react"
 
 const DAYS = [
@@ -64,6 +66,11 @@ export default function DoctorProfile() {
         currentPassword: "",
         newPassword: "",
         confirmPassword: ""
+    })
+    const [showPasswords, setShowPasswords] = useState({
+        current: false,
+        new: false,
+        confirm: false
     })
 
     const handleSubmitProfile = async (e: React.FormEvent) => {
@@ -270,36 +277,63 @@ export default function DoctorProfile() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Current Password</label>
-                                            <input 
-                                                type="password"
-                                                value={passwordData.currentPassword}
-                                                onChange={e => setPasswordData({...passwordData, currentPassword: e.target.value})}
-                                                className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-black tracking-widest focus:ring-2 focus:ring-teal-500/10 transition-all placeholder:tracking-normal placeholder:font-medium text-gray-400"
-                                                placeholder="••••••••"
-                                                required
-                                            />
+                                            <div className="relative group">
+                                                <input 
+                                                    type={showPasswords.current ? "text" : "password"}
+                                                    value={passwordData.currentPassword}
+                                                    onChange={e => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                                                    className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 pr-12 text-sm font-black tracking-widest focus:ring-2 focus:ring-teal-500/10 transition-all placeholder:tracking-normal placeholder:font-medium text-gray-900"
+                                                    placeholder="••••••••"
+                                                    required
+                                                />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-teal-600 transition-colors"
+                                                >
+                                                    {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                </button>
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">New Password</label>
-                                            <input 
-                                                type="password"
-                                                value={passwordData.newPassword}
-                                                onChange={e => setPasswordData({...passwordData, newPassword: e.target.value})}
-                                                className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-black tracking-widest focus:ring-2 focus:ring-teal-500/10 transition-all placeholder:tracking-normal placeholder:font-medium text-gray-400"
-                                                placeholder="At least 8 characters"
-                                                required
-                                            />
+                                            <div className="relative group">
+                                                <input 
+                                                    type={showPasswords.new ? "text" : "password"}
+                                                    value={passwordData.newPassword}
+                                                    onChange={e => setPasswordData({...passwordData, newPassword: e.target.value})}
+                                                    className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 pr-12 text-sm font-black tracking-widest focus:ring-2 focus:ring-teal-500/10 transition-all placeholder:tracking-normal placeholder:font-medium text-gray-900"
+                                                    placeholder="At least 8 characters"
+                                                    required
+                                                />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-teal-600 transition-colors"
+                                                >
+                                                    {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                </button>
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirm New Password</label>
-                                            <input 
-                                                type="password"
-                                                value={passwordData.confirmPassword}
-                                                onChange={e => setPasswordData({...passwordData, confirmPassword: e.target.value})}
-                                                className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-black tracking-widest focus:ring-2 focus:ring-teal-500/10 transition-all placeholder:tracking-normal placeholder:font-medium text-gray-400"
-                                                placeholder="Re-enter new password"
-                                                required
-                                            />
+                                            <div className="relative group">
+                                                <input 
+                                                    type={showPasswords.confirm ? "text" : "password"}
+                                                    value={passwordData.confirmPassword}
+                                                    onChange={e => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                                                    className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 pr-12 text-sm font-black tracking-widest focus:ring-2 focus:ring-teal-500/10 transition-all placeholder:tracking-normal placeholder:font-medium text-gray-900"
+                                                    placeholder="Re-enter new password"
+                                                    required
+                                                />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-teal-600 transition-colors"
+                                                >
+                                                    {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="pt-4 border-t border-gray-50 flex justify-end">

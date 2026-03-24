@@ -1,0 +1,53 @@
+import { IAppointmentRepository } from "../../../domain/repositories/IAppointmentRepository";
+import { INotificationRepository } from "../../../domain/repositories/INotificationRepository";
+import { IPatientRepository } from "../../../domain/repositories/IPatientRepository";
+import { CalculateProfileCompletionUseCase } from "./CalculateProfileCompletionUseCase";
+
+export class GetPatientDashboardStatsUseCase {
+    constructor(
+        private readonly appointmentRepo: IAppointmentRepository,
+        private readonly notificationRepo: INotificationRepository,
+        private readonly patientRepo: IPatientRepository,
+        private readonly calculateProfileCompletionUseCase: CalculateProfileCompletionUseCase
+    ) {}
+
+    async execute(userId: string) {
+        const [appointments, notifications, patient] = await Promise.all([
+            this.appointmentRepo.getAppointmentsByPatientId(userId),
+            this.notificationRepo.findByUserId(userId),
+            this.patientRepo.findById(userId)
+        ]);
+
+        const now = new Date();
+        const upcomingAppointments = appointments.filter(app => new Date(app.appointmentDate) >= now && app.status !== "CANCELLED" && app.status !== "COMPLETED");
+        const nextAppointment = upcomingAppointments.length > 0 ? upcomingAppointments[0] : null;
+
+        const recentAppointments = appointments
+            .filter(app => new Date(app.appointmentDate) < now || app.status === "CANCELLED" || app.status === "COMPLETED")
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 5);
+
+        const profileCompletion = this.calculateProfileCompletionUseCase.execute(patient);
+
+        return {
+            upcomingAppointmentsCount: upcomingAppointments.length,
+            nextAppointment: nextAppointment ? {
+                id: nextAppointment.id,
+                date: nextAppointment.appointmentDate,
+                slotStart: nextAppointment.slotStart,
+                doctorName: `Dr. ${nextAppointment.doctor.firstName} ${nextAppointment.doctor.lastName}`,
+                specialty: nextAppointment.doctor.specialization.name,
+            } : null,
+            recentAppointments: recentAppointments.map(app => ({
+                id: app.id,
+                doctorName: `Dr. ${app.doctor.firstName} ${app.doctor.lastName}`,
+                specialty: app.doctor.specialization.name,
+                date: app.appointmentDate,
+                status: app.status,
+            })),
+            profileCompletion,
+            unreadNotificationsCount: notifications.filter((n: any) => !n.isRead).length,
+            medicalRecordsCount: 0, // Placeholder
+        };
+    }
+}

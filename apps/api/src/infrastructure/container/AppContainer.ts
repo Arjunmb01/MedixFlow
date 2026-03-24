@@ -35,11 +35,20 @@ import { UpdatePasswordUseCase } from "@/application/usecases/patient/updatePass
 import { GetAllPatientsUseCase } from "@/application/usecases/patient/getAllPatients.usecase";
 import { GetPatientByIdUseCase } from "@/application/usecases/patient/getPatientById.usecase";
 import { ToggleBlockPatientUseCase, DeletePatientUseCase, GetPatientStatsUseCase } from "@/application/usecases/admin/adminActions.usecase";
+import { GetPatientNotificationsUseCase } from "@/application/usecases/patient/getPatientNotifications.usecase";
+import { GetUpcomingAppointmentsUseCase } from "@/application/usecases/patient/getUpcomingAppointments.usecase";
+import { GetPatientDashboardStatsUseCase } from "@/application/usecases/patient/getPatientDashboardStats.usecase";
+import { GetPatientAppointmentsUseCase } from "@/application/usecases/patient/getPatientAppointments.usecase";
+import { CancelAppointmentUseCase } from "@/application/usecases/appointment/cancelAppointment.usecase";
+import { GetDoctorAppointmentsUseCase } from "@/application/usecases/doctor/getDoctorAppointments.usecase";
+import { GetAllAppointmentsUseCase } from "@/application/usecases/appointment/getAllAppointments.usecase";
 import { PatientController } from "@/presentation/controllers/PatientController";
 
 // New Staff/Doctor Implementations
 import { DoctorRepository } from "@/infrastructure/repositories/DoctorRepository";
 import { StaffRepository } from "@/infrastructure/repositories/StaffRepository";
+import { AppointmentRepository } from "@/infrastructure/repositories/AppointmentRepository";
+import { NotificationRepository } from "@/infrastructure/repositories/NotificationRepository";
 import { GetDoctorProfileUseCase } from "@/application/usecases/doctor/getDoctorProfile.usecase";
 import { UpdateDoctorProfileUseCase } from "@/application/usecases/doctor/updateDoctorProfile.usecase";
 import { UpdateDoctorPasswordUseCase } from "@/application/usecases/doctor/updateDoctorPassword.usecase";
@@ -51,6 +60,7 @@ import { StaffController } from "@/presentation/controllers/StaffController";
 
 import emailService from "@/infrastructure/services/SmtpEmailService";
 import { IEmailService } from "@/domain/services/IEmailService";
+import { prisma } from "@/infrastructure/database/prismaClient";
 
 export class AppContainer {
   private static instance: AppContainer;
@@ -60,6 +70,8 @@ export class AppContainer {
   private _doctorRepository: DoctorRepository;
   private _staffRepository: StaffRepository;
   private _authRepository: AuthRepository;
+  private _appointmentRepository: AppointmentRepository;
+  private _notificationRepository: NotificationRepository;
 
   // Services
   private _emailOtpService: EmailOtpService;
@@ -86,6 +98,13 @@ export class AppContainer {
   private _toggleBlockPatientUseCase: ToggleBlockPatientUseCase;
   private _deletePatientUseCase: DeletePatientUseCase;
   private _getPatientStatsUseCase: GetPatientStatsUseCase;
+  private _getPatientNotificationsUseCase: GetPatientNotificationsUseCase;
+  private _getUpcomingAppointmentsUseCase: GetUpcomingAppointmentsUseCase;
+  private _getPatientDashboardStatsUseCase: GetPatientDashboardStatsUseCase;
+  private _getPatientAppointmentsUseCase: GetPatientAppointmentsUseCase;
+  private _cancelAppointmentUseCase: CancelAppointmentUseCase;
+  private _getDoctorAppointmentsUseCase: GetDoctorAppointmentsUseCase;
+  private _getAllAppointmentsUseCase: GetAllAppointmentsUseCase;
 
   // Use Cases - Staff/Admin
   private _getDoctorsUseCase: GetDoctorsUseCase;
@@ -127,6 +146,8 @@ export class AppContainer {
     this._doctorRepository = new DoctorRepository();
     this._staffRepository = new StaffRepository();
     this._authRepository = new AuthRepository();
+    this._appointmentRepository = new AppointmentRepository(prisma);
+    this._notificationRepository = new NotificationRepository(prisma);
 
     this._emailOtpService = new EmailOtpService();
     this._redisSessionService = new RedisSessionService();
@@ -156,6 +177,18 @@ export class AppContainer {
     this._toggleBlockPatientUseCase = new ToggleBlockPatientUseCase(this._patientRepository, this._redisSessionService);
     this._deletePatientUseCase = new DeletePatientUseCase(this._patientRepository);
     this._getPatientStatsUseCase = new GetPatientStatsUseCase(this._patientRepository);
+    this._getPatientNotificationsUseCase = new GetPatientNotificationsUseCase(this._notificationRepository);
+    this._getUpcomingAppointmentsUseCase = new GetUpcomingAppointmentsUseCase(this._appointmentRepository);
+    this._getPatientDashboardStatsUseCase = new GetPatientDashboardStatsUseCase(
+        this._appointmentRepository,
+        this._notificationRepository,
+        this._patientRepository,
+        this._calculateProfileCompletionUseCase
+    );
+    this._getPatientAppointmentsUseCase = new GetPatientAppointmentsUseCase(this._appointmentRepository);
+    this._cancelAppointmentUseCase = new CancelAppointmentUseCase(this._appointmentRepository, this._notificationRepository);
+    this._getDoctorAppointmentsUseCase = new GetDoctorAppointmentsUseCase(this._appointmentRepository);
+    this._getAllAppointmentsUseCase = new GetAllAppointmentsUseCase(this._appointmentRepository);
 
     // Staff Use Cases
     this._getDoctorsUseCase = new GetDoctorsUseCase(this._staffRepository);
@@ -183,7 +216,8 @@ export class AppContainer {
       this._updateDoctorProfileUseCase,
       this._updateDoctorPasswordUseCase,
       this._getDoctorDashboardStatsUseCase,
-      this._updateDoctorSchedulesUseCase
+      this._updateDoctorSchedulesUseCase,
+      this._getDoctorAppointmentsUseCase
     );
 
     this._publicDoctorController = new PublicDoctorController(
@@ -200,7 +234,13 @@ export class AppContainer {
       this._getPatientByIdUseCase,
       this._toggleBlockPatientUseCase,
       this._deletePatientUseCase,
-      this._getPatientStatsUseCase
+      this._getPatientStatsUseCase,
+      this._getPatientNotificationsUseCase,
+      this._getUpcomingAppointmentsUseCase,
+      this._getPatientDashboardStatsUseCase,
+      this._getPatientAppointmentsUseCase,
+      this._cancelAppointmentUseCase,
+      this._getAllAppointmentsUseCase
     );
 
     this._staffController = new StaffController(

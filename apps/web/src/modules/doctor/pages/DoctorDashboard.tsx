@@ -48,7 +48,7 @@ export default function DoctorDashboard() {
                         <StatCard 
                             icon={Hourglass} 
                             label="Patients Waiting" 
-                            value="12" 
+                            value={stats?.pendingToday?.toString() || "0"} 
                             color="teal" 
                             pulse 
                         />
@@ -83,36 +83,37 @@ export default function DoctorDashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Current/Ongoing Session */}
                         <div className="lg:col-span-2 space-y-6">
-                            <div className="bg-white rounded-[2.5rem] border border-teal-100 p-8 shadow-xl shadow-teal-50 relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 py-2 px-8 bg-teal-600 text-white text-[10px] font-black uppercase tracking-widest rotate-45 translate-x-12 translate-y-4">
-                                    Ongoing Session
-                                </div>
-                                <div className="flex items-start gap-8">
-                                    <div className="w-20 h-20 bg-teal-600 rounded-3xl flex items-center justify-center text-white text-2xl font-black border-4 border-teal-50 shadow-inner">
-                                        AS
+                            {stats?.todayAppointments && stats.todayAppointments.length > 0 ? (
+                                <div className="bg-white rounded-[2.5rem] border border-teal-100 p-8 shadow-xl shadow-teal-50 relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 py-2 px-8 bg-teal-600 text-white text-[10px] font-black uppercase tracking-widest rotate-45 translate-x-12 translate-y-4">
+                                        Next Session
                                     </div>
-                                    <div className="flex-1">
-                                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">Arjun Sharma</h3>
-                                        <p className="text-gray-400 font-bold text-sm mt-1">
-                                            28 Years <span className="mx-1">•</span> Male <span className="mx-1">•</span> ID: #PX-9921
-                                        </p>
-                                        <div className="inline-flex items-center gap-2 bg-teal-50 text-teal-700 px-4 py-1.5 rounded-full mt-4 text-[11px] font-black uppercase tracking-tight border border-teal-100">
-                                            CHIEF COMPLAINT: Persistent Cough (3 Days)
+                                    <div className="flex items-start gap-8">
+                                        <div className="w-20 h-20 bg-teal-600 rounded-3xl flex items-center justify-center text-white text-2xl font-black border-4 border-teal-50 shadow-inner">
+                                            {stats.todayAppointments[0].patient.firstName[0]}{stats.todayAppointments[0].patient.lastName[0]}
                                         </div>
+                                        <div className="flex-1">
+                                            <h3 className="text-2xl font-black text-gray-900 tracking-tight">
+                                                {stats.todayAppointments[0].patient.firstName} {stats.todayAppointments[0].patient.lastName}
+                                            </h3>
+                                            <p className="text-gray-400 font-bold text-sm mt-1">
+                                                {stats.todayAppointments[0].patient.gender} <span className="mx-1">•</span> ID: #{stats.todayAppointments[0].patient.id.slice(-6).toUpperCase()}
+                                            </p>
+                                            <div className="inline-flex items-center gap-2 bg-teal-50 text-teal-700 px-4 py-1.5 rounded-full mt-4 text-[11px] font-black uppercase tracking-tight border border-teal-100">
+                                                TIME: {stats.todayAppointments[0].slotStart}
+                                            </div>
+                                        </div>
+                                        <button className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3.5 rounded-2xl font-black text-sm shadow-xl shadow-teal-200 transition-all active:scale-95 flex items-center gap-2">
+                                            Enter Workspace 
+                                            <ArrowRight className="w-4 h-4" />
+                                        </button>
                                     </div>
-                                    <button className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3.5 rounded-2xl font-black text-sm shadow-xl shadow-teal-200 transition-all active:scale-95 flex items-center gap-2">
-                                        Enter Workspace 
-                                        <ArrowRight className="w-4 h-4" />
-                                    </button>
                                 </div>
-
-                                <div className="grid grid-cols-4 gap-4 mt-10 pt-8 border-t border-gray-50">
-                                    <Vitals label="BLOOD PRESSURE" value="128/84" unit="mmHg" />
-                                    <Vitals label="HEART RATE" value="72" unit="bpm" />
-                                    <Vitals label="SPO2" value="98" unit="%" />
-                                    <Vitals label="TEMPERATURE" value="98.6" unit="°F" />
+                            ) : (
+                                <div className="bg-white rounded-[2.5rem] border border-gray-100 p-8 text-center">
+                                    <p className="text-gray-400 font-bold">No sessions scheduled for today</p>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Live Queue Monitor */}
                             <div className="space-y-6">
@@ -123,8 +124,18 @@ export default function DoctorDashboard() {
                                     </button>
                                 </div>
                                 <div className="space-y-3">
-                                    <QueueItem number="10" name="Sarah Connor" status="Ready • Waiting for 14m" />
-                                    <QueueItem number="11" name="Michael Knight" status="Preparing • Arrived at 10:15 AM" statusType="WAITING" />
+                                    {stats?.todayAppointments?.map((apt, idx) => (
+                                        <QueueItem 
+                                            key={apt.id}
+                                            number={idx + 1} 
+                                            name={`${apt.patient.firstName} ${apt.patient.lastName}`} 
+                                            status={`${apt.status} • Scheduled at ${apt.slotStart}`} 
+                                            statusType={apt.status === 'CONFIRMED' ? 'READY' : 'WAITING'}
+                                        />
+                                    ))}
+                                    {(!stats?.todayAppointments || stats.todayAppointments.length === 0) && (
+                                        <p className="text-gray-400 text-sm italic text-center py-4">Your queue is empty.</p>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -182,17 +193,6 @@ function StatCard({ icon: Icon, label, value, color, pulse }: any) {
     )
 }
 
-function Vitals({ label, value, unit }: any) {
-    return (
-        <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-            <div className="flex items-baseline gap-1">
-                <span className="text-lg font-black text-gray-900">{value}</span>
-                <span className="text-xs font-bold text-gray-400">{unit}</span>
-            </div>
-        </div>
-    )
-}
 
 function QueueItem({ number, name, status, statusType = "READY" }: any) {
     return (

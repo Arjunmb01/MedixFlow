@@ -7,7 +7,13 @@ import { UpdatePasswordUseCase } from "@/application/usecases/patient/updatePass
 import { GetAllPatientsUseCase } from "@/application/usecases/patient/getAllPatients.usecase";
 import { GetPatientByIdUseCase } from "@/application/usecases/patient/getPatientById.usecase";
 import { ToggleBlockPatientUseCase, DeletePatientUseCase, GetPatientStatsUseCase } from "@/application/usecases/admin/adminActions.usecase";
-import { getPatientsQuerySchema } from "@/presentation/dtos/validation/patient.dtos";
+import { GetPatientNotificationsUseCase } from "@/application/usecases/patient/getPatientNotifications.usecase";
+import { GetUpcomingAppointmentsUseCase } from "@/application/usecases/patient/getUpcomingAppointments.usecase";
+import { GetPatientDashboardStatsUseCase } from "@/application/usecases/patient/getPatientDashboardStats.usecase";
+import { GetPatientAppointmentsUseCase } from "@/application/usecases/patient/getPatientAppointments.usecase";
+import { CancelAppointmentUseCase } from "@/application/usecases/appointment/cancelAppointment.usecase";
+import { GetAllAppointmentsUseCase } from "@/application/usecases/appointment/getAllAppointments.usecase";
+import { getPatientsQuerySchema, emergencyContactSchema } from "@/presentation/dtos/validation/patient.dtos";
 
 export class PatientController {
     constructor(
@@ -19,7 +25,13 @@ export class PatientController {
         private getPatientByIdUseCase: GetPatientByIdUseCase,
         private toggleBlockPatientUseCase: ToggleBlockPatientUseCase,
         private deletePatientUseCase: DeletePatientUseCase,
-        private getPatientStatsUseCase: GetPatientStatsUseCase
+        private getPatientStatsUseCase: GetPatientStatsUseCase,
+        private getPatientNotificationsUseCase: GetPatientNotificationsUseCase,
+        private getUpcomingAppointmentsUseCase: GetUpcomingAppointmentsUseCase,
+        private getPatientDashboardStatsUseCase: GetPatientDashboardStatsUseCase,
+        private getPatientAppointmentsUseCase: GetPatientAppointmentsUseCase,
+        private cancelAppointmentUseCase: CancelAppointmentUseCase,
+        private getAllAppointmentsUseCase: GetAllAppointmentsUseCase
     ) {}
 
     updatePatientProfile = async (req: Request, res: Response, next: NextFunction) => {
@@ -35,7 +47,8 @@ export class PatientController {
     updateEmergencyContacts = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
-            const result = await this.updateEmergencyContactUseCase.execute(patientId, req.body.contacts);
+            const { contacts } = emergencyContactSchema.parse(req.body);
+            const result = await this.updateEmergencyContactUseCase.execute(patientId, contacts);
             res.json(result);
         } catch (error) {
             next(error);
@@ -103,10 +116,72 @@ export class PatientController {
         }
     }
 
-    getDashboardStats = async (req: Request, res: Response, next: NextFunction) => {
+    getPatientStats = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const stats = await this.getPatientStatsUseCase.execute();
             res.json(stats);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    getNotifications = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const patientId = req.user.id;
+            const notifications = await this.getPatientNotificationsUseCase.execute(patientId);
+            res.json(notifications);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    getUpcomingAppointments = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const patientId = req.user.id;
+            const appointments = await this.getUpcomingAppointmentsUseCase.execute(patientId);
+            res.json(appointments);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    getPatientDashboardStats = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const patientId = req.user.id;
+            const stats = await this.getPatientDashboardStatsUseCase.execute(patientId);
+            res.json(stats);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    getPatientAppointments = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const patientId = req.user.id;
+            const appointments = await this.getPatientAppointmentsUseCase.execute(patientId);
+            res.json(appointments);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    cancelAppointment = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const patientId = req.user.id;
+            const id = req.params.id as string;
+            const { reason } = req.body;
+            const result = await this.cancelAppointmentUseCase.execute(id, patientId, reason);
+            res.json({ message: MESSAGES.APPOINTMENT_CANCELLED, data: result });
+        } catch (error: any) {
+            console.error("DEBUG ERROR IN CANCEL APPOINTMENT:", error);
+            res.status(500).json({ message: "DEBUG", error: String(error), stack: error?.stack });
+        }
+    }
+
+    getAllAppointments = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await this.getAllAppointmentsUseCase.execute();
+            res.json(result);
         } catch (error) {
             next(error);
         }

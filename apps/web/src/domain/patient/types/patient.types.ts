@@ -21,3 +21,11 @@ export interface UpdatePatientProfilePayload {
     bloodGroup?: string;
     gender?: string;
 }
+
+export interface BookAppointmentPayload {
+    patientId : string;
+    doctorId : string;
+    date : string;
+    slotStart : string;
+    slotEnd : string;
+}
