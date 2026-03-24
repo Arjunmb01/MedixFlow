@@ -4,9 +4,10 @@ import type { DoctorProfile } from "@/domain/doctor/types/doctor.types";
 
 interface DashboardStats {
     totalAppointments: number;
-    todayAppointments: number;
+    todayAppointmentsCount: number;
     completedToday: number;
     pendingToday: number;
+    todayAppointments: any[];
 }
 
 export const useDoctorDashboard = () => {

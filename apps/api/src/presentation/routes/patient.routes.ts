@@ -15,9 +15,16 @@ router.put("/profile", authorize(["PATIENT"]), controller.updatePatientProfile);
 router.put("/emergency-contacts", authorize(["PATIENT"]), controller.updateEmergencyContacts);
 router.put("/update-password", authorize(["PATIENT"]), controller.updatePassword);
 
+// Dashboard routes
+router.get("/notifications", authorize(["PATIENT"]), controller.getNotifications);
+router.get("/appointments/upcoming", authorize(["PATIENT"]), controller.getUpcomingAppointments);
+router.get("/appointments", authorize(["PATIENT"]), controller.getPatientAppointments);
+router.patch("/appointments/:id/cancel", authorize(["PATIENT"]), controller.cancelAppointment);
+router.get("/dashboard-stats", authorize(["PATIENT"]), controller.getPatientDashboardStats);
+
 // Admin routes for patient management
 router.get("/all", authorize(["ADMIN"]), controller.getAllPatients);
-router.get("/stats", authorize(["ADMIN"]), controller.getDashboardStats);
+router.get("/stats", authorize(["ADMIN"]), controller.getPatientStats); // Updated from getDashboardStats to getPatientStats
 router.get("/:id", authorize(["ADMIN"]), controller.getPatientById);
 router.put("/:id/block", authorize(["ADMIN"]), controller.blockPatient);
 router.delete("/:id", authorize(["ADMIN"]), controller.deletePatient);

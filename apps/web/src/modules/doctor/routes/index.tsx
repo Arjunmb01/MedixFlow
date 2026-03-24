@@ -2,6 +2,7 @@ import { Route } from "react-router-dom"
 import ProtectedRoute from "@/core/routes/ProtectedRoute"
 import DoctorDashboard from "../pages/DoctorDashboard"
 import DoctorProfile from "../pages/DoctorProfile"
+import DoctorAppointments from "../pages/DoctorAppointments"
 
 export const DoctorRoutes = (
     <>
@@ -18,6 +19,14 @@ export const DoctorRoutes = (
             element={
                 <ProtectedRoute role="DOCTOR">
                     <DoctorProfile />
+                </ProtectedRoute>
+            }
+        />
+        <Route
+            path="/doctor/appointments"
+            element={
+                <ProtectedRoute role="DOCTOR">
+                    <DoctorAppointments />
                 </ProtectedRoute>
             }
         />

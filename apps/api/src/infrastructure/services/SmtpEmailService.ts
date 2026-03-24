@@ -1,12 +1,13 @@
 import nodemailer from "nodemailer"
+import { config } from "@/infrastructure/config";
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST?.trim(),
-  port: Number(process.env.SMTP_PORT?.trim()) || 587,
+  host: config.smtp.host,
+  port: config.smtp.port,
   secure: false,
   auth: {
-    user: process.env.SMTP_USER?.trim(),
-    pass: process.env.SMTP_PASS?.trim(),
+    user: config.smtp.user,
+    pass: config.smtp.pass,
   },
 })
 
@@ -207,10 +208,10 @@ export class SmtpEmailService implements IEmailService {
   }
 
   async sendForgotPasswordEmail(to: string, token: string, userName: string) {
-    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`
+    const resetLink = `${config.frontendUrl}/reset-password?token=${token}`
 
     const mailOptions = {
-      from: process.env.SMTP_FROM?.trim() || `"MedixFlow" <${process.env.SMTP_USER?.trim()}>`,
+      from: config.smtp.from || `"MedixFlow" <${config.smtp.user}>`,
       to,
       subject: "Reset your MedixFlow password",
       html: `

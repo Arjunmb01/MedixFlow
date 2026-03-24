@@ -9,17 +9,16 @@ const api = axios.create({
     withCredentials: true
 })
 
-// Helper to determine role from URL
 function getRoleFromUrl(url?: string): "ADMIN" | "PATIENT" | "DOCTOR" {
     if (url?.startsWith("/admin") || url?.includes("/admin/")) return "ADMIN"
-    // Use a more specific check to distinguish between '/doctor' (profile/auth) and '/doctors' (public listing)
+    
     if (url === "/doctor" || url?.startsWith("/doctor/") || (url?.includes("/doctor") && !url?.includes("/doctors"))) return "DOCTOR"
     
-    // For shared routes like /common or /doctors, use the current page context
     if ((url?.includes("/common/") || url?.includes("/doctors")) && typeof window !== "undefined") {
         const path = window.location.pathname;
-        if (path.startsWith("/admin") || path.includes("/admin/")) return "ADMIN"
-        if (path.startsWith("/doctor") || path.includes("/doctor/")) return "DOCTOR"
+        if (path.startsWith("/admin")) return "ADMIN"
+        if (path.startsWith("/patient")) return "PATIENT"
+        if (path.startsWith("/doctor")) return "DOCTOR"
     }
 
     return "PATIENT"
@@ -55,7 +54,6 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config
 
-        // Handle account blocked — force logout immediately (but skip if this is a login request)
         const isLoginRequest = originalRequest.url?.includes("/auth/login") || originalRequest.url?.includes("/auth/google-login");
         if (error.response?.status === 403 && error.response?.data?.code === "ACCOUNT_BLOCKED" && !isLoginRequest) {
             const role = getRoleFromUrl(originalRequest.url);

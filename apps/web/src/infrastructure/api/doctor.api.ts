@@ -21,6 +21,16 @@ export const getDoctorDashboardStats = async () => {
     return response.data;
 };
 
+export const getDoctorAppointments = async () => {
+    const response = await axiosInstance.get("/doctor/appointments");
+    return response.data;
+};
+
+export const getDoctorNotifications = async () => {
+    const response = await axiosInstance.get("/doctor/notifications");
+    return response.data;
+};
+
 export const updateDoctorSchedules = async (schedules: Partial<DoctorSchedule>[]) => {
     const response = await axiosInstance.put("/doctor/schedules", schedules);
     return response.data;

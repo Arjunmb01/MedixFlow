@@ -112,7 +112,8 @@ model DoctorSchedule {
 
   fullDay Boolean @default(false)
 
-  slotDurationMinutes Int @default(30)
+  slotDurationMinutes Int @default(60)
+  slotCapacity        Int @default(5)
 }
 
 model Appointment {
@@ -125,6 +126,8 @@ model Appointment {
   doctor  DoctorProfile  @relation(fields: [doctorId], references: [id])
 
   appointmentDate DateTime
+  slotStart String
+  slotEnd   String
   status          AppointmentStatus
 
   reason String?

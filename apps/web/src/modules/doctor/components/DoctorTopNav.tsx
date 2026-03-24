@@ -1,4 +1,6 @@
+import { useState } from "react"
 import { Search, Bell, MessageSquare } from "lucide-react"
+import NotificationModal from "./NotificationModal"
 
 interface Props {
     doctorName?: string
@@ -7,6 +9,7 @@ interface Props {
 }
 
 export default function DoctorTopNav({ doctorName = "Doctor", doctorSpecialty = "Specialist", avatarUrl }: Props) {
+    const [isNotificationOpen, setIsNotificationOpen] = useState(false)
     const initials = doctorName.split(" ").map(n => n[0]).join("")
 
     return (
@@ -27,7 +30,10 @@ export default function DoctorTopNav({ doctorName = "Doctor", doctorSpecialty = 
                     <button className="p-2.5 rounded-xl bg-gray-50 text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-all border border-transparent hover:border-teal-100">
                         <MessageSquare className="w-5 h-5" />
                     </button>
-                    <button className="p-2.5 rounded-xl bg-gray-50 text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-all border border-transparent hover:border-teal-100 relative">
+                    <button 
+                        onClick={() => setIsNotificationOpen(true)}
+                        className="p-2.5 rounded-xl bg-gray-50 text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-all border border-transparent hover:border-teal-100 relative"
+                    >
                         <Bell className="w-5 h-5" />
                         <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                     </button>
@@ -47,6 +53,11 @@ export default function DoctorTopNav({ doctorName = "Doctor", doctorSpecialty = 
                     </div>
                 </div>
             </div>
+
+            <NotificationModal 
+                isOpen={isNotificationOpen} 
+                onClose={() => setIsNotificationOpen(false)} 
+            />
         </header>
     )
 }

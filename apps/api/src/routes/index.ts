@@ -8,6 +8,7 @@ import doctorRoutes from "../presentation/routes/doctor.routes"
 import sharedAdminRoutes from "../presentation/routes/admin.routes"
 import publicDoctorRoutes from "@/presentation/routes/publicDoctor.routes"
 import uploadRoutes from "@/presentation/routes/upload.routes"
+import appointmentRoutes from "@/presentation/routes/appointment.routes"
 
 const router = Router()
 router.use("/common", uploadRoutes)
@@ -19,5 +20,6 @@ router.use("/patient", patientRoutes)
 router.use("/staff", staffRoutes)
 router.use("/doctor", doctorRoutes)
 router.use("/doctors", publicDoctorRoutes)
+router.use("/appointments",appointmentRoutes)
 
 export default router

@@ -8,7 +8,7 @@ export class PatientRepository extends BaseRepository<any, any, any> implements 
   async findById(id: string) {
     return prisma.patientProfile.findUnique({
       where: { id },
-      include: { 
+      include: {
         emergencyContacts: true,
         user: true
       }

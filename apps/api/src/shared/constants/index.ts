@@ -82,5 +82,7 @@ export const MESSAGES = {
     SESSION_EXPIRED: "Session expired",
     INVALID_REFRESH_TOKEN: "Invalid refresh token",
     INVALID_OTP: "Invalid OTP",
-    OTP_EXPIRED_SIMPLE: "OTP expired"
-}
+    OTP_EXPIRED_SIMPLE: "OTP expired",
+    APPOINTMENT_CANCELLED: "Appointment cancelled successfully",
+    APPOINTMENT_NOT_FOUND: "Appointment not found"
+};

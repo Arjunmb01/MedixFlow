@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { MESSAGES } from "@/shared/constants";
+import { StatusCode, MESSAGES } from "@/shared/constants";
 import { GetDoctorsUseCase, CreateDoctorUseCase, UpdateStaffDoctorUseCase, BlockDoctorUseCase, DeleteDoctorUseCase, SetupPasswordUseCase } from "@/application/usecases/staff/staffActions.usecase";
 import { createDoctorSchema, getDoctorsQuerySchema } from "@/presentation/dtos/validation/staff.dtos";
 
@@ -30,7 +30,7 @@ export class StaffController {
             const protocol = req.protocol;
             
             const result = await this.createDoctorUseCase.execute(payload, host, protocol);
-            res.status(201).json(result);
+            res.status(StatusCode.CREATED).json(result);
         } catch (error) {
             next(error);
         }

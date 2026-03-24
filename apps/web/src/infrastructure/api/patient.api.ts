@@ -1,5 +1,7 @@
 import axiosInstance from "@/core/api/axios";
-import type { PatientProfile, UpdatePatientProfilePayload, EmergencyContact } from "@/domain/patient/types/patient.types";
+
+
+import type { PatientProfile, UpdatePatientProfilePayload, EmergencyContact ,BookAppointmentPayload } from "@/domain/patient/types/patient.types";
 
 export const getPatientProfile = async (): Promise<PatientProfile> => {
     const response = await axiosInstance.get("/patient/profile");
@@ -43,5 +45,40 @@ export const deletePatient = async (id: string) => {
 
 export const getAdminStats = async () => {
     const response = await axiosInstance.get("/admin/patients/stats");
+    return response.data;
+};
+
+export const getAvailableSlots = async (doctorId : string, date : string) => {
+    const response = await axiosInstance.get(`/doctor/${doctorId}/slots`,{params : {date}});
+    return response.data
+}
+
+export const bookAppointment = async (data :BookAppointmentPayload) => {
+    const response = await axiosInstance.post(`/apppointments`,data);
+    return response.data
+}
+
+export const getDashboardStats = async () => {
+    const response = await axiosInstance.get("/patient/dashboard-stats");
+    return response.data;
+};
+
+export const getUpcomingAppointments = async () => {
+    const response = await axiosInstance.get("/patient/appointments/upcoming");
+    return response.data;
+};
+
+export const getPatientAppointments = async () => {
+    const response = await axiosInstance.get("/patient/appointments");
+    return response.data;
+};
+
+export const cancelAppointment = async (id: string, reason: string) => {
+    const response = await axiosInstance.patch(`/patient/appointments/${id}/cancel`, { reason });
+    return response.data;
+};
+
+export const getNotifications = async () => {
+    const response = await axiosInstance.get("/patient/notifications");
     return response.data;
 };

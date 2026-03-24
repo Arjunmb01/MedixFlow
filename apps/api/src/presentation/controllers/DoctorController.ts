@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from "express";
+import { prisma } from "@/infrastructure/database/prismaClient";
 import { StatusCode, MESSAGES } from "@/shared/constants";
 import { GetDoctorProfileUseCase } from "@/application/usecases/doctor/getDoctorProfile.usecase";
 import { UpdateDoctorProfileUseCase } from "@/application/usecases/doctor/updateDoctorProfile.usecase";
 import { UpdateDoctorPasswordUseCase } from "@/application/usecases/doctor/updateDoctorPassword.usecase";
 import { GetDoctorDashboardStatsUseCase } from "@/application/usecases/doctor/getDoctorDashboardStats.usecase";
 import { UpdateDoctorSchedulesUseCase } from "@/application/usecases/doctor/updateDoctorSchedules.usecase";
+import { GetDoctorAppointmentsUseCase } from "@/application/usecases/doctor/getDoctorAppointments.usecase";
 
 export class DoctorController {
     constructor(
@@ -12,7 +14,8 @@ export class DoctorController {
         private updateDoctorProfileUseCase: UpdateDoctorProfileUseCase,
         private updateDoctorPasswordUseCase: UpdateDoctorPasswordUseCase,
         private getDoctorDashboardStatsUseCase: GetDoctorDashboardStatsUseCase,
-        private updateDoctorSchedulesUseCase: UpdateDoctorSchedulesUseCase
+        private updateDoctorSchedulesUseCase: UpdateDoctorSchedulesUseCase,
+        private getDoctorAppointmentsUseCase: GetDoctorAppointmentsUseCase
     ) {}
 
     getDoctorProfile = async (req: Request, res: Response, next: NextFunction) => {
@@ -43,9 +46,11 @@ export class DoctorController {
     updateDoctorPassword = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
+            console.log(`Password update requested for doctor user: ${userId}`);
             const result = await this.updateDoctorPasswordUseCase.execute(userId, req.body);
             res.json(result);
         } catch (error: any) {
+            console.error("Doctor Password Update Error:", error);
             res.status(StatusCode.BAD_REQUEST).json({ message: error.message });
         }
     }
@@ -65,6 +70,30 @@ export class DoctorController {
             const userId = req.user.id;
             await this.updateDoctorSchedulesUseCase.execute(userId, req.body);
             res.json({ message: MESSAGES.SCHEDULE_UPDATED });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    getDoctorAppointments = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.user.id;
+            const appointments = await this.getDoctorAppointmentsUseCase.execute(userId);
+            res.json(appointments);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    getNotifications = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.user.id;
+            const notifications = await prisma.notification.findMany({
+                where: { userId },
+                orderBy: { createdAt: 'desc' },
+                take: 20
+            });
+            res.json(notifications);
         } catch (error) {
             next(error);
         }

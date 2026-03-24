@@ -34,7 +34,7 @@ export class DoctorAuthController {
         } catch (error) {
             const message = error instanceof Error ? error.message : "An unexpected error occurred";
             const isBlocked = message.toLowerCase().includes("blocked");
-            res.status(isBlocked ? 403 : 401).json({ 
+            res.status(isBlocked ? StatusCode.FORBIDDEN : StatusCode.UNAUTHORIZED).json({ 
                 message, 
                 code: isBlocked ? "ACCOUNT_BLOCKED" : undefined 
             });
