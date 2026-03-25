@@ -6,6 +6,8 @@ import PatientProfile from "../pages/PatientProfile"
 import FindDoctors from "../pages/FindDoctors"
 import DoctorDetailsPage from "../pages/DoctorDetailsPage"
 import BookingPage from "../pages/BookingPage"
+import Prescriptions from "../pages/Prescriptions"
+import PrescriptionDetail from "../pages/PrescriptionDetail"
 
 export const PatientRoutes = (
     <>
@@ -62,5 +64,24 @@ export const PatientRoutes = (
                 </ProtectedRoute>
             }
         />
+
+        <Route
+            path="/patient/prescriptions"
+            element={
+                <ProtectedRoute role="PATIENT">
+                    <Prescriptions />
+                </ProtectedRoute>
+            }
+        />
+
+        <Route
+            path="/patient/prescriptions/:appointmentId"
+            element={
+                <ProtectedRoute role="PATIENT">
+                    <PrescriptionDetail />
+                </ProtectedRoute>
+            }
+        />
     </>
 )
+

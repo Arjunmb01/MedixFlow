@@ -97,7 +97,7 @@ export default function DoctorDashboard() {
                                                 {stats.todayAppointments[0].patient.firstName} {stats.todayAppointments[0].patient.lastName}
                                             </h3>
                                             <p className="text-gray-400 font-bold text-sm mt-1">
-                                                {stats.todayAppointments[0].patient.gender} <span className="mx-1">•</span> ID: #{stats.todayAppointments[0].patient.id.slice(-6).toUpperCase()}
+                                                {stats.todayAppointments[0].patient.gender} <span className="mx-1">•</span> ID: {stats.todayAppointments[0].patient.patientId || stats.todayAppointments[0].patient.id.slice(-6).toUpperCase()}
                                             </p>
                                             <div className="inline-flex items-center gap-2 bg-teal-50 text-teal-700 px-4 py-1.5 rounded-full mt-4 text-[11px] font-black uppercase tracking-tight border border-teal-100">
                                                 TIME: {stats.todayAppointments[0].slotStart}
@@ -115,7 +115,7 @@ export default function DoctorDashboard() {
                                 </div>
                             )}
 
-                            {/* Live Queue Monitor */}
+
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-xl font-black text-gray-900 tracking-tight">Live Queue Monitor</h3>
@@ -140,9 +140,7 @@ export default function DoctorDashboard() {
                             </div>
                         </div>
 
-                        {/* Right Sidebar Dashlets */}
                         <div className="space-y-6">
-                            {/* Daily Timeline */}
                             <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
                                 <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-6 px-2">Daily Timeline</h4>
                                 <div className="space-y-8 relative before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-50">
@@ -151,7 +149,6 @@ export default function DoctorDashboard() {
                                 </div>
                             </div>
 
-                            {/* Follow-ups Due */}
                             <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
                                 <div className="flex items-center justify-between mb-6 px-2">
                                     <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Follow-ups Due</h4>

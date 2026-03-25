@@ -1,4 +1,5 @@
 import { prisma } from "@/infrastructure/database/prismaClient";
+import { PrismaClient } from "@prisma/client";
 import { IDoctorRepository } from "@/domain/repositories/IDoctorRepository";
 import { BaseRepository } from "./BaseRepository";
 // We'll need the mapper too.
@@ -104,7 +105,7 @@ export class DoctorRepository extends BaseRepository<any, any, any> implements I
                 where: {
                     doctorId: userId,
                     appointmentDate: { gte: today, lt: tomorrow },
-                    status: { not: "CANCELLED" }
+                    status: { in: ["PENDING", "CONFIRMED"] }
                 },
                 include: {
                     patient: true
@@ -122,6 +123,105 @@ export class DoctorRepository extends BaseRepository<any, any, any> implements I
             pendingToday,
             todayAppointments
         };
+    }
+
+    async getConsultedPatients(doctorId: string) {
+        const appointments = await prisma.appointment.findMany({
+            where: {
+                doctorId,
+                status: "COMPLETED",
+            },
+            include: {
+                patient: true,
+                consultation: {
+                    include: {
+                        medicalRecord: true,
+                    },
+                },
+            },
+            orderBy: {
+                appointmentDate: "desc",
+            },
+        });
+
+        // Deduplicate patients, keep the latest appointment for each patient
+        const patientMap = new Map<string, typeof appointments[0]>();
+        for (const apt of appointments) {
+            if (!patientMap.has(apt.patientId)) {
+                patientMap.set(apt.patientId, apt);
+            }
+        }
+
+        return Array.from(patientMap.values()).map((apt) => ({
+            patientId: apt.patientId,
+            firstName: apt.patient.firstName,
+            lastName: apt.patient.lastName,
+            phone: apt.patient.phone,
+            gender: apt.patient.gender,
+            lastVisit: apt.appointmentDate,
+            lastDiagnosis: apt.consultation?.medicalRecord?.diagnosis || null,
+            totalVisits: appointments.filter((a) => a.patientId === apt.patientId).length,
+        }));
+    }
+
+    async getDoctorPrescriptions(doctorId: string) {
+        const appointments = await prisma.appointment.findMany({
+            where: {
+                doctorId,
+                status: "COMPLETED",
+                consultation: {
+                    prescription: {
+                        isNot: null,
+                    },
+                },
+            },
+            include: {
+                patient: true,
+                consultation: {
+                    include: {
+                        medicalRecord: true,
+                        prescription: {
+                            include: {
+                                medicines: true,
+                            },
+                        },
+                        vitals: true,
+                    },
+                },
+            },
+            orderBy: {
+                appointmentDate: "desc",
+            },
+        });
+        return appointments;
+    }
+
+    async updatePrescription(prescriptionId: string, data: { instructions?: string; medicines: { name: string; dosage: string; frequency: string; duration: string }[] }) {
+        return prisma.$transaction(async (tx: any) => {
+            // Update instructions
+            await tx.prescription.update({
+                where: { id: prescriptionId },
+                data: { instructions: data.instructions || null },
+            });
+
+            // Delete old medicines and create new ones
+            await tx.medicine.deleteMany({ where: { prescriptionId } });
+            await tx.medicine.createMany({
+                data: data.medicines.map((m: any) => ({
+                    prescriptionId,
+                    name: m.name,
+                    dosage: m.dosage,
+                    frequency: m.frequency,
+                    duration: m.duration,
+                })),
+            });
+
+            // Return updated prescription with medicines
+            return tx.prescription.findUnique({
+                where: { id: prescriptionId },
+                include: { medicines: true },
+            });
+        });
     }
 
     async updateSchedules(userId: string, schedules: any[]) {

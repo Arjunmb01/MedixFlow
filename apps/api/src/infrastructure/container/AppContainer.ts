@@ -44,6 +44,15 @@ import { GetDoctorAppointmentsUseCase } from "@/application/usecases/doctor/getD
 import { GetAllAppointmentsUseCase } from "@/application/usecases/appointment/getAllAppointments.usecase";
 import { PatientController } from "@/presentation/controllers/PatientController";
 
+// Consultation Implementations
+import { ConsultationRepository } from "@/infrastructure/repositories/ConsultationRepository";
+import { CheckinPatientUseCase } from "@/application/usecases/consultation/checkinPatient.usecase";
+import { GetDoctorQueueUseCase } from "@/application/usecases/consultation/getDoctorQueue.usecase";
+import { StartConsultationUseCase } from "@/application/usecases/consultation/startConsultation.usecase";
+import { CompleteConsultationUseCase } from "@/application/usecases/consultation/completeConsultation.usecase";
+import { GetPatientHistoryUseCase } from "@/application/usecases/consultation/getPatientHistory.usecase";
+import { ConsultationController } from "@/presentation/controllers/ConsultationController";
+
 // New Staff/Doctor Implementations
 import { DoctorRepository } from "@/infrastructure/repositories/DoctorRepository";
 import { StaffRepository } from "@/infrastructure/repositories/StaffRepository";
@@ -72,6 +81,7 @@ export class AppContainer {
   private _authRepository: AuthRepository;
   private _appointmentRepository: AppointmentRepository;
   private _notificationRepository: NotificationRepository;
+  private _consultationRepository: ConsultationRepository;
 
   // Services
   private _emailOtpService: EmailOtpService;
@@ -105,6 +115,13 @@ export class AppContainer {
   private _cancelAppointmentUseCase: CancelAppointmentUseCase;
   private _getDoctorAppointmentsUseCase: GetDoctorAppointmentsUseCase;
   private _getAllAppointmentsUseCase: GetAllAppointmentsUseCase;
+
+  // Use Cases - Consultation
+  private _checkinPatientUseCase: CheckinPatientUseCase;
+  private _getDoctorQueueUseCase: GetDoctorQueueUseCase;
+  private _startConsultationUseCase: StartConsultationUseCase;
+  private _completeConsultationUseCase: CompleteConsultationUseCase;
+  private _getPatientHistoryUseCase: GetPatientHistoryUseCase;
 
   // Use Cases - Staff/Admin
   private _getDoctorsUseCase: GetDoctorsUseCase;
@@ -140,6 +157,7 @@ export class AppContainer {
   private _doctorAuthController: PatientDoctorAuthController;
   private _adminAuthController: AdminAuthController;
   private _publicDoctorController: PublicDoctorController;
+  private _consultationController: ConsultationController;
 
   private constructor() {
     this._patientRepository = new PatientRepository();
@@ -148,6 +166,7 @@ export class AppContainer {
     this._authRepository = new AuthRepository();
     this._appointmentRepository = new AppointmentRepository(prisma);
     this._notificationRepository = new NotificationRepository(prisma);
+    this._consultationRepository = new ConsultationRepository(prisma);
 
     this._emailOtpService = new EmailOtpService();
     this._redisSessionService = new RedisSessionService();
@@ -189,6 +208,13 @@ export class AppContainer {
     this._cancelAppointmentUseCase = new CancelAppointmentUseCase(this._appointmentRepository, this._notificationRepository);
     this._getDoctorAppointmentsUseCase = new GetDoctorAppointmentsUseCase(this._appointmentRepository);
     this._getAllAppointmentsUseCase = new GetAllAppointmentsUseCase(this._appointmentRepository);
+
+    // Consultation Use Cases
+    this._checkinPatientUseCase = new CheckinPatientUseCase(this._appointmentRepository, this._consultationRepository, this._notificationRepository);
+    this._getDoctorQueueUseCase = new GetDoctorQueueUseCase(this._consultationRepository);
+    this._startConsultationUseCase = new StartConsultationUseCase(this._consultationRepository, this._notificationRepository);
+    this._completeConsultationUseCase = new CompleteConsultationUseCase(this._consultationRepository, this._notificationRepository, prisma);
+    this._getPatientHistoryUseCase = new GetPatientHistoryUseCase(this._consultationRepository);
 
     // Staff Use Cases
     this._getDoctorsUseCase = new GetDoctorsUseCase(this._staffRepository);
@@ -277,6 +303,15 @@ export class AppContainer {
       this._refreshTokenUseCase,
       this._logoutUseCase
     );
+
+    this._consultationController = new ConsultationController(
+      this._checkinPatientUseCase,
+      this._getDoctorQueueUseCase,
+      this._startConsultationUseCase,
+      this._completeConsultationUseCase,
+      this._getPatientHistoryUseCase,
+      this._consultationRepository
+    );
   }
 
   public static getInstance(): AppContainer {
@@ -298,6 +333,7 @@ export class AppContainer {
   get patientAuthController() { return this._patientAuthController; }
   get doctorAuthController() { return this._doctorAuthController; }
   get adminAuthController() { return this._adminAuthController; }
+  get consultationController() { return this._consultationController; }
 }
 
 export const container = AppContainer.getInstance();

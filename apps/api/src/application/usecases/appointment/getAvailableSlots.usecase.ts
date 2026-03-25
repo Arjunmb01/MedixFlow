@@ -14,7 +14,6 @@ export class GetAvailableSlotsUseCase {
     constructor(private readonly appointmentRepo: IAppointmentRepository) {}
 
     async execute(doctorId: string, date: Date): Promise<Slot[]> {
-        // Evaluate based on UTC so the day matches the exact YYYY-MM-DD passed
         const dayOfWeek = date.getUTCDay();
         const schedule = await this.appointmentRepo.getDoctorSchedule(doctorId, dayOfWeek);
 

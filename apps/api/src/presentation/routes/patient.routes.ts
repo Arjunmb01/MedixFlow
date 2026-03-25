@@ -5,6 +5,7 @@ import { container } from "@/infrastructure/container/AppContainer";
 
 const router = Router();
 const controller = container.patientController;
+const consultationController = container.consultationController;
 
 // All patient routes require authentication and PATIENT role
 router.use(authMiddleware);
@@ -20,6 +21,7 @@ router.get("/notifications", authorize(["PATIENT"]), controller.getNotifications
 router.get("/appointments/upcoming", authorize(["PATIENT"]), controller.getUpcomingAppointments);
 router.get("/appointments", authorize(["PATIENT"]), controller.getPatientAppointments);
 router.patch("/appointments/:id/cancel", authorize(["PATIENT"]), controller.cancelAppointment);
+router.post("/appointments/:appointmentId/checkin", authorize(["PATIENT"]), consultationController.checkin);
 router.get("/dashboard-stats", authorize(["PATIENT"]), controller.getPatientDashboardStats);
 
 // Admin routes for patient management

@@ -3,6 +3,10 @@ import {
   IAppointmentRepository,
   CreateAppointmentDTO,
   DoctorScheduleDTO,
+  AppointmentWithConsultation,
+  AppointmentWithDoctorAndPatient,
+  AppointmentWithPatient,
+  AppointmentWithFullDoctor,
 } from "../../domain/repositories/IAppointmentRepository";
 
 export class AppointmentRepository implements IAppointmentRepository {
@@ -115,13 +119,24 @@ export class AppointmentRepository implements IAppointmentRepository {
     });
   }
 
-  async getAppointmentsByPatientId(patientId: string): Promise<any[]> {
+  async getAppointmentsByPatientId(patientId: string): Promise<AppointmentWithConsultation[]> {
     return this.prisma.appointment.findMany({
       where: { patientId },
       include: {
         doctor: {
           include: {
             specialization: true,
+          },
+        },
+        consultation: {
+          include: {
+            medicalRecord: true,
+            prescription: {
+              include: {
+                medicines: true,
+              },
+            },
+            vitals: true,
           },
         },
       },
@@ -131,7 +146,7 @@ export class AppointmentRepository implements IAppointmentRepository {
     });
   }
 
-  async findById(id: string): Promise<any | null> {
+  async findById(id: string): Promise<AppointmentWithDoctorAndPatient | null> {
     return this.prisma.appointment.findUnique({
       where: { id },
       include: {
@@ -155,7 +170,7 @@ export class AppointmentRepository implements IAppointmentRepository {
     });
   }
 
-  async getAppointmentsByDoctorId(doctorId: string): Promise<any[]> {
+  async getAppointmentsByDoctorId(doctorId: string): Promise<AppointmentWithPatient[]> {
     return this.prisma.appointment.findMany({
       where: { doctorId },
       include: {
@@ -164,7 +179,7 @@ export class AppointmentRepository implements IAppointmentRepository {
     });
   }
 
-  async getAllAppointments(): Promise<any[]> {
+  async getAllAppointments(): Promise<AppointmentWithFullDoctor[]> {
     return this.prisma.appointment.findMany({
       include: {
         patient: true,

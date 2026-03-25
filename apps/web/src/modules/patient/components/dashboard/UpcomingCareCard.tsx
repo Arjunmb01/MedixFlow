@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Calendar, Clock, MapPin, X, Loader2 } from "lucide-react"
+import { Calendar, Clock, MapPin, X, Loader2, CheckCircle } from "lucide-react"
 import { cancelAppointment } from "@/infrastructure/api/patient.api"
+import { checkIn } from "@/infrastructure/api/consultation.api"
 
 interface Appointment {
     id: string;
@@ -17,6 +18,26 @@ export default function UpcomingCareCard({ appointment }: Props) {
     const [showModal, setShowModal] = useState(false);
     const [reason, setReason] = useState("");
     const [isCancelling, setIsCancelling] = useState(false);
+    const [isCheckingIn, setIsCheckingIn] = useState(false);
+    const [hasCheckedIn, setHasCheckedIn] = useState(false);
+
+    const handleCheckIn = async () => {
+        if (!appointment?.id) return;
+        setIsCheckingIn(true);
+        try {
+            await checkIn(appointment.id);
+            setHasCheckedIn(true);
+        } catch (error: any) {
+            console.error("Check-in failed", error);
+            if (error.response?.data?.message?.includes("already checked in")) {
+                setHasCheckedIn(true);
+            } else {
+                alert("Failed to check in. Please try again.");
+            }
+        } finally {
+            setIsCheckingIn(false);
+        }
+    };
 
     const handleCancel = async () => {
         if (!appointment?.id || !reason) return;
@@ -80,10 +101,28 @@ export default function UpcomingCareCard({ appointment }: Props) {
                 </div>
 
                 <div className="mt-10 flex flex-wrap gap-4">
-                    <button className="bg-white text-[#0066cc] px-6 py-3 rounded-2xl font-bold text-[14px] flex items-center gap-2 hover:bg-blue-50 transition-all shadow-lg shadow-blue-900/20">
-                        <Calendar className="w-4 h-4" />
-                        View Details
-                    </button>
+                    {isToday && !hasCheckedIn && (
+                        <button 
+                            onClick={handleCheckIn}
+                            disabled={isCheckingIn}
+                            className="bg-green-500 text-white px-6 py-3 rounded-2xl font-bold text-[14px] flex items-center gap-2 hover:bg-green-600 transition-all shadow-lg shadow-green-900/20 disabled:opacity-70"
+                        >
+                            {isCheckingIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                            Check-In at Clinic
+                        </button>
+                    )}
+                    {isToday && hasCheckedIn && (
+                        <div className="bg-green-100 text-green-700 px-6 py-3 rounded-2xl font-bold text-[14px] flex items-center gap-2 border border-green-200">
+                            <CheckCircle className="w-4 h-4" />
+                            Checked In
+                        </div>
+                    )}
+                    {!isToday && (
+                        <button className="bg-white text-[#0066cc] px-6 py-3 rounded-2xl font-bold text-[14px] flex items-center gap-2 hover:bg-blue-50 transition-all shadow-lg shadow-blue-900/20">
+                            <Calendar className="w-4 h-4" />
+                            View Details
+                        </button>
+                    )}
                     <button 
                         onClick={() => setShowModal(true)}
                         className="bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-2xl font-bold text-[14px] hover:bg-white/20 transition-all text-white hover:text-red-100 hover:bg-red-500/20 hover:border-red-400"

@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { MESSAGES } from "@/shared/constants";
+import { MESSAGES } from "@/shared/constants/index";
 import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { IEmailService } from "@/domain/services/IEmailService";
 

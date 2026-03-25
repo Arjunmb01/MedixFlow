@@ -44,7 +44,7 @@ export const deletePatient = async (id: string) => {
 };
 
 export const getAdminStats = async () => {
-    const response = await axiosInstance.get("/admin/patients/stats");
+    const response = await axiosInstance.get("/admin/stats");
     return response.data;
 };
 
