@@ -11,7 +11,6 @@ export class ToggleBlockPatientUseCase {
   async execute(id: string, status: string) {
     const result = await this.patientRepository.toggleBlock(id, status);
 
-    // If blocking/suspending, delete the user's session to force immediate logout
     if (status === "INACTIVE" || status === "SUSPENDED") {
         await this.sessionService.deleteSession(id);
     }

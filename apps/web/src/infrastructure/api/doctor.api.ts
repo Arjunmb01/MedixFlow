@@ -57,3 +57,18 @@ export const uploadImage = async (file: File) => {
     })
     return data
 };
+
+export const getDoctorConsultedPatients = async () => {
+    const response = await axiosInstance.get("/doctor/patients");
+    return response.data;
+};
+
+export const getDoctorPrescriptionsList = async () => {
+    const response = await axiosInstance.get("/doctor/prescriptions");
+    return response.data;
+};
+
+export const updateDoctorPrescription = async (prescriptionId: string, data: any) => {
+    const response = await axiosInstance.patch(`/doctor/prescriptions/${prescriptionId}`, data);
+    return response.data;
+};

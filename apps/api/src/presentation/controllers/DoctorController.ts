@@ -98,4 +98,41 @@ export class DoctorController {
             next(error);
         }
     }
+
+    getConsultedPatients = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.user.id;
+            const { DoctorRepository } = await import("@/infrastructure/repositories/DoctorRepository");
+            const repo = new DoctorRepository();
+            const patients = await repo.getConsultedPatients(userId);
+            res.json(patients);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    getDoctorPrescriptions = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.user.id;
+            const { DoctorRepository } = await import("@/infrastructure/repositories/DoctorRepository");
+            const repo = new DoctorRepository();
+            const prescriptions = await repo.getDoctorPrescriptions(userId);
+            res.json(prescriptions);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    updatePrescription = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const id = req.params.id as string;
+            const data = req.body;
+            const { DoctorRepository } = await import("@/infrastructure/repositories/DoctorRepository");
+            const repo = new DoctorRepository();
+            const updated = await repo.updatePrescription(id, data);
+            res.json(updated);
+        } catch (error) {
+            next(error);
+        }
+    }
 }

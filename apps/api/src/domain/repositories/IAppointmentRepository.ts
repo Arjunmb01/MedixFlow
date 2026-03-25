@@ -1,4 +1,4 @@
-import { Appointment, AppointmentStatus } from "@prisma/client";
+import { Appointment, AppointmentStatus, Prisma } from "@prisma/client";
 
 export interface CreateAppointmentDTO {
   patientId: string;
@@ -15,6 +15,51 @@ export interface DoctorScheduleDTO {
   slotCapacity: number;
 }
 
+// Typed return for patient appointments with full consultation data
+export type AppointmentWithDoctor = Prisma.AppointmentGetPayload<{
+  include: {
+    doctor: { include: { specialization: true } };
+  };
+}>;
+
+export type AppointmentWithConsultation = Prisma.AppointmentGetPayload<{
+  include: {
+    doctor: { include: { specialization: true } };
+    consultation: {
+      include: {
+        medicalRecord: true;
+        prescription: { include: { medicines: true } };
+        vitals: true;
+      };
+    };
+  };
+}>;
+
+export type AppointmentWithPatient = Prisma.AppointmentGetPayload<{
+  include: { patient: true };
+}>;
+
+export type AppointmentWithDoctorAndPatient = Prisma.AppointmentGetPayload<{
+  include: {
+    doctor: { include: { specialization: true } };
+    patient: true;
+  };
+}>;
+
+export type AppointmentWithFullDoctor = Prisma.AppointmentGetPayload<{
+  include: {
+    patient: true;
+    doctor: {
+      select: {
+        id: true;
+        firstName: true;
+        lastName: true;
+        specialization: { select: { name: true } };
+      };
+    };
+  };
+}>;
+
 export interface IAppointmentRepository {
   getDoctorSchedule(
     doctorId: string,
@@ -30,9 +75,9 @@ export interface IAppointmentRepository {
     data: CreateAppointmentDTO
   ): Promise<Appointment>;
 
-  getAppointmentsByPatientId(patientId: string): Promise<any[]>;
-  findById(id: string): Promise<any | null>;
+  getAppointmentsByPatientId(patientId: string): Promise<AppointmentWithConsultation[]>;
+  findById(id: string): Promise<AppointmentWithDoctorAndPatient | null>;
   cancelAppointment(id: string, reason: string): Promise<Appointment>;
-  getAppointmentsByDoctorId(doctorId: string): Promise<any[]>;
-  getAllAppointments(): Promise<any[]>;
-}
+  getAppointmentsByDoctorId(doctorId: string): Promise<AppointmentWithPatient[]>;
+  getAllAppointments(): Promise<AppointmentWithFullDoctor[]>;
+}

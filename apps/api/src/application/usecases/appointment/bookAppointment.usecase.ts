@@ -21,7 +21,6 @@ export class BookAppointmentUseCase {
         }
 
         const now = new Date();
-        // data.appointmentDate is UTC 00:00:00. Extract UTC YMD to avoid timezone shifts.
         const year = data.appointmentDate.getUTCFullYear();
         const month = data.appointmentDate.getUTCMonth();
         const day = data.appointmentDate.getUTCDate();
@@ -34,10 +33,6 @@ export class BookAppointmentUseCase {
         }
 
         const appointment = await this.appointmentRepo.createWithTransaction(data)
-
-        // Fetch an admin to notify (or use a system-wide admin ID if available)
-        // For now, let's assume we notify the patient and doctor. 
-        // If we need to notify an admin, we should fetch an admin user first.
 
         await this.notificationRepo.createMany([
             {

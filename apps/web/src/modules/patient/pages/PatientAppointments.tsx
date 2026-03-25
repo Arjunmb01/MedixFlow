@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/dashboard/Sidebar";
 import TopNav from "../components/dashboard/TopNav";
 import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile";
@@ -13,7 +14,8 @@ import {
     X,
     AlertCircle,
     MapPin,
-    FileText
+    FileText,
+    Pill
 } from "lucide-react";
 import { getPatientAppointments, cancelAppointment } from "@/infrastructure/api/patient.api";
 import Badge from "../components/ui/Badge";
@@ -21,6 +23,7 @@ import { toast } from "sonner";
 
 export default function PatientAppointments() {
     const { profile } = usePatientProfile();
+    const navigate = useNavigate();
     const [appointments, setAppointments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -184,6 +187,15 @@ export default function PatientAppointments() {
                                             >
                                                 View Details
                                             </button>
+                                            {apt.status === "COMPLETED" && apt.consultation?.prescription?.medicines?.length > 0 && (
+                                                <button 
+                                                    onClick={() => navigate(`/patient/prescriptions/${apt.id}`)}
+                                                    className="flex-1 md:flex-none px-6 py-3 bg-teal-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-teal-700 transition-all flex items-center gap-2"
+                                                >
+                                                    <Pill className="w-4 h-4" />
+                                                    View Prescription
+                                                </button>
+                                            )}
                                             <button className="flex-1 md:flex-none px-6 py-3 bg-white text-[#3B82F6] border border-[#3B82F6] rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-blue-50 transition-all">
                                                 Download Invoice
                                             </button>
@@ -283,6 +295,8 @@ export default function PatientAppointments() {
                                         <p className="text-sm font-bold text-red-600 leading-relaxed italic">"{selectedApt.reason}"</p>
                                     </div>
                                 )}
+
+
                             </div>
 
                             <div className="mt-10 flex gap-3">
