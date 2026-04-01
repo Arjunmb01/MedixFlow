@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { authMiddleware } from "@/presentation/middleware/auth.middleware";
-import { authorize } from "@/presentation/middleware/authorize.middleware";
-import { container } from "@/infrastructure/container/AppContainer";
+import { authorize } from "@/presentation/controllers/middleware/authorize.middleware";
+import { container } from "@/infrastructure/services/container/CompositionRoot";
 
 const router = Router();
 const controller = container.staffController;
+const authMiddleware = container.authMiddleware;
 
 // Public route for password setup
 router.post("/setup-password", controller.setupPassword);
@@ -20,3 +20,4 @@ router.put("/doctors/:id/block", controller.blockDoctor);
 router.delete("/doctors/:id", controller.deleteDoctor);
 
 export default router;
+

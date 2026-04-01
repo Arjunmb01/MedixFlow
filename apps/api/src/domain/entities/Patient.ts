@@ -1,4 +1,5 @@
-import { UserStatus } from "@prisma/client";
+import { UserStatus } from "../value-objects/enums/UserStatus";
+import { Gender } from "../value-objects/enums/Gender";
 
 export class Patient {
   constructor(
@@ -9,7 +10,10 @@ export class Patient {
     public status: UserStatus,
     public phone?: string,
     public bloodGroup?: string,
-    public role: string = "PATIENT"
+    public gender?: Gender,
+    public passwordHash?: string,
+    public role: string = "PATIENT",
+    public emergencyContacts: { id?: string; name: string; mobile: string; }[] = []
   ) {}
 
   public updateProfile(firstName: string, lastName: string, phone: string, bloodGroup: string): void {

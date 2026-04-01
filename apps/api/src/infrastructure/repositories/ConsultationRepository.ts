@@ -1,4 +1,4 @@
-import { PrismaClient, ConsultationStatus, Consultation } from "@prisma/client";
+import { PrismaClient, ConsultationStatus, Consultation, Prisma } from "@prisma/client";
 import { 
     IConsultationRepository, 
     CreateConsultationDTO,
@@ -84,22 +84,22 @@ export class ConsultationRepository implements IConsultationRepository {
                 appointment: true
             },
             orderBy: {
-                createdAt: "asc" // FIFO
+                createdAt: "asc"
             }
         });
     }
 
     async updateStatus(id: string, status: ConsultationStatus): Promise<Consultation> {
-        const data: any = { status };
+        const updateData: Prisma.ConsultationUpdateInput = { status };
         if (status === "IN_PROGRESS") {
-            data.startedAt = new Date();
+            updateData.startedAt = new Date();
         } else if (status === "COMPLETED") {
-            data.completedAt = new Date();
+            updateData.completedAt = new Date();
         }
 
         return this.prisma.consultation.update({
             where: { id },
-            data
+            data: updateData
         });
     }
 
@@ -108,8 +108,8 @@ export class ConsultationRepository implements IConsultationRepository {
         vitals?: SaveVitalsDTO,
         medicalRecord?: SaveMedicalRecordDTO,
         prescription?: SavePrescriptionDTO
-    ): Promise<Consultation> {
-        return this.prisma.$transaction(async (tx) => {
+    ): Promise<ConsultationWithEMR> {
+        return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // Vitals (create new entry)
             if (vitals) {
                 await tx.vitals.create({
@@ -166,14 +166,20 @@ export class ConsultationRepository implements IConsultationRepository {
                 }
             }
 
-            return tx.consultation.findUnique({
+            const result = await tx.consultation.findUnique({
                 where: { id },
                 include: {
                     vitals: true,
                     medicalRecord: true,
                     prescription: { include: { medicines: true } }
                 }
-            }) as Promise<Consultation>;
+            });
+
+            if (!result) {
+                throw new Error("Consultation not found after save");
+            }
+
+            return result;
         });
     }
 

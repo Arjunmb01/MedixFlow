@@ -16,7 +16,6 @@ model User {
   updatedAt           DateTime             @updatedAt
   deletedAt           DateTime?
   doctorProfile       DoctorProfile?
-  notifications       Notification[]
   passwordResetTokens PasswordResetToken[]
   passwordSetupTokens PasswordSetupToken[]
   patientProfile      PatientProfile?
@@ -54,8 +53,24 @@ model DoctorProfile {
   user             User             @relation(fields: [id], references: [id])
   specialization   Specialization   @relation(fields: [specializationId], references: [id])
   schedules        DoctorSchedule[]
+  slots            Slot[]
 
   @@index([specializationId])
+}
+
+model Slot {
+  id               String           @id @default(uuid())
+  doctorId         String
+  date             DateTime
+  startTime        DateTime
+  endTime          DateTime
+  capacity         Int
+  bookedCount      Int              @default(0)
+  consultationType ConsultationType
+  doctor           DoctorProfile    @relation(fields: [doctorId], references: [id])
+
+  @@index([doctorId])
+  @@index([date])
 }
 
 model DoctorSchedule {
@@ -67,6 +82,7 @@ model DoctorSchedule {
   slotDurationMinutes Int           @default(60)
   fullDay             Boolean       @default(false)
   slotCapacity        Int           @default(5)
+  consultationType    ConsultationType @default(CLINIC)
   doctor              DoctorProfile @relation(fields: [doctorId], references: [id])
 }
 
@@ -86,16 +102,7 @@ model Appointment {
   consultation    Consultation?
 }
 
-model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  type      String
-  title     String
-  message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-}
+
 
 model EmergencyContact {
   id        String         @id @default(uuid())
@@ -214,4 +221,9 @@ enum ConsultationStatus {
   WAITING
   IN_PROGRESS
   COMPLETED
+}
+
+enum ConsultationType {
+  VIDEO
+  CLINIC
 }

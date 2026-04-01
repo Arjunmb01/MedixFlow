@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express"
 import { StatusCode, MESSAGES } from "@/shared/constants";
-import { GetAllDoctorsUseCase } from "@/application/usecases/doctor/getAllDoctors.usecase"
-import { GetPublicDoctorDetailsUseCase } from "@/application/usecases/doctor/getPublicDoctorDetails.usecase"
+import { GetAllDoctorsUseCase } from "@/application/use-cases/doctor/getAllDoctors.usecase"
+import { GetPublicDoctorDetailsUseCase } from "@/application/use-cases/doctor/getPublicDoctorDetails.usecase"
 
 export class PublicDoctorController {
     constructor(
@@ -11,9 +11,7 @@ export class PublicDoctorController {
 
     public getAllDoctors = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { specialty, search, availableToday, minFee, maxFee, page = "1", limit = "10" } = req.query
-            const skip = (Number(page) - 1) * Number(limit)
-            const take = Number(limit)
+            const { specialty, search, availableToday, minFee, maxFee, page = "1", limit = "10" } = req.query;
 
             const result = await this.getAllDoctorsUseCase.execute({
                 specialty: specialty as string,
@@ -21,9 +19,9 @@ export class PublicDoctorController {
                 availableToday: availableToday === "true",
                 minFee: minFee ? Number(minFee) : undefined,
                 maxFee: maxFee ? Number(maxFee) : undefined,
-                skip,
-                take
-            })
+                page: Number(page),
+                limit: Number(limit)
+            });
             res.json(result)
         } catch (error) {
             next(error)
@@ -43,3 +41,4 @@ export class PublicDoctorController {
         }
     }
 }
+

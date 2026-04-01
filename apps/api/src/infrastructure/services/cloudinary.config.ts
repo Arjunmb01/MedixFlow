@@ -1,6 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary'
 import { CloudinaryStorage } from 'multer-storage-cloudinary'
-import { config } from '@/infrastructure/config'
+import { config } from '@/infrastructure/services/config'
 
 cloudinary.config({
   cloud_name: config.cloudinaryCloudName,

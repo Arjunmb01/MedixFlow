@@ -1,22 +1,23 @@
 import nodemailer from "nodemailer"
-import { config } from "@/infrastructure/config";
-
-const transporter = nodemailer.createTransport({
-  host: config.smtp.host,
-  port: config.smtp.port,
-  secure: false,
-  auth: {
-    user: config.smtp.user,
-    pass: config.smtp.pass,
-  },
-})
-
-import { IEmailService } from "@/domain/services/IEmailService";
+import { IEmailService, SmtpConfig } from "@/application/interfaces/IEmailService";
 
 export class SmtpEmailService implements IEmailService {
+  private transporter: nodemailer.Transporter;
+
+  constructor(private readonly config: SmtpConfig) {
+    this.transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: false,
+      auth: {
+        user: config.user,
+        pass: config.pass,
+      },
+    });
+  }
   async sendOtpEmail(to: string, otp: string) {
     const mailOptions = {
-      from: process.env.SMTP_FROM?.trim() || `"MedixFlow" <${process.env.SMTP_USER?.trim()}>`,
+      from: this.config.from || `"MedixFlow" <${this.config.user}>`,
       to,
       subject: "Your MedixFlow Verification Code",
       html: `
@@ -71,16 +72,16 @@ export class SmtpEmailService implements IEmailService {
       `,
     }
 
-    await transporter.sendMail(mailOptions)
+    await this.transporter.sendMail(mailOptions)
     console.log(`[EmailService] OTP email sent to ${to}`)
   }
 
   async sendSetPasswordEmail(to: string, token: string, doctorName: string) {
 
-    const link = `${process.env.FRONTEND_URL}/setup-password?token=${token}`
+    const link = `${this.config.frontendUrl}/setup-password?token=${token}`
 
     const mailOptions = {
-      from: process.env.SMTP_FROM?.trim() || `"MedixFlow" <${process.env.SMTP_USER?.trim()}>`,
+      from: this.config.from || `"MedixFlow" <${this.config.user}>`,
       to,
       subject: "Set your MedixFlow password",
       html: `
@@ -136,16 +137,16 @@ export class SmtpEmailService implements IEmailService {
       `
     }
 
-    await transporter.sendMail(mailOptions)
+    await this.transporter.sendMail(mailOptions)
 
     console.log(`[EmailService] Password setup email sent to ${to}`)
   }
 
   async sendDoctorCredentialsEmail(to: string, doctorName: string, tempPassword: string) {
-    const loginLink = `${process.env.FRONTEND_URL}/doctor/login`
+    const loginLink = `${this.config.frontendUrl}/doctor/login`
 
     const mailOptions = {
-      from: process.env.SMTP_FROM?.trim() || `"MedixFlow" <${process.env.SMTP_USER?.trim()}>`,
+      from: this.config.from || `"MedixFlow" <${this.config.user}>`,
       to,
       subject: "Welcome to MedixFlow - Your Account Credentials",
       html: `
@@ -203,15 +204,15 @@ export class SmtpEmailService implements IEmailService {
       `
     }
 
-    await transporter.sendMail(mailOptions)
+    await this.transporter.sendMail(mailOptions)
     console.log(`[EmailService] Welcome email with password sent to ${to}`)
   }
 
   async sendForgotPasswordEmail(to: string, token: string, userName: string) {
-    const resetLink = `${config.frontendUrl}/reset-password?token=${token}`
+    const resetLink = `${this.config.frontendUrl}/reset-password?token=${token}`
 
     const mailOptions = {
-      from: config.smtp.from || `"MedixFlow" <${config.smtp.user}>`,
+      from: this.config.from || `"MedixFlow" <${this.config.user}>`,
       to,
       subject: "Reset your MedixFlow password",
       html: `
@@ -259,9 +260,19 @@ export class SmtpEmailService implements IEmailService {
       `
     }
 
-    await transporter.sendMail(mailOptions)
+    await this.transporter.sendMail(mailOptions)
     console.log(`[EmailService] Forgot password email sent to ${to}`)
   }
 }
 
-export default new SmtpEmailService()
+import { config as globalConfig } from "@/infrastructure/services/config";
+
+export default new SmtpEmailService({
+  host: globalConfig.smtp.host,
+  port: globalConfig.smtp.port,
+  user: globalConfig.smtp.user,
+  pass: globalConfig.smtp.pass,
+  from: globalConfig.smtp.from,
+  frontendUrl: globalConfig.frontendUrl
+});
+

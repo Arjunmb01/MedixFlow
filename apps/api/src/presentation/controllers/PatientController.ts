@@ -1,19 +1,18 @@
 import { Request, Response, NextFunction } from "express";
 import { MESSAGES } from "@/shared/constants";
-import { UpdatePatientProfileUseCase } from "@/application/usecases/patient/updatePatientProfile.usecase";
-import { UpdateEmergencyContactUseCase } from "@/application/usecases/patient/updateEmergencyContact.usecase";
-import { GetPatientProfileUseCase } from "@/application/usecases/patient/getPatientProfile.usecase";
-import { UpdatePasswordUseCase } from "@/application/usecases/patient/updatePassword.usecase";
-import { GetAllPatientsUseCase } from "@/application/usecases/patient/getAllPatients.usecase";
-import { GetPatientByIdUseCase } from "@/application/usecases/patient/getPatientById.usecase";
-import { ToggleBlockPatientUseCase, DeletePatientUseCase, GetPatientStatsUseCase } from "@/application/usecases/admin/adminActions.usecase";
-import { GetPatientNotificationsUseCase } from "@/application/usecases/patient/getPatientNotifications.usecase";
-import { GetUpcomingAppointmentsUseCase } from "@/application/usecases/patient/getUpcomingAppointments.usecase";
-import { GetPatientDashboardStatsUseCase } from "@/application/usecases/patient/getPatientDashboardStats.usecase";
-import { GetPatientAppointmentsUseCase } from "@/application/usecases/patient/getPatientAppointments.usecase";
-import { CancelAppointmentUseCase } from "@/application/usecases/appointment/cancelAppointment.usecase";
-import { GetAllAppointmentsUseCase } from "@/application/usecases/appointment/getAllAppointments.usecase";
-import { getPatientsQuerySchema, emergencyContactSchema } from "@/presentation/dtos/validation/patient.dtos";
+import { UpdatePatientProfileUseCase } from "@/application/use-cases/patient/updatePatientProfile.usecase";
+import { UpdateEmergencyContactUseCase } from "@/application/use-cases/patient/updateEmergencyContact.usecase";
+import { GetPatientProfileUseCase } from "@/application/use-cases/patient/getPatientProfile.usecase";
+import { UpdatePasswordUseCase } from "@/application/use-cases/patient/updatePassword.usecase";
+import { GetAllPatientsUseCase } from "@/application/use-cases/patient/getAllPatients.usecase";
+import { GetPatientByIdUseCase } from "@/application/use-cases/patient/getPatientById.usecase";
+import { ToggleBlockPatientUseCase, DeletePatientUseCase, GetPatientStatsUseCase } from "@/application/use-cases/admin/adminActions.usecase";
+import { GetUpcomingAppointmentsUseCase } from "@/application/use-cases/patient/getUpcomingAppointments.usecase";
+import { GetPatientDashboardStatsUseCase } from "@/application/use-cases/patient/getPatientDashboardStats.usecase";
+import { GetPatientAppointmentsUseCase } from "@/application/use-cases/patient/getPatientAppointments.usecase";
+import { CancelAppointmentUseCase } from "@/application/use-cases/appointment/cancelAppointment.usecase";
+import { GetAllAppointmentsUseCase } from "@/application/use-cases/appointment/getAllAppointments.usecase";
+import { getPatientsQuerySchema, emergencyContactSchema } from "@/presentation/controllers/dto/validation/patient.dtos";
 
 export class PatientController {
     constructor(
@@ -26,7 +25,6 @@ export class PatientController {
         private toggleBlockPatientUseCase: ToggleBlockPatientUseCase,
         private deletePatientUseCase: DeletePatientUseCase,
         private getPatientStatsUseCase: GetPatientStatsUseCase,
-        private getPatientNotificationsUseCase: GetPatientNotificationsUseCase,
         private getUpcomingAppointmentsUseCase: GetUpcomingAppointmentsUseCase,
         private getPatientDashboardStatsUseCase: GetPatientDashboardStatsUseCase,
         private getPatientAppointmentsUseCase: GetPatientAppointmentsUseCase,
@@ -125,15 +123,7 @@ export class PatientController {
         }
     }
 
-    getNotifications = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const patientId = req.user.id;
-            const notifications = await this.getPatientNotificationsUseCase.execute(patientId);
-            res.json(notifications);
-        } catch (error) {
-            next(error);
-        }
-    }
+
 
     getUpcomingAppointments = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -187,3 +177,6 @@ export class PatientController {
         }
     }
 }
+
+
+

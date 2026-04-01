@@ -1,10 +1,17 @@
-import { UserStatus } from "@prisma/client";
+import { UserStatus } from "../value-objects/enums/UserStatus";
+import { 
+    StaffDoctorFilters, 
+    PaginatedStaffDoctors, 
+    CreateDoctorInput, 
+    UpdateDoctorInput,
+    StaffDoctorListItem
+} from "../value-objects/types/staff.repository.types";
 
 export interface IStaffRepository {
-    getDoctors(query: any): Promise<any>;
-    createDoctor(data: any, temporaryPassword?: string): Promise<any>;
-    updateDoctor(doctorId: string, data: any): Promise<any>;
-    blockDoctor(userId: string, status: UserStatus): Promise<any>;
-    deleteDoctor(userId: string): Promise<any>;
-    setupPassword(token: string, password: string): Promise<any>;
+    getDoctors(query: StaffDoctorFilters & { page: number; limit: number }): Promise<PaginatedStaffDoctors>;
+    createDoctor(data: CreateDoctorInput, temporaryPassword?: string): Promise<{ user: StaffDoctorListItem; setupToken: string }>;
+    updateDoctor(doctorId: string, data: UpdateDoctorInput): Promise<StaffDoctorListItem>;
+    blockDoctor(userId: string, status: UserStatus): Promise<void>;
+    deleteDoctor(userId: string): Promise<void>;
+    setupPassword(token: string, password: string): Promise<{ success: boolean }>;
 }

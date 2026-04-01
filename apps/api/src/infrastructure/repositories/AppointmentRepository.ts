@@ -201,4 +201,11 @@ export class AppointmentRepository implements IAppointmentRepository {
       },
     });
   }
+
+  async updateStatus(id: string, status: AppointmentStatus): Promise<Appointment> {
+    return this.prisma.appointment.update({
+      where: { id },
+      data: { status },
+    });
+  }
 }

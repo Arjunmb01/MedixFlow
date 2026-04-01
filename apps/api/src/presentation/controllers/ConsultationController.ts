@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import { CheckinPatientUseCase } from "../../application/usecases/consultation/checkinPatient.usecase";
-import { GetDoctorQueueUseCase } from "../../application/usecases/consultation/getDoctorQueue.usecase";
-import { StartConsultationUseCase } from "../../application/usecases/consultation/startConsultation.usecase";
-import { CompleteConsultationUseCase } from "../../application/usecases/consultation/completeConsultation.usecase";
-import { GetPatientHistoryUseCase } from "../../application/usecases/consultation/getPatientHistory.usecase";
+import { CheckinPatientUseCase } from "../../application/use-cases/consultation/checkinPatient.usecase";
+import { GetDoctorQueueUseCase } from "../../application/use-cases/consultation/getDoctorQueue.usecase";
+import { StartConsultationUseCase } from "../../application/use-cases/consultation/startConsultation.usecase";
+import { CompleteConsultationUseCase } from "../../application/use-cases/consultation/completeConsultation.usecase";
+import { GetPatientHistoryUseCase } from "../../application/use-cases/consultation/getPatientHistory.usecase";
 import { IConsultationRepository } from "../../domain/repositories/IConsultationRepository";
 
 export class ConsultationController {

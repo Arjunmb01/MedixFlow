@@ -1,12 +1,15 @@
 import { Request, Response, NextFunction } from "express";
-import { prisma } from "@/infrastructure/database/prismaClient";
 import { StatusCode, MESSAGES } from "@/shared/constants";
-import { GetDoctorProfileUseCase } from "@/application/usecases/doctor/getDoctorProfile.usecase";
-import { UpdateDoctorProfileUseCase } from "@/application/usecases/doctor/updateDoctorProfile.usecase";
-import { UpdateDoctorPasswordUseCase } from "@/application/usecases/doctor/updateDoctorPassword.usecase";
-import { GetDoctorDashboardStatsUseCase } from "@/application/usecases/doctor/getDoctorDashboardStats.usecase";
-import { UpdateDoctorSchedulesUseCase } from "@/application/usecases/doctor/updateDoctorSchedules.usecase";
-import { GetDoctorAppointmentsUseCase } from "@/application/usecases/doctor/getDoctorAppointments.usecase";
+import { GetDoctorProfileUseCase } from "@/application/use-cases/doctor/getDoctorProfile.usecase";
+import { UpdateDoctorProfileUseCase } from "@/application/use-cases/doctor/updateDoctorProfile.usecase";
+import { UpdateDoctorPasswordUseCase } from "@/application/use-cases/doctor/updateDoctorPassword.usecase";
+import { GetDoctorDashboardStatsUseCase } from "@/application/use-cases/doctor/getDoctorDashboardStats.usecase";
+import { UpdateDoctorSchedulesUseCase } from "@/application/use-cases/doctor/updateDoctorSchedules.usecase";
+import { GetDoctorAppointmentsUseCase } from "@/application/use-cases/doctor/getDoctorAppointments.usecase";
+import { GenerateSlotsUseCase } from "@/application/use-cases/slot/generateSlots.usecase";
+import { GetConsultedPatientsUseCase } from "@/application/use-cases/doctor/getConsultedPatients.usecase";
+import { GetDoctorPrescriptionsUseCase } from "@/application/use-cases/doctor/getDoctorPrescriptions.usecase";
+import { UpdatePrescriptionUseCase } from "@/application/use-cases/doctor/updatePrescription.usecase";
 
 export class DoctorController {
     constructor(
@@ -15,7 +18,11 @@ export class DoctorController {
         private updateDoctorPasswordUseCase: UpdateDoctorPasswordUseCase,
         private getDoctorDashboardStatsUseCase: GetDoctorDashboardStatsUseCase,
         private updateDoctorSchedulesUseCase: UpdateDoctorSchedulesUseCase,
-        private getDoctorAppointmentsUseCase: GetDoctorAppointmentsUseCase
+        private getDoctorAppointmentsUseCase: GetDoctorAppointmentsUseCase,
+        private generateSlotsUseCase: GenerateSlotsUseCase,
+        private getConsultedPatientsUseCase: GetConsultedPatientsUseCase,
+        private getDoctorPrescriptionsUseCase: GetDoctorPrescriptionsUseCase,
+        private updatePrescriptionUseCase: UpdatePrescriptionUseCase
     ) {}
 
     getDoctorProfile = async (req: Request, res: Response, next: NextFunction) => {
@@ -37,7 +44,7 @@ export class DoctorController {
         try {
             const userId = req.user.id;
             const result = await this.updateDoctorProfileUseCase.execute(userId, req.body);
-            res.json({ message: MESSAGES.PROFILE_UPDATED, data: result });
+            res.json(result);
         } catch (error) {
             next(error);
         }
@@ -75,6 +82,20 @@ export class DoctorController {
         }
     }
 
+    generateSlots = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const doctorId = req.user.id;
+            const { date } = req.body;
+            if (!date) {
+                return res.status(StatusCode.BAD_REQUEST).json({ message: "Date is required" });
+            }
+            await this.generateSlotsUseCase.execute({ doctorId, date: new Date(date) });
+            res.json({ message: "Slots generated successfully" });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     getDoctorAppointments = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
@@ -85,26 +106,10 @@ export class DoctorController {
         }
     }
 
-    getNotifications = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const userId = req.user.id;
-            const notifications = await prisma.notification.findMany({
-                where: { userId },
-                orderBy: { createdAt: 'desc' },
-                take: 20
-            });
-            res.json(notifications);
-        } catch (error) {
-            next(error);
-        }
-    }
-
     getConsultedPatients = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
-            const { DoctorRepository } = await import("@/infrastructure/repositories/DoctorRepository");
-            const repo = new DoctorRepository();
-            const patients = await repo.getConsultedPatients(userId);
+            const patients = await this.getConsultedPatientsUseCase.execute(userId);
             res.json(patients);
         } catch (error) {
             next(error);
@@ -114,9 +119,7 @@ export class DoctorController {
     getDoctorPrescriptions = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
-            const { DoctorRepository } = await import("@/infrastructure/repositories/DoctorRepository");
-            const repo = new DoctorRepository();
-            const prescriptions = await repo.getDoctorPrescriptions(userId);
+            const prescriptions = await this.getDoctorPrescriptionsUseCase.execute(userId);
             res.json(prescriptions);
         } catch (error) {
             next(error);
@@ -127,12 +130,11 @@ export class DoctorController {
         try {
             const id = req.params.id as string;
             const data = req.body;
-            const { DoctorRepository } = await import("@/infrastructure/repositories/DoctorRepository");
-            const repo = new DoctorRepository();
-            const updated = await repo.updatePrescription(id, data);
+            const updated = await this.updatePrescriptionUseCase.execute({ id, ...data });
             res.json(updated);
         } catch (error) {
             next(error);
         }
     }
 }
+

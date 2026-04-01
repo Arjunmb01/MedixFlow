@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { authorize } from "@/presentation/middleware/authorize.middleware";
-import { authMiddleware } from "@/presentation/middleware/auth.middleware";
-import { container } from "@/infrastructure/container/AppContainer";
+import { authorize } from "@/presentation/controllers/middleware/authorize.middleware";
+import { container } from "@/infrastructure/services/container/CompositionRoot";
 
 const router = Router();
 const controller = container.patientController;
 const consultationController = container.consultationController;
+const authMiddleware = container.authMiddleware;
 
 // All patient routes require authentication and PATIENT role
 router.use(authMiddleware);
@@ -17,7 +17,7 @@ router.put("/emergency-contacts", authorize(["PATIENT"]), controller.updateEmerg
 router.put("/update-password", authorize(["PATIENT"]), controller.updatePassword);
 
 // Dashboard routes
-router.get("/notifications", authorize(["PATIENT"]), controller.getNotifications);
+router.get("/appointments/upcoming", authorize(["PATIENT"]), controller.getUpcomingAppointments);
 router.get("/appointments/upcoming", authorize(["PATIENT"]), controller.getUpcomingAppointments);
 router.get("/appointments", authorize(["PATIENT"]), controller.getPatientAppointments);
 router.patch("/appointments/:id/cancel", authorize(["PATIENT"]), controller.cancelAppointment);
@@ -32,3 +32,4 @@ router.put("/:id/block", authorize(["ADMIN"]), controller.blockPatient);
 router.delete("/:id", authorize(["ADMIN"]), controller.deletePatient);
 
 export default router;
+

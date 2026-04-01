@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { StatusCode, MESSAGES } from "@/shared/constants";
-import { LoginAdminUseCase } from "@/application/usecases/auth/loginAdmin.usecase";
-import { RefreshTokenUseCase } from "@/application/usecases/auth/refreshToken.usecase";
-import { LogoutUseCase } from "@/application/usecases/auth/logout.usecase";
-import { loginSchema } from "@/presentation/dtos/validation/auth.dtos";
+import { LoginAdminUseCase } from "@/application/use-cases/auth/loginAdmin.usecase";
+import { RefreshTokenUseCase } from "@/application/use-cases/auth/refreshToken.usecase";
+import { LogoutUseCase } from "@/application/use-cases/auth/logout.usecase";
+import { loginSchema } from "@/presentation/controllers/dto/validation/auth.dtos";
 
 export class AdminAuthController {
     constructor(
@@ -54,3 +54,6 @@ export class AdminAuthController {
         }
     }
 }
+
+
+

@@ -1,84 +1,162 @@
-import { Consultation, ConsultationStatus, Prisma } from "@prisma/client";
+import { ConsultationStatus } from "../value-objects/enums/ConsultationStatus";
 
+// ─── Input DTOs ───────────────────────────────────────────────────────────
 export interface CreateConsultationDTO {
-    appointmentId: string;
-    doctorId: string;
-    patientId: string;
+  appointmentId: string;
+  doctorId: string;
+  patientId: string;
 }
 
 export interface SaveVitalsDTO {
-    bloodPressure?: string;
-    heartRate?: number;
-    temperature?: number;
-    weight?: number;
+  bloodPressure?: string;
+  heartRate?: number;
+  temperature?: number;
+  weight?: number;
 }
 
 export interface SaveMedicalRecordDTO {
-    symptoms: string;
-    diagnosis: string;
-    notes?: string;
+  symptoms: string;
+  diagnosis: string;
+  notes?: string;
 }
 
 export interface MedicineDTO {
-    name: string;
-    dosage: string;
-    frequency: string;
-    duration: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
 }
 
 export interface SavePrescriptionDTO {
-    instructions?: string;
-    medicines: MedicineDTO[];
+  instructions?: string;
+  medicines: MedicineDTO[];
 }
 
-// Typed return for consultation with full relations
-export type ConsultationWithDetails = Prisma.ConsultationGetPayload<{
-    include: {
-        patient: true;
-        doctor: { include: { specialization: true } };
-        vitals: true;
-        medicalRecord: true;
-        prescription: { include: { medicines: true } };
-        appointment: true;
-    };
-}>;
+// ─── Return shapes (plain TypeScript — NO Prisma) ────────────────────────
+export interface ConsultationRecord {
+  id: string;
+  appointmentId: string;
+  doctorId: string;
+  patientId: string;
+  status: ConsultationStatus | string;
+  createdAt: Date;
+  startedAt?: Date | null;
+  completedAt?: Date | null;
+}
 
-export type ConsultationQueueItem = Prisma.ConsultationGetPayload<{
-    include: {
-        patient: true;
-        appointment: true;
-    };
-}>;
+export interface ConsultationWithDetails extends ConsultationRecord {
+  patient: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    phone?: string | null;
+  };
+  doctor: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    specialization: { name: string } | null;
+  };
+  vitals: {
+    bloodPressure?: string | null;
+    heartRate?: number | null;
+    temperature?: number | null;
+    weight?: number | null;
+  }[];
+  medicalRecord: {
+    symptoms: string;
+    diagnosis: string;
+    notes?: string | null;
+  } | null;
+  prescription: {
+    id: string;
+    instructions?: string | null;
+    medicines: MedicineDTO[];
+  } | null;
+  appointment: {
+    id: string;
+    appointmentDate: Date;
+    slotStart: string;
+    slotEnd: string;
+  };
+}
 
-export type ConsultationHistoryItem = Prisma.ConsultationGetPayload<{
-    include: {
-        vitals: true;
-        medicalRecord: true;
-        prescription: { include: { medicines: true } };
-        appointment: true;
-        doctor: { include: { specialization: true } };
-    };
-}>;
+export interface ConsultationQueueItem extends ConsultationRecord {
+  patient: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  appointment: {
+    id: string;
+    appointmentDate: Date;
+    slotStart: string;
+    slotEnd: string;
+  };
+}
 
-export type ConsultationWithEMR = Prisma.ConsultationGetPayload<{
-    include: {
-        vitals: true;
-        medicalRecord: true;
-        prescription: { include: { medicines: true } };
-    };
-}>;
+export interface ConsultationHistoryItem extends ConsultationRecord {
+  vitals: {
+    bloodPressure?: string | null;
+    heartRate?: number | null;
+    temperature?: number | null;
+    weight?: number | null;
+  }[];
+  medicalRecord: {
+    symptoms: string;
+    diagnosis: string;
+    notes?: string | null;
+  } | null;
+  prescription: {
+    id: string;
+    instructions?: string | null;
+    medicines: MedicineDTO[];
+  } | null;
+  appointment: {
+    id: string;
+    appointmentDate: Date;
+    slotStart: string;
+    slotEnd: string;
+  };
+  doctor: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    specialization: { name: string } | null;
+  };
+}
 
+export interface ConsultationWithEMR extends ConsultationRecord {
+  vitals: {
+    bloodPressure?: string | null;
+    heartRate?: number | null;
+    temperature?: number | null;
+    weight?: number | null;
+  }[];
+  medicalRecord: {
+    symptoms: string;
+    diagnosis: string;
+    notes?: string | null;
+  } | null;
+  prescription: {
+    id: string;
+    instructions?: string | null;
+    medicines: MedicineDTO[];
+  } | null;
+}
+
+// ─── Repository contract ──────────────────────────────────────────────────
 export interface IConsultationRepository {
-    create(data: CreateConsultationDTO): Promise<Consultation>;
-    findById(id: string): Promise<ConsultationWithDetails | null>;
-    findByAppointmentId(appointmentId: string): Promise<ConsultationWithEMR | null>;
-    getDoctorQueue(doctorId: string, date: Date): Promise<ConsultationQueueItem[]>;
-    updateStatus(id: string, status: ConsultationStatus): Promise<Consultation>;
-    saveConsultationData(
-        id: string,
-        vitals?: SaveVitalsDTO,
-        medicalRecord?: SaveMedicalRecordDTO,
-        prescription?: SavePrescriptionDTO
-    ): Promise<Consultation>;
-    getPatientHistory(patientId: string): Promise<ConsultationHistoryItem[]>;
+  create(data: CreateConsultationDTO): Promise<ConsultationRecord>;
+  findById(id: string): Promise<ConsultationWithDetails | null>;
+  findByAppointmentId(appointmentId: string): Promise<ConsultationWithEMR | null>;
+  getDoctorQueue(doctorId: string, date: Date): Promise<ConsultationQueueItem[]>;
+  updateStatus(id: string, status: ConsultationStatus | string): Promise<ConsultationRecord>;
+  saveConsultationData(
+    id: string,
+    vitals?: SaveVitalsDTO,
+    medicalRecord?: SaveMedicalRecordDTO,
+    prescription?: SavePrescriptionDTO
+  ): Promise<ConsultationWithEMR>;
+  getPatientHistory(patientId: string): Promise<ConsultationHistoryItem[]>;
 }

@@ -36,9 +36,9 @@ export const useFindDoctors = (initialFilters: Partial<DoctorFilters> = {}) => {
     const fetchDoctors = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await getDoctorsFiltered(filters);
-            setDoctors(data.doctors);
-            setTotal(data.total);
+            const response = await getDoctorsFiltered(filters);
+            setDoctors(response.data || []);
+            setTotal(response.meta?.total || 0);
         } catch (error) {
             console.error("Failed to fetch doctors", error);
         } finally {

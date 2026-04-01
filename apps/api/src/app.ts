@@ -1,11 +1,11 @@
-/// <reference path="./infrastructure/types/express.d.ts" />
+/// <reference path="./core/types/express.d.ts" />
 import express, { Request, Response, NextFunction } from "express";
 
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { ZodError } from "zod";
-import router from "./routes";
+import router from "./presentation/routes";
 
 const app = express();
 

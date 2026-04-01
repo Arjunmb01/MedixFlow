@@ -1,6 +1,6 @@
 import { OAuth2Client } from "google-auth-library";
-import { IGoogleAuthService, GoogleUser } from "@/domain/services/IGoogleAuthService";
-import { config } from "@/infrastructure/config";
+import { IGoogleAuthService, GoogleUser } from "@/application/interfaces/IGoogleAuthService";
+import { config } from "@/infrastructure/services/config";
 import { MESSAGES } from "@/shared/constants";
 
 export class GoogleAuthService implements IGoogleAuthService {
@@ -28,3 +28,4 @@ export class GoogleAuthService implements IGoogleAuthService {
     };
   }
 }
+

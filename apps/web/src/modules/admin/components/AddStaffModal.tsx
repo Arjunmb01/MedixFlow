@@ -135,7 +135,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess, staffToEdit 
                         startTime: s.fullDay ? "00:00" : s.startTime,
                         endTime: s.fullDay ? "23:59" : s.endTime,
                         fullDay: s.fullDay,
-                        slotDurationMinutes: data.slotDuration
+                        slotDuration: data.slotDuration
                     }))
             }
             

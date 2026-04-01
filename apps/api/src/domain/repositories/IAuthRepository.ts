@@ -1,13 +1,53 @@
+import { User } from "../entities/User";
+
+// ─── Lightweight domain shapes — NO Prisma ────────────────────────────────
+export interface DomainPatientProfile {
+  id: string;
+  patientId: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+}
+
+export interface DomainDoctorProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface DomainPasswordResetToken {
+  id: string;
+  userId: string;
+  token: string;
+  expiresAt: Date;
+  user: User;
+}
+
+// ─── Repository contract ──────────────────────────────────────────────────
 export interface IAuthRepository {
-  findUserByEmail(email: string): Promise<any>;
-  createPatient(data: any): Promise<any>;
-  createGooglePatient(data: any): Promise<any>;
-  activateUser(email: string): Promise<any>;
-  createPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<any>;
-  findPasswordResetToken(token: string): Promise<any>;
-  deletePasswordResetToken(token: string): Promise<any>;
-  updateUserPassword(userId: string, passwordHash: string): Promise<any>;
-  findPatientProfileByUserId(userId: string): Promise<any>;
-  findDoctorProfileByUserId(userId: string): Promise<any>;
-  findUserById(userId: string): Promise<any>;
+  findUserByEmail(email: string): Promise<User | null>;
+  createPatient(data: {
+    email: string;
+    passwordHash: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+  }): Promise<User>;
+  createGooglePatient(data: {
+    email: string;
+    firstName: string;
+    lastName: string;
+  }): Promise<User>;
+  activateUser(email: string): Promise<void>;
+  createPasswordResetToken(
+    userId: string,
+    token: string,
+    expiresAt: Date
+  ): Promise<DomainPasswordResetToken>;
+  findPasswordResetToken(token: string): Promise<DomainPasswordResetToken | null>;
+  deletePasswordResetToken(token: string): Promise<void>;
+  updateUserPassword(userId: string, passwordHash: string): Promise<void>;
+  findPatientProfileByUserId(userId: string): Promise<DomainPatientProfile | null>;
+  findDoctorProfileByUserId(userId: string): Promise<DomainDoctorProfile | null>;
+  findUserById(userId: string): Promise<User | null>;
 }

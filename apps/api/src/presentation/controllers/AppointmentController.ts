@@ -1,6 +1,6 @@
-import { Request,Response } from "express";
-import { GetAvailableSlotsUseCase } from "@/application/usecases/appointment/getAvailableSlots.usecase";
-import { BookAppointmentUseCase } from "@/application/usecases/appointment/bookAppointment.usecase";
+import { Request, Response } from "express";
+import { GetAvailableSlotCase } from "@/application/use-cases/slot/getAvailableSlots.usecase";
+import { BookAppointmentUseCase } from "@/application/use-cases/appointment/bookAppointment.usecase";
 import { StatusCode } from "@/shared/constants";
 
 type GetSlotsParams = {
@@ -8,21 +8,24 @@ type GetSlotsParams = {
 };
 
 export class AppointmentController {
-    constructor (private readonly getSlotsUseCase : GetAvailableSlotsUseCase,
+    constructor (private readonly getSlotsUseCase : GetAvailableSlotCase,
         private readonly bookUseCase : BookAppointmentUseCase
     ) {}
 
-    async getSlots (req : Request<GetSlotsParams>,res :Response) : Promise<void>{
+    async getSlots (req : Request<GetSlotsParams>, res : Response) : Promise<void>{
         try {
-            const {doctorId} = req.params;
-            const {date} = req.query;
+            const { doctorId } = req.params;
+            const { date } = req.query;
 
             if(!doctorId || !date || typeof date !== 'string'){
                 res.status(StatusCode.BAD_REQUEST).json({message : "Invalid input"})
                 return;
             }
 
-            const slots = await this.getSlotsUseCase.execute(doctorId,new Date(date));
+            const slots = await this.getSlotsUseCase.execute({ 
+                doctorId, 
+                date: new Date(date) 
+            });
             res.status(StatusCode.OK).json(slots)
 
         } catch (error) {

@@ -1,29 +1,30 @@
 import jwt from "jsonwebtoken";
-import { ITokenService } from "@/domain/services/ITokenService";
-import { config } from "@/infrastructure/config";
+import { ITokenService, TokenPayload } from "@/application/interfaces/ITokenService";
 
 export class JwtTokenService implements ITokenService {
+    constructor(private readonly config: { jwtAccessSecret: string; jwtRefreshSecret: string }) {}
+
     generateAccessToken(userId: string, role: string, email?: string): string {
         return jwt.sign(
-            { userId, role, email },
-            config.jwtAccessSecret,
-            { expiresIn: "15m" }
+            { id: userId, role, email },
+            this.config.jwtAccessSecret,
+            { expiresIn: "1h" }
         );
     }
 
     generateRefreshToken(userId: string, role: string, email?: string): string {
         return jwt.sign(
-            { userId, role, email },
-            config.jwtRefreshSecret,
+            { id: userId, role, email },
+            this.config.jwtRefreshSecret,
             { expiresIn: "7d" }
         );
     }
 
-    verifyAccessToken(token: string): any {
-        return jwt.verify(token, config.jwtAccessSecret);
+    verifyAccessToken(token: string): TokenPayload {
+        return jwt.verify(token, this.config.jwtAccessSecret) as TokenPayload;
     }
 
-    verifyRefreshToken(token: string): any {
-        return jwt.verify(token, config.jwtRefreshSecret);
+    verifyRefreshToken(token: string): TokenPayload {
+        return jwt.verify(token, this.config.jwtRefreshSecret) as TokenPayload;
     }
 }

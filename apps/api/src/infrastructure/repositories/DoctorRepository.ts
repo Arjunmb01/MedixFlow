@@ -1,44 +1,62 @@
-import { prisma } from "@/infrastructure/database/prismaClient";
-import { PrismaClient } from "@prisma/client";
+import { 
+    DoctorProfile, 
+    DoctorDashboardStats, 
+    DoctorSchedule, 
+    ConsultedPatientRecord, 
+    PrescriptionRecord, 
+    PaginatedDoctors,
+    DoctorFilters
+} from "@/domain/value-objects/types/doctor.repository.types";
+import { 
+    PrismaDoctorWithUserAndSpec, 
+    PrismaStaffDoctor, 
+    PrismaConsultedPatient, 
+    PrismaPrescriptionFull,
+    DoctorMapper
+} from "@/infrastructure/database/mappers/DoctorMapper";
+import { UserStatus, PrismaClient, Prisma } from "@prisma/client";
+import { Doctor } from "@/domain/entities/Doctor";
 import { IDoctorRepository } from "@/domain/repositories/IDoctorRepository";
 import { BaseRepository } from "./BaseRepository";
-// We'll need the mapper too.
 
-export class DoctorRepository extends BaseRepository<any, any, any> implements IDoctorRepository {
-    protected model = prisma.doctorProfile;
+export class DoctorRepository extends BaseRepository<Doctor, any, any> implements IDoctorRepository {
+    protected model: Prisma.DoctorProfileDelegate;
 
-    async findById(userId: string) {
-        const result = await prisma.doctorProfile.findUnique({
-            where: { id: userId },
-            include: {
-                user: {
-                    select: { id: true, email: true, passwordHash: true, status: true, createdAt: true }
-                },
-                specialization: true,
-                schedules: true
-            }
-        });
-        return result ? { ...result, specialty: (result as any).specialization?.name } : null;
+    constructor(
+        private readonly _prisma: PrismaClient,
+        private readonly mapper: DoctorMapper
+    ) {
+        super();
+        this.model = this._prisma.doctorProfile;
     }
 
-    async getProfile(userId: string) {
-        const result = await prisma.doctorProfile.findUnique({
+    async findById(userId: string): Promise<Doctor | null> {
+        const result = await this._prisma.doctorProfile.findUnique({
             where: { id: userId },
             include: {
-                user: {
-                    select: { id: true, email: true, status: true, createdAt: true }
-                },
+                user: true,
+                specialization: true,
+            }
+        });
+        return result ? this.mapper.toDomain(result as PrismaDoctorWithUserAndSpec) : null;
+    }
+
+    async getProfile(userId: string): Promise<DoctorProfile | null> {
+        const result = await this._prisma.doctorProfile.findUnique({
+            where: { id: userId },
+            include: {
+                user: true,
                 specialization: true,
                 schedules: {
                     orderBy: { dayOfWeek: "asc" }
                 }
             }
         });
-        return result ? { ...result, specialty: (result as any).specialization?.name } : null;
+        return result ? this.mapper.toProfile(result as PrismaDoctorWithUserAndSpec) : null;
     }
 
-    async updateProfile(userId: string, data: any) {
-        const result = await prisma.doctorProfile.update({
+    async updateProfile(userId: string, data: Partial<DoctorProfile>): Promise<DoctorProfile> {
+        const result = await this._prisma.doctorProfile.update({
             where: { id: userId },
             data: {
                 firstName: data.firstName,
@@ -56,56 +74,46 @@ export class DoctorRepository extends BaseRepository<any, any, any> implements I
                 avatarUrl: data.avatarUrl,
             },
             include: {
-                user: {
-                    select: { id: true, email: true, status: true }
-                },
+                user: true,
                 specialization: true,
                 schedules: true
             }
         });
-        return { ...result, specialty: (result as any).specialization?.name };
+        return this.mapper.toProfile(result as PrismaDoctorWithUserAndSpec);
     }
 
-    async updatePassword(userId: string, passwordHash: string) {
-        return prisma.user.update({
+    async updatePassword(userId: string, passwordHash: string): Promise<void> {
+        await this._prisma.user.update({
             where: { id: userId },
             data: { passwordHash }
         });
     }
 
-    async getDashboardStats(userId: string) {
+    async getDashboardStats(userId: string): Promise<DoctorDashboardStats> {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        const [totalAppointments, todayAppointmentsCount, completedToday, pendingToday, todayAppointments] = await Promise.all([
-            prisma.appointment.count({ where: { doctorId: userId } }),
-            prisma.appointment.count({
+        const [
+            totalAppointments, 
+            completedAppointments, 
+            pendingAppointments, 
+            uniquePatientsCount,
+            todayAppointmentsData
+        ] = await Promise.all([
+            this._prisma.appointment.count({ where: { doctorId: userId } }),
+            this._prisma.appointment.count({ where: { doctorId: userId, status: "COMPLETED" } }),
+            this._prisma.appointment.count({ where: { doctorId: userId, status: { in: ["PENDING", "CONFIRMED"] } } }),
+            this._prisma.appointment.groupBy({
+                by: ['patientId'],
+                where: { doctorId: userId },
+                _count: { patientId: true }
+            }).then(res => res.length),
+            this._prisma.appointment.findMany({
                 where: {
                     doctorId: userId,
                     appointmentDate: { gte: today, lt: tomorrow }
-                }
-            }),
-            prisma.appointment.count({
-                where: {
-                    doctorId: userId,
-                    appointmentDate: { gte: today, lt: tomorrow },
-                    status: "COMPLETED"
-                }
-            }),
-            prisma.appointment.count({
-                where: {
-                    doctorId: userId,
-                    appointmentDate: { gte: today, lt: tomorrow },
-                    status: { in: ["PENDING", "CONFIRMED"] }
-                }
-            }),
-            prisma.appointment.findMany({
-                where: {
-                    doctorId: userId,
-                    appointmentDate: { gte: today, lt: tomorrow },
-                    status: { in: ["PENDING", "CONFIRMED"] }
                 },
                 include: {
                     patient: true
@@ -116,56 +124,55 @@ export class DoctorRepository extends BaseRepository<any, any, any> implements I
             })
         ]);
 
+        const pendingToday = todayAppointmentsData.filter(a => ["PENDING", "CONFIRMED"].includes(a.status)).length;
+        const completedToday = todayAppointmentsData.filter(a => a.status === "COMPLETED").length;
+
+        // Calculate total earnings
+        const completedApts = await this._prisma.appointment.findMany({
+            where: { doctorId: userId, status: "COMPLETED" },
+            include: { doctor: true }
+        });
+        const totalEarnings = completedApts.reduce((acc, apt) => acc + (apt.doctor.consultationFee || 0), 0);
+
         return {
             totalAppointments,
-            todayAppointmentsCount,
-            completedToday,
+            completedAppointments,
+            pendingAppointments,
+            totalPatients: uniquePatientsCount,
+            todayAppointments: todayAppointmentsData,
+            todayAppointmentsCount: todayAppointmentsData.length,
             pendingToday,
-            todayAppointments
+            completedToday,
+            totalEarnings
         };
     }
 
-    async getConsultedPatients(doctorId: string) {
-        const appointments = await prisma.appointment.findMany({
+    async getConsultedPatients(doctorId: string): Promise<ConsultedPatientRecord[]> {
+        const appointments = await this._prisma.appointment.findMany({
             where: {
                 doctorId,
                 status: "COMPLETED",
             },
             include: {
                 patient: true,
-                consultation: {
-                    include: {
-                        medicalRecord: true,
-                    },
-                },
             },
             orderBy: {
                 appointmentDate: "desc",
             },
         });
 
-        // Deduplicate patients, keep the latest appointment for each patient
-        const patientMap = new Map<string, typeof appointments[0]>();
+        const patientMap = new Map<string, PrismaConsultedPatient>();
         for (const apt of appointments) {
             if (!patientMap.has(apt.patientId)) {
-                patientMap.set(apt.patientId, apt);
+                patientMap.set(apt.patientId, apt as PrismaConsultedPatient);
             }
         }
 
-        return Array.from(patientMap.values()).map((apt) => ({
-            patientId: apt.patientId,
-            firstName: apt.patient.firstName,
-            lastName: apt.patient.lastName,
-            phone: apt.patient.phone,
-            gender: apt.patient.gender,
-            lastVisit: apt.appointmentDate,
-            lastDiagnosis: apt.consultation?.medicalRecord?.diagnosis || null,
-            totalVisits: appointments.filter((a) => a.patientId === apt.patientId).length,
-        }));
+        return Array.from(patientMap.values()).map((apt) => this.mapper.toConsultedPatient(apt));
     }
 
-    async getDoctorPrescriptions(doctorId: string) {
-        const appointments = await prisma.appointment.findMany({
+    async getDoctorPrescriptions(doctorId: string): Promise<PrescriptionRecord[]> {
+        const appointments = await this._prisma.appointment.findMany({
             where: {
                 doctorId,
                 status: "COMPLETED",
@@ -179,13 +186,11 @@ export class DoctorRepository extends BaseRepository<any, any, any> implements I
                 patient: true,
                 consultation: {
                     include: {
-                        medicalRecord: true,
                         prescription: {
                             include: {
                                 medicines: true,
                             },
                         },
-                        vitals: true,
                     },
                 },
             },
@@ -193,55 +198,87 @@ export class DoctorRepository extends BaseRepository<any, any, any> implements I
                 appointmentDate: "desc",
             },
         });
-        return appointments;
+        return appointments.map(apt => this.mapper.toPrescriptionRecord(apt as PrismaPrescriptionFull));
     }
 
-    async updatePrescription(prescriptionId: string, data: { instructions?: string; medicines: { name: string; dosage: string; frequency: string; duration: string }[] }) {
-        return prisma.$transaction(async (tx: any) => {
-            // Update instructions
-            await tx.prescription.update({
-                where: { id: prescriptionId },
-                data: { instructions: data.instructions || null },
+    async updatePrescription(prescriptionId: string, data: Partial<PrescriptionRecord>): Promise<PrescriptionRecord> {
+        return this._prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            const updateData: Prisma.PrescriptionUpdateInput = {};
+            if (data.instructions !== undefined) updateData.instructions = data.instructions;
+
+            if (Object.keys(updateData).length > 0) {
+                await tx.prescription.update({
+                    where: { id: prescriptionId },
+                    data: updateData,
+                });
+            }
+
+            if (data.medicines) {
+                await tx.medicine.deleteMany({ where: { prescriptionId } });
+                await tx.medicine.createMany({
+                    data: data.medicines.map((m) => ({
+                        prescriptionId,
+                        name: m.name,
+                        dosage: m.dosage,
+                        frequency: m.frequency,
+                        duration: m.duration,
+                    })),
+                });
+            }
+
+            const result = await tx.appointment.findFirst({
+                where: { consultation: { prescription: { id: prescriptionId } } },
+                include: {
+                    patient: true,
+                    consultation: {
+                        include: {
+                            prescription: {
+                                include: {
+                                    medicines: true,
+                                },
+                            },
+                        },
+                    },
+                },
             });
 
-            // Delete old medicines and create new ones
-            await tx.medicine.deleteMany({ where: { prescriptionId } });
-            await tx.medicine.createMany({
-                data: data.medicines.map((m: any) => ({
-                    prescriptionId,
-                    name: m.name,
-                    dosage: m.dosage,
-                    frequency: m.frequency,
-                    duration: m.duration,
-                })),
-            });
-
-            // Return updated prescription with medicines
-            return tx.prescription.findUnique({
-                where: { id: prescriptionId },
-                include: { medicines: true },
-            });
+            if (!result) throw new Error("Prescription not found");
+            return this.mapper.toPrescriptionRecord(result as PrismaPrescriptionFull);
         });
     }
 
-    async updateSchedules(userId: string, schedules: any[]) {
-        return prisma.$transaction([
-            prisma.doctorSchedule.deleteMany({
+    async updateSchedules(userId: string, schedules: DoctorSchedule[]): Promise<void> {
+        await this._prisma.$transaction([
+            this._prisma.doctorSchedule.deleteMany({
                 where: { doctorId: userId }
             }),
-            prisma.doctorSchedule.createMany({
-                data: schedules.map(s => ({
-                    ...s,
-                    doctorId: userId
-                }))
+            this._prisma.doctorSchedule.createMany({
+                data: schedules.map(s => {
+                    const duration = s.slotDurationMinutes;
+                    let capacity = 1;
+                    if (duration === 15) capacity = 1;
+                    else if (duration === 30) capacity = 2;
+                    else if (duration === 60) capacity = 5;
+                    
+                    return {
+                        doctorId: userId,
+                        dayOfWeek: s.dayOfWeek,
+                        startTime: s.startTime,
+                        endTime: s.endTime,
+                        slotDurationMinutes: duration,
+                        slotCapacity: capacity,
+                        fullDay: s.fullDay || false,
+                        consultationType: s.consultationType || 'CLINIC',
+                    };
+                })
             })
         ]);
     }
 
-    async getDoctorsFiltered(filters: any) {
-        const where: any = {
+    async getDoctorsFiltered(filters: DoctorFilters & { page: number; limit: number }): Promise<PaginatedDoctors> {
+        const where: Prisma.DoctorProfileWhereInput = {
             user: {
-                status: "ACTIVE"
+                status: (filters.status as UserStatus) || "ACTIVE"
             }
         };
 
@@ -272,36 +309,59 @@ export class DoctorRepository extends BaseRepository<any, any, any> implements I
             if (filters.maxFee !== undefined) where.consultationFee.lte = filters.maxFee;
         }
 
+        const skip = (filters.page - 1) * filters.limit;
+        const take = filters.limit;
+
         const [doctors, total] = await Promise.all([
-            prisma.doctorProfile.findMany({
+            this._prisma.doctorProfile.findMany({
                 where,
                 include: {
+                    user: true,
                     specialization: true,
-                    schedules: true
                 },
                 orderBy: {
                     rating: 'desc'
                 },
-                skip: filters.skip,
-                take: filters.take
+                skip,
+                take
             }),
-            prisma.doctorProfile.count({ where })
+            this._prisma.doctorProfile.count({ where })
         ]);
 
-        // I'll refactor the DoctorMapper later or just return data as is for now.
-        return { doctors: doctors, total };
+        return { 
+            data: doctors.map(d => this.mapper.toDomain(d as PrismaDoctorWithUserAndSpec)), 
+            meta: {
+                total,
+                page: filters.page,
+                limit: filters.limit,
+                totalPages: Math.ceil(total / filters.limit)
+            }
+        };
     }
 
-    async findProfileById(doctorId: string) {
-        const result = await prisma.doctorProfile.findUnique({
+    async findProfileById(doctorId: string): Promise<DoctorProfile | null> {
+        const result = await this._prisma.doctorProfile.findUnique({
             where: { id: doctorId },
             include: {
+                user: true,
                 specialization: true,
                 schedules: {
                     orderBy: { dayOfWeek: "asc" }
                 }
             }
         });
-        return result ? { ...result, specialty: (result as any).specialization?.name } : null;
+        return result ? this.mapper.toProfile(result as PrismaDoctorWithUserAndSpec) : null;
+    }
+
+    async getSchedulesByDay(doctorId: string, dayOfWeek: number): Promise<DoctorSchedule[]> {
+        const schedules = await this._prisma.doctorSchedule.findMany({
+            where: {
+                doctorId: doctorId,
+                dayOfWeek: dayOfWeek
+            }
+        });
+
+        return schedules.map(s => this.mapper.toSchedule(s as any));
     }
 }
+

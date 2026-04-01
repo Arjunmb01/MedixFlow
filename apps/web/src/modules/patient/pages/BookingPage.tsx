@@ -41,7 +41,7 @@ export default function BookingPage() {
     }, [doctor]);
 
     const availabilityStatus = useMemo(() => {
-        if (!doctor || !doctor.schedules.length) return { text: "No availability", color: "text-[#94A3B8]" };
+        if (!doctor || !doctor.schedules?.length) return { text: "No availability", color: "text-[#94A3B8]" };
 
         const dayOfWeekToday = new Date().getDay();
         const isAvailableToday = availableDays.includes(dayOfWeekToday);
@@ -197,7 +197,7 @@ export default function BookingPage() {
                                 </div>
                                 <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Appointment Confirmed!</h2>
                                 <p className="text-[#64748B] text-lg font-medium max-w-md">
-                                    Your appointment with Dr. {doctor.firstName} on {selectedDate?.toLocaleDateString()} at {selectedSlot?.start} has been successfully booked. Notifications have been sent to you, the doctor, and the admin.
+                                    Your appointment with Dr. {doctor.firstName} on {selectedDate?.toLocaleDateString()} at {selectedSlot?.start} has been successfully booked.
                                 </p>
                                 <div className="flex flex-col md:flex-row gap-4 mt-8">
                                     <button 
@@ -254,14 +254,19 @@ export default function BookingPage() {
                                     </div>
                                 </div>
                                 <div className="w-px h-8 bg-[#E2E8F0]" />
+                                <div className="w-px h-8 bg-[#E2E8F0]" />
                                 <div className="flex flex-col">
                                     <span className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest mb-1">Slot Duration</span>
-                                    <span className="text-sm font-black text-[#0F172A]">1 hour per slot</span>
+                                    <span className="text-sm font-black text-[#0F172A]">
+                                        {selectedSlot ? 'Duration set' : (doctor.schedules?.[0]?.slotDurationMinutes || 15) + ' mins per slot'}
+                                    </span>
                                 </div>
                                 <div className="w-px h-8 bg-[#E2E8F0]" />
                                 <div className="flex flex-col">
                                     <span className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest mb-1">Patients per Slot</span>
-                                    <span className="text-sm font-black text-[#0F172A]">Up to 5 patients</span>
+                                    <span className="text-sm font-black text-[#0F172A]">
+                                        {selectedSlot ? `Up to ${selectedSlot.capacity} patients` : `Up to ${doctor.schedules?.[0]?.slotCapacity || 1} patients`}
+                                    </span>
                                 </div>
                             </div>
 

@@ -1,15 +1,15 @@
 import { StatusCode, MESSAGES } from "@/shared/constants";
 import { Request, Response, NextFunction } from "express";
-import { SignUpUseCase } from "@/application/usecases/auth/signup.usecase";
-import { VerifyOtpUseCase } from "@/application/usecases/auth/verifyOtp.usecase";
-import { LoginPatientUseCase } from "@/application/usecases/auth/loginPatient.usecase";
-import { GoogleAuthUseCase } from "@/application/usecases/auth/googleAuth.usecase";
-import { RefreshTokenUseCase } from "@/application/usecases/auth/refreshToken.usecase";
-import { LogoutUseCase } from "@/application/usecases/auth/logout.usecase";
-import { ResendOtpUseCase } from "@/application/usecases/auth/resendOtp.usecase";
-import { ForgotPasswordUseCase } from "@/application/usecases/auth/forgotPassword.usecase";
-import { ResetPasswordUseCase } from "@/application/usecases/auth/resetPassword.usecase";
-import { signupSchema, verifyOtpSchema, forgotPasswordSchema, resetPasswordSchema, loginSchema } from "@/presentation/dtos/validation/auth.dtos";
+import { SignUpUseCase } from "@/application/use-cases/auth/signup.usecase";
+import { VerifyOtpUseCase } from "@/application/use-cases/auth/verifyOtp.usecase";
+import { LoginPatientUseCase } from "@/application/use-cases/auth/loginPatient.usecase";
+import { GoogleAuthUseCase } from "@/application/use-cases/auth/googleAuth.usecase";
+import { RefreshTokenUseCase } from "@/application/use-cases/auth/refreshToken.usecase";
+import { LogoutUseCase } from "@/application/use-cases/auth/logout.usecase";
+import { ResendOtpUseCase } from "@/application/use-cases/auth/resendOtp.usecase";
+import { ForgotPasswordUseCase } from "@/application/use-cases/auth/forgotPassword.usecase";
+import { ResetPasswordUseCase } from "@/application/use-cases/auth/resetPassword.usecase";
+import { signupSchema, verifyOtpSchema, forgotPasswordSchema, resetPasswordSchema, loginSchema } from "@/presentation/controllers/dto/validation/auth.dtos";
 
 export class PatientAuthController {
     constructor(
@@ -151,3 +151,6 @@ export class PatientAuthController {
         }
     }
 }
+
+
+

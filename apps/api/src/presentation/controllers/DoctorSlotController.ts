@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { GetAvailableSlotsUseCase } from "@/application/usecases/appointment/getAvailableSlots.usecase";
+import { GetAvailableSlotCase } from "@/application/use-cases/slot/getAvailableSlots.usecase";
 import { StatusCode } from "@/shared/constants";
 
 export class DoctorSlotController {
   constructor(
-    private readonly getSlotsUseCase: GetAvailableSlotsUseCase
+    private readonly getSlotsUseCase: GetAvailableSlotCase
   ) {}
 
   async getSlots(
@@ -25,7 +25,10 @@ export class DoctorSlotController {
         return;
       }
 
-      const slots = await this.getSlotsUseCase.execute(doctorId, date);
+      const slots = await this.getSlotsUseCase.execute({ 
+        doctorId, 
+        date 
+      });
 
       res.status(StatusCode.OK).json(slots);
     } catch (error: unknown) {

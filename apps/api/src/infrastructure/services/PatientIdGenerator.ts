@@ -1,24 +1,12 @@
-import { prisma } from "@/infrastructure/database/prismaClient";
+import { PrismaClient } from "@prisma/client";
 
 export class PatientIdGenerator {
-  static async generate(): Promise<string> {
-    const lastPatient = await prisma.patientProfile.findFirst({
-      orderBy: {
-        patientId: 'desc',
-      },
-      select: {
-        patientId: true,
-      },
-    });
+  constructor(private readonly prisma: PrismaClient) {}
 
-    if (!lastPatient || !lastPatient.patientId) {
-      return 'PX-0001';
-    }
-
-    const lastIdNumber = parseInt(lastPatient.patientId.replace('PX-', ''), 10);
-    const nextIdNumber = lastIdNumber + 1;
+  async generate(): Promise<string> {
+    const totalPatients = await this.prisma.patientProfile.count();
+    const nextIdNumber = totalPatients + 1;
     const paddedNumber = nextIdNumber.toString().padStart(4, '0');
-
     return `PX-${paddedNumber}`;
   }
 }

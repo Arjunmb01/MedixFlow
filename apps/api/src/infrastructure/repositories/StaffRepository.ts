@@ -1,20 +1,29 @@
-import { prisma } from "@/infrastructure/database/prismaClient";
+import { PrismaClient, UserStatus, Prisma } from "@prisma/client";
 import { MESSAGES } from "@/shared/constants";
 import { IStaffRepository } from "@/domain/repositories/IStaffRepository";
-import { UserStatus } from "@prisma/client";
 import { v4 as uuidv4 } from "uuid";
-import bcrypt from "bcryptjs";
+import { IPasswordHasher } from "@/application/interfaces/IPasswordHasher";
+import { DoctorMapper } from "@/infrastructure/database/mappers/DoctorMapper";
+import { 
+    StaffDoctorFilters, 
+    PaginatedStaffDoctors, 
+    CreateDoctorInput, 
+    UpdateDoctorInput,
+    StaffDoctorListItem
+} from "@/domain/value-objects/types/staff.repository.types";
 
-import { BaseRepository } from "./BaseRepository";
+export class StaffRepository implements IStaffRepository {
+    constructor(
+        private readonly _prisma: PrismaClient,
+        private readonly mapper: DoctorMapper,
+        private readonly passwordHasher: IPasswordHasher
+    ) {}
 
-export class StaffRepository extends BaseRepository<any, any, any> implements IStaffRepository {
-    protected model = prisma.doctorProfile;
-
-    async getDoctors(query: any) {
-        const { search, specialty: specialization, status, page = 1, limit = 10 } = query;
+    async getDoctors(query: StaffDoctorFilters & { page: number; limit: number }): Promise<PaginatedStaffDoctors> {
+        const { search, specialty: specialization, status, page, limit } = query;
         const skip = (page - 1) * limit;
 
-        const where: any = {
+        const where: Prisma.DoctorProfileWhereInput = {
             user: {
                 deletedAt: null
             }
@@ -38,12 +47,12 @@ export class StaffRepository extends BaseRepository<any, any, any> implements IS
             };
         }
 
-        if (status) {
-            where.user = { ...where.user, status };
+        if (status && where.user) {
+            where.user.status = status;
         }
 
         const [doctors, total] = await Promise.all([
-            prisma.doctorProfile.findMany({
+            this._prisma.doctorProfile.findMany({
                 where,
                 include: {
                     user: {
@@ -63,14 +72,11 @@ export class StaffRepository extends BaseRepository<any, any, any> implements IS
                     firstName: "asc"
                 }
             }),
-            prisma.doctorProfile.count({ where })
+            this._prisma.doctorProfile.count({ where })
         ]);
 
         return {
-            doctors: doctors.map((d: any) => ({
-                ...d,
-                specialty: (d as any).specialization?.name
-            })),
+            doctors: doctors.map((d) => this.mapper.toStaffDoctorListItem(d as any)),
             stats: {
                 total,
                 page,
@@ -80,8 +86,8 @@ export class StaffRepository extends BaseRepository<any, any, any> implements IS
         };
     }
 
-    async createDoctor(data: any, temporaryPassword?: string) {
-        const existingUser = await prisma.user.findUnique({
+    async createDoctor(data: CreateDoctorInput, temporaryPassword?: string): Promise<{ user: any; setupToken: any }> {
+        const existingUser = await this._prisma.user.findUnique({
             where: { email: data.email }
         });
 
@@ -89,11 +95,10 @@ export class StaffRepository extends BaseRepository<any, any, any> implements IS
             throw new Error(MESSAGES.USER_ALREADY_EXISTS);
         }
 
-        const passwordHash = temporaryPassword 
-            ? await bcrypt.hash(temporaryPassword, 10)
-            : "PENDING_SETUP";
+        const password = temporaryPassword || uuidv4();
+        const passwordHash = await this.passwordHasher.hash(password);
 
-        return prisma.$transaction(async (tx) => {
+        return this._prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const user = await tx.user.create({
                 data: {
                     email: data.email,
@@ -114,27 +119,48 @@ export class StaffRepository extends BaseRepository<any, any, any> implements IS
                             consultationFee: data.consultationFee,
                             licenseNumber: data.licenseNumber,
                             schedules: {
-                                create: data.schedules
+                                create: data.schedules.map(s => ({
+                                    dayOfWeek: s.dayOfWeek,
+                                    startTime: s.startTime,
+                                    endTime: s.endTime,
+                                    slotDurationMinutes: s.slotDuration
+                                }))
                             }
+                        }
+                    }
+                },
+                include: {
+                    doctorProfile: {
+                        include: {
+                            user: true,
+                            specialization: true,
+                            schedules: true
                         }
                     }
                 }
             });
 
-            const setupToken = await tx.passwordSetupToken.create({
+            if (!user.doctorProfile) {
+                throw new Error("Failed to create doctor profile");
+            }
+
+            const setupTokenData = await tx.passwordSetupToken.create({
                 data: {
-                    userId: user.id,
                     token: uuidv4(),
-                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+                    userId: user.id,
+                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
                 }
             });
 
-            return { user, setupToken };
+            return {
+                user: this.mapper.toStaffDoctorListItem(user.doctorProfile as any),
+                setupToken: setupTokenData.token
+            };
         });
     }
 
-    async updateDoctor(doctorId: string, data: any) {
-        return prisma.$transaction(async (tx) => {
+    async updateDoctor(doctorId: string, data: UpdateDoctorInput): Promise<StaffDoctorListItem> {
+        return this._prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const profile = await tx.doctorProfile.update({
                 where: { id: doctorId },
                 data: {
@@ -156,7 +182,7 @@ export class StaffRepository extends BaseRepository<any, any, any> implements IS
                 }
             });
 
-            if (data.email && data.email !== (profile as any).user.email) {
+            if (data.email && data.email !== profile.user.email) {
                 await tx.user.update({
                     where: { id: profile.id },
                     data: { email: data.email }
@@ -169,31 +195,45 @@ export class StaffRepository extends BaseRepository<any, any, any> implements IS
                 });
 
                 await tx.doctorSchedule.createMany({
-                    data: data.schedules.map((s: any) => ({
-                        ...s,
+                    data: data.schedules.map((s) => ({
+                        dayOfWeek: s.dayOfWeek,
+                        startTime: s.startTime,
+                        endTime: s.endTime,
+                        slotDurationMinutes: s.slotDuration,
                         doctorId: profile.id
                     }))
                 });
             }
 
-            return {
-                ...profile,
-                specialty: (profile as any).specialization?.name
-            };
+            // Fetch the final state with all relations for mapping
+            const finalProfile = await tx.doctorProfile.findUnique({
+                where: { id: profile.id },
+                include: {
+                    user: true,
+                    specialization: true,
+                    schedules: true
+                }
+            });
+
+            if (!finalProfile) {
+                throw new Error("Doctor profile not found after update");
+            }
+
+            return this.mapper.toStaffDoctorListItem(finalProfile as any);
         }, {
             timeout: 15000 
         });
     }
 
-    async blockDoctor(userId: string, status: UserStatus) {
-        return prisma.user.update({
+    async blockDoctor(userId: string, status: UserStatus): Promise<void> {
+        await this._prisma.user.update({
             where: { id: userId },
             data: { status }
         });
     }
 
-    async deleteDoctor(userId: string) {
-        return prisma.user.update({
+    async deleteDoctor(userId: string): Promise<void> {
+        await this._prisma.user.update({
             where: { id: userId },
             data: {
                 deletedAt: new Date(),
@@ -202,10 +242,10 @@ export class StaffRepository extends BaseRepository<any, any, any> implements IS
         });
     }
 
-    async setupPassword(token: string, password: string) {
-        const hashedPassword = await bcrypt.hash(password, 10);
+    async setupPassword(token: string, password: string): Promise<{ success: boolean }> {
+        const hashedPassword = await this.passwordHasher.hash(password);
         
-        return prisma.$transaction(async (tx) => {
+        return this._prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const setupToken = await tx.passwordSetupToken.findUnique({
                 where: { token },
                 include: { user: true }

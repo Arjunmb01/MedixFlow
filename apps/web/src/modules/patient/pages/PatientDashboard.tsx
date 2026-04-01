@@ -1,19 +1,18 @@
 import StatCard from "@/modules/patient/components/ui/StatCard"
 import UpcomingCareCard from "@/modules/patient/components/dashboard/UpcomingCareCard"
-import NotificationPanel from "@/modules/patient/components/dashboard/NotificationPanel"
 import Sidebar from "@/modules/patient/components/dashboard/Sidebar"
 import TopNav from "@/modules/patient/components/dashboard/TopNav"
 import AppointmentHistory from "@/modules/patient/components/dashboard/AppointmentHistory"
 import DownloadCenter from "@/modules/patient/components/dashboard/DownloadCenter"
 import BillingSummary from "@/modules/patient/components/dashboard/BillingSummary"
 
-import { Calendar, ClipboardList, UserCircle, FileText, Loader2 } from "lucide-react"
+import { Calendar, UserCircle, FileText, Loader2 } from "lucide-react"
 import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile"
 import { usePatientDashboard } from "@/application/patient/hooks/usePatientDashboard"
 
 export default function PatientDashboard() {
     const { profile, loading: profileLoading } = usePatientProfile()
-    const { stats, notifications, loading: dashboardLoading } = usePatientDashboard()
+    const { stats, loading: dashboardLoading } = usePatientDashboard()
 
     if (profileLoading || dashboardLoading || !profile) {
         return (
@@ -48,20 +47,13 @@ export default function PatientDashboard() {
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-4 gap-6 mb-10">
+                    <div className="grid grid-cols-3 gap-6 mb-10">
                         <StatCard
                             icon={<Calendar className="w-5 h-5 text-red-500" />}
                             iconBg="bg-red-50"
                             value={stats?.upcomingAppointmentsCount || 0}
                             label="Upcoming Appointments"
                             subtitle={<span className="text-gray-400">{stats?.nextAppointment ? stats.nextAppointment.slotStart : "No sessions scheduled"}</span>}
-                        />
-                        <StatCard
-                            icon={<ClipboardList className="w-5 h-5 text-green-500" />}
-                            iconBg="bg-green-50"
-                            value={stats?.unreadNotificationsCount || 0}
-                            label="New Notifications"
-                            subtitle={<span className="text-blue-600 font-bold">Check activity</span>}
                         />
                         <StatCard
                             icon={<UserCircle className="w-5 h-5 text-blue-500" />}
@@ -81,11 +73,8 @@ export default function PatientDashboard() {
 
                     {/* Main Content Sections */}
                     <div className="grid grid-cols-3 gap-8 mb-10">
-                        <div className="col-span-2">
+                        <div className="col-span-3">
                             <UpcomingCareCard appointment={stats?.nextAppointment} />
-                        </div>
-                        <div className="col-span-1">
-                            <NotificationPanel notifications={notifications} />
                         </div>
                     </div>
 

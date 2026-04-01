@@ -1,11 +1,11 @@
 import { StatusCode, MESSAGES } from "@/shared/constants";
 import { Request, Response, NextFunction } from "express";
-import { LoginDoctorUseCase } from "@/application/usecases/auth/loginDoctor.usecase";
-import { RefreshTokenUseCase } from "@/application/usecases/auth/refreshToken.usecase";
-import { LogoutUseCase } from "@/application/usecases/auth/logout.usecase";
-import { ForgotPasswordUseCase } from "@/application/usecases/auth/forgotPassword.usecase";
-import { ResetPasswordUseCase } from "@/application/usecases/auth/resetPassword.usecase";
-import { loginSchema, forgotPasswordSchema, resetPasswordSchema } from "@/presentation/dtos/validation/auth.dtos";
+import { LoginDoctorUseCase } from "@/application/use-cases/auth/loginDoctor.usecase";
+import { RefreshTokenUseCase } from "@/application/use-cases/auth/refreshToken.usecase";
+import { LogoutUseCase } from "@/application/use-cases/auth/logout.usecase";
+import { ForgotPasswordUseCase } from "@/application/use-cases/auth/forgotPassword.usecase";
+import { ResetPasswordUseCase } from "@/application/use-cases/auth/resetPassword.usecase";
+import { loginSchema, forgotPasswordSchema, resetPasswordSchema } from "@/presentation/controllers/dto/validation/auth.dtos";
 
 export class DoctorAuthController {
     constructor(
@@ -83,3 +83,6 @@ export class DoctorAuthController {
         }
     }
 }
+
+
+

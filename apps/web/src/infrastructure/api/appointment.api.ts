@@ -20,7 +20,22 @@ export const getAvailableSlots = async (
     const { data } = await axios.get(`${API_BASE}/appointments/slots`, {
         params: { doctorId, date: dateStr },
     });
-    return data as SlotInfo[];
+
+    return (data as any[]).map((slot: any) => {
+        const startDate = new Date(slot.startTime);
+        const endDate = new Date(slot.endTime);
+        const now = new Date();
+
+        return {
+            start: `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`,
+            end: `${String(endDate.getHours()).padStart(2, "0")}:${String(endDate.getMinutes()).padStart(2, "0")}`,
+            capacity: slot.capacity,
+            booked: slot.bookedCount,
+            available: Math.max(0, slot.capacity - slot.bookedCount),
+            isFull: slot.bookedCount >= slot.capacity,
+            isPast: startDate < now && dateStr === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
+        } as SlotInfo;
+    });
 };
 
 export const bookAppointment = async (payload: BookAppointmentPayload) => {

@@ -1,4 +1,4 @@
-import { config } from "./infrastructure/config";
+import { config } from "./infrastructure/services/config";
 import dotenv from "dotenv";
 dotenv.config({ path: "./.env" });
 

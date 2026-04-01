@@ -1,15 +1,30 @@
 import axiosInstance from "@/core/api/axios";
 
 
-import type { PatientProfile, UpdatePatientProfilePayload, EmergencyContact ,BookAppointmentPayload } from "@/domain/patient/types/patient.types";
+import type { PatientProfile, UpdatePatientProfilePayload, EmergencyContact, BookAppointmentPayload } from "@/domain/patient/types/patient.types";
 
 export const getPatientProfile = async (): Promise<PatientProfile> => {
     const response = await axiosInstance.get("/patient/profile");
-    return response.data;
+    const data = response.data;
+    return {
+        ...data,
+        name: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
+        mobile: data.phone || ''
+    };
 };
 
 export const updatePatientProfile = async (data: UpdatePatientProfilePayload) => {
-    const response = await axiosInstance.put("/patient/profile", data);
+    const nameParts = data.name ? data.name.trim().split(' ') : [];
+    const payload: any = {
+        phone: data.mobile,
+        bloodGroup: data.bloodGroup,
+        gender: data.gender
+    };
+    if (nameParts.length > 0) {
+        payload.firstName = nameParts[0];
+        payload.lastName = nameParts.slice(1).join(' ') || "";
+    }
+    const response = await axiosInstance.put("/patient/profile", payload);
     return response.data;
 };
 
@@ -48,13 +63,13 @@ export const getAdminStats = async () => {
     return response.data;
 };
 
-export const getAvailableSlots = async (doctorId : string, date : string) => {
-    const response = await axiosInstance.get(`/doctor/${doctorId}/slots`,{params : {date}});
+export const getAvailableSlots = async (doctorId: string, date: string) => {
+    const response = await axiosInstance.get(`/doctor/${doctorId}/slots`, { params: { date } });
     return response.data
 }
 
-export const bookAppointment = async (data :BookAppointmentPayload) => {
-    const response = await axiosInstance.post(`/apppointments`,data);
+export const bookAppointment = async (data: BookAppointmentPayload) => {
+    const response = await axiosInstance.post(`/apppointments`, data);
     return response.data
 }
 
@@ -78,7 +93,3 @@ export const cancelAppointment = async (id: string, reason: string) => {
     return response.data;
 };
 
-export const getNotifications = async () => {
-    const response = await axiosInstance.get("/patient/notifications");
-    return response.data;
-};

@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { authMiddleware } from "@/presentation/middleware/auth.middleware";
-import { authorize } from "@/presentation/middleware/authorize.middleware";
-import { container } from "@/infrastructure/container/AppContainer";
+import { authorize } from "@/presentation/controllers/middleware/authorize.middleware";
+import { container } from "@/infrastructure/services/container/CompositionRoot";
 
 const router = Router();
 const controller = container.patientAuthController;
+const authMiddleware = container.authMiddleware;
 
 router.post("/register", controller.signUp);
 router.post("/verify-otp", controller.verifyOtp);
@@ -17,3 +17,4 @@ router.post("/forgot-password", controller.forgotPassword);
 router.post("/reset-password", controller.resetPassword);
 
 export default router;
+

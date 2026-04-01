@@ -9,28 +9,28 @@ export abstract class BaseRepository<T, CreateInput, UpdateInput> implements IBa
     });
   }
 
-  async findAll(params: { skip?: number; take?: number; where?: any; orderBy?: any } = {}): Promise<T[]> {
-    return this.model.findMany(params);
+  async findAll(params: { skip?: number; take?: number; where?: unknown; orderBy?: unknown } = {}): Promise<T[]> {
+    return (this.model as any).findMany(params);
   }
 
   async create(data: CreateInput): Promise<T> {
-    return this.model.create({ data });
+    return (this.model as any).create({ data });
   }
 
   async update(id: string, data: UpdateInput): Promise<T> {
-    return this.model.update({
+    return (this.model as any).update({
       where: { id },
       data
     });
   }
 
   async delete(id: string): Promise<T> {
-    return this.model.delete({
+    return (this.model as any).delete({
       where: { id }
     });
   }
 
-  async count(where: any = {}): Promise<number> {
-    return this.model.count({ where });
+  async count(where: unknown = {}): Promise<number> {
+    return (this.model as any).count({ where });
   }
 }

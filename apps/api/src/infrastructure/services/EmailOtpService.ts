@@ -1,17 +1,23 @@
 import { MESSAGES } from "@/shared/constants";
-import redisClient from "@/infrastructure/services/redisClient";
-import { IOtpService } from "@/domain/services/IAuthServices";
+import { IOtpService, RegistrationData } from "@/application/interfaces/IAuthServices";
+import { IEmailService } from "@/application/interfaces/IEmailService";
+import { IRedisClient } from "@/infrastructure/interfaces/IRedisClient";
 
 export class EmailOtpService implements IOtpService {
-  async generateOtp(email: string, userData?: any) {
+  constructor(
+    private readonly redisClient: IRedisClient,
+    private readonly emailService: IEmailService
+  ) {}
+
+  async generateOtp(email: string, userData?: RegistrationData): Promise<string> {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    await redisClient.set(`otp:${email}`, otp, {
+    await this.redisClient.set(`otp:${email}`, otp, {
       EX: 120
     });
 
     if (userData) {
-      await redisClient.set(
+      await this.redisClient.set(
         `registerData:${email}`,
         JSON.stringify(userData),
         { EX: 120 }
@@ -24,35 +30,36 @@ export class EmailOtpService implements IOtpService {
   }
 
   async verifyOtp(email: string, otp: string) {
-    const storedOtp = await redisClient.get(`otp:${email}`);
+    const storedOtp = await this.redisClient.get(`otp:${email}`);
 
     if (!storedOtp) throw new Error(MESSAGES.OTP_EXPIRED_SIMPLE);
     if (storedOtp !== otp) throw new Error(MESSAGES.INVALID_OTP);
 
-    await redisClient.del(`otp:${email}`);
+    await this.redisClient.del(`otp:${email}`);
 
     return true;
   }
 
-  async getRegistrationData(email: string) {
-    const data = await redisClient.get(`registerData:${email}`);
+  async getRegistrationData(email: string): Promise<RegistrationData | null> {
+    const data = await this.redisClient.get(`registerData:${email}`);
 
     if (!data) return null;
 
-    return JSON.parse(data);
+    return JSON.parse(data) as RegistrationData;
   }
 
   async clearRegistrationData(email: string) {
-    await redisClient.del(`registerData:${email}`);
+    await this.redisClient.del(`registerData:${email}`);
   }
 
   async extendRegistrationData(email: string) {
-    const data = await redisClient.get(`registerData:${email}`);
+    const data = await this.redisClient.get(`registerData:${email}`);
 
     if (data) {
-      await redisClient.set(`registerData:${email}`, data, {
+      await this.redisClient.set(`registerData:${email}`, data, {
         EX: 120
       });
     }
   }
 }
+

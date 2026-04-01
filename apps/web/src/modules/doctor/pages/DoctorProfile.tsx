@@ -454,8 +454,13 @@ export default function DoctorProfile() {
                                                 <select 
                                                     value={day.slotDurationMinutes}
                                                     onChange={(e) => {
+                                                        const duration = Number(e.target.value)
                                                         const updated = [...schedules]
-                                                        updated[index].slotDurationMinutes = Number(e.target.value)
+                                                        updated[index].slotDurationMinutes = duration
+                                                        // Automatically update capacity based on duration
+                                                        if (duration === 15) updated[index].slotCapacity = 1;
+                                                        else if (duration === 30) updated[index].slotCapacity = 2;
+                                                        else if (duration === 60) updated[index].slotCapacity = 5;
                                                         setSchedules(updated)
                                                     }}
                                                     className="bg-white border-none rounded-lg text-[10px] font-black px-2 py-1 focus:ring-0 text-teal-700"
@@ -465,6 +470,11 @@ export default function DoctorProfile() {
                                                     <option value={45}>45 MIN</option>
                                                     <option value={60}>60 MIN</option>
                                                 </select>
+                                                <span className="text-[9px] font-black text-teal-600 bg-teal-50 px-2 py-1 rounded-md border border-teal-100 uppercase tracking-tighter">
+                                                    {day.slotDurationMinutes === 15 ? '1 Pt' : 
+                                                     day.slotDurationMinutes === 30 ? '2 Pts' : 
+                                                     day.slotDurationMinutes === 60 ? '5 Pts' : '1 Pt'}
+                                                </span>
                                             </div>
                                         </div>
                                     )}

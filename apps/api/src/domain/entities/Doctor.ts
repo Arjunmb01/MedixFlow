@@ -1,4 +1,4 @@
-import { UserStatus } from "@prisma/client";
+import { UserStatus } from "../value-objects/enums/UserStatus";
 
 export class Doctor {
   constructor(
@@ -10,10 +10,13 @@ export class Doctor {
     public specialty: string,
     public consultationFee: number,
     public licenseNumber: string,
-    public phone?: string
+    public phone?: string,
+    public bio?: string,
+    public avatarUrl?: string,
+    public passwordHash?: string
   ) {}
 
-  public updateProfile(data: { firstName?: string; lastName?: string; specialty?: string; consultationFee?: number; phone?: string; licenseNumber?: string }): void {
+  public updateProfile(data: { firstName?: string; lastName?: string; specialty?: string; consultationFee?: number; phone?: string; licenseNumber?: string; bio?: string; avatarUrl?: string }): void {
     if (data.firstName !== undefined) {
       if (!data.firstName.trim()) throw new Error("First name cannot be empty");
       this.firstName = data.firstName;
@@ -29,6 +32,8 @@ export class Doctor {
     }
     if (data.phone) this.phone = data.phone;
     if (data.licenseNumber) this.licenseNumber = data.licenseNumber;
+    if (data.bio !== undefined) this.bio = data.bio;
+    if (data.avatarUrl !== undefined) this.avatarUrl = data.avatarUrl;
   }
 
   public validateStatus(): boolean {

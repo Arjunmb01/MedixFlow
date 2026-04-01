@@ -27,4 +27,5 @@ export interface DoctorSchedule {
     endTime: string;
     fullDay: boolean;
     slotDurationMinutes: number;
+    slotCapacity?: number;
 }

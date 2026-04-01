@@ -1,10 +1,19 @@
+import { 
+  PatientProfile, 
+  EmergencyContact, 
+  PaginatedPatients, 
+  PatientFilters 
+} from "../value-objects/types/patient.repository.types";
+import { Patient } from "../entities/Patient";
+import { UserStatus } from "../value-objects/enums/UserStatus";
+
 export interface IPatientRepository {
-  findById(id: string): Promise<any>;
-  updatePatient(id: string, data: any): Promise<any>;
-  updatePassword(id: string, passwordHash: string): Promise<any>;
-  replaceEmergencyContacts(patientId: string, contacts: any[]): Promise<any>;
-  getPatients(query: { search?: string; status?: string; gender?: string; page: number; limit: number }): Promise<any>;
-  toggleBlock(userId: string, status: any): Promise<any>;
-  deletePatient(userId: string): Promise<any>;
-  getStats(): Promise<any>;
+  findById(id: string): Promise<Patient | null>;
+  updatePatient(id: string, data: Partial<PatientProfile>): Promise<Patient>;
+  updatePassword(id: string, passwordHash: string): Promise<void>;
+  replaceEmergencyContacts(patientId: string, contacts: EmergencyContact[]): Promise<void>;
+  getPatients(query: PatientFilters & { page: number; limit: number }): Promise<PaginatedPatients>;
+  toggleBlock(userId: string, status: UserStatus): Promise<void>;
+  deletePatient(userId: string): Promise<void>;
+  getStats(): Promise<{ patientCount: number; doctorCount: number }>;
 }
