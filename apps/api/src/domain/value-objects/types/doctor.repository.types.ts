@@ -16,12 +16,28 @@ export interface DoctorProfile {
     schedules?: DoctorSchedule[];
 }
 
+export interface AppointmentPreview {
+    id: string;
+    patientId: string;
+    patient: {
+        id: string;
+        patientId: string;
+        firstName: string;
+        lastName: string;
+        gender: string | null;
+    };
+    slotStart: string;
+    slotEnd: string;
+    status: string;
+    appointmentDate: Date;
+}
+
 export interface DoctorDashboardStats {
     totalAppointments: number;
     completedAppointments: number;
     pendingAppointments: number;
     totalPatients: number;
-    todayAppointments: any[];
+    todayAppointments: AppointmentPreview[];
     todayAppointmentsCount: number;
     pendingToday: number;
     completedToday: number;

@@ -1,7 +1,7 @@
 import { PrismaClient, UserStatus } from "@prisma/client";
 import { IPatientRepository } from "@/domain/repositories/IPatientRepository";
-import { BaseRepository } from "./BaseRepository";
-import { PatientMapper } from "@/infrastructure/database/mappers/PatientMapper";
+
+import { PatientMapper, PrismaPatientWithUser } from "@/infrastructure/database/mappers/PatientMapper";
 import { Patient } from "@/domain/entities/Patient";
 import { 
     PatientProfile, 
@@ -12,14 +12,14 @@ import {
 
 import { Prisma } from "@prisma/client";
 
-export class PatientRepository extends BaseRepository<Patient, any, any> implements IPatientRepository {
-    protected model: Prisma.PatientProfileDelegate;
+export class PatientRepository implements IPatientRepository {
+    private readonly model: Prisma.PatientProfileDelegate;
 
     constructor(
         private readonly _prisma: PrismaClient,
         private readonly mapper: PatientMapper
     ) {
-        super();
+
         this.model = this._prisma.patientProfile;
     }
 
@@ -48,7 +48,7 @@ export class PatientRepository extends BaseRepository<Patient, any, any> impleme
             },
             include: { user: true, emergencyContacts: true }
         });
-        return this.mapper.toDomain(result);
+        return this.mapper.toDomain(result)!;
     }
 
     async updatePassword(id: string, passwordHash: string): Promise<void> {
@@ -130,7 +130,7 @@ export class PatientRepository extends BaseRepository<Patient, any, any> impleme
         ]);
 
         return {
-            data: patients.map(p => this.mapper.toListItem(p as any)),
+            data: patients.map(p => this.mapper.toListItem(p as PrismaPatientWithUser & { _count?: { appointments: number } })!).filter(Boolean),
             meta: {
                 total,
                 page,

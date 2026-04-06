@@ -15,10 +15,18 @@ export function createAuthMiddleware(
 
       const token = authHeader.split(" ")[1];
       const decoded = tokenService.verifyAccessToken(token);
+      console.log("[AuthMiddleware] Decoded Token:", decoded);
 
-      const user = await authRepository.findUserById(decoded.id);
+      const result = await authRepository.findUserById(decoded.id);
 
-      if (!user || user.status === "INACTIVE" || user.status === "SUSPENDED") {
+      
+      if (!result) {
+        console.log("[AuthMiddleware] User not found in DB for ID:", decoded.id);
+        return res.status(401).json({ message: "User session not found" });
+      }
+
+      if (result.user.status === "INACTIVE" || result.user.status === "SUSPENDED") {
+        console.log("[AuthMiddleware] User is blocked:", result.user.status);
         return res.status(403).json({
           message: "Your account has been blocked by the administrator.",
           code: "ACCOUNT_BLOCKED",
@@ -29,6 +37,9 @@ export function createAuthMiddleware(
         id: decoded.id,
         role: decoded.role,
       };
+
+      console.log("[AuthMiddleware] req.user set to:", req.user);
+
 
       next();
     } catch {

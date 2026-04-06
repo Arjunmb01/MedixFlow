@@ -11,11 +11,14 @@ export class ResendOtpUseCase {
   ) {}
 
   async execute(email: string) {
-    const user = await this.authRepository.findUserByEmail(email);
+    const result = await this.authRepository.findUserByEmail(email);
 
-    if (user && user.status === "ACTIVE") {
+    if (result && result.user.status === "ACTIVE") {
       throw new Error(MESSAGES.ALREADY_REGISTERED);
     }
+
+    const { user } = result || { user: null };
+
 
     const tempRegData = await this.otpService.getRegistrationData(email);
     if (!tempRegData && !user) {

@@ -6,7 +6,7 @@ import { checkIn } from "@/infrastructure/api/consultation.api"
 interface Appointment {
     id: string;
     doctorName: string;
-    date: string;
+    date: string | Date;
     slotStart: string;
 }
 
@@ -58,7 +58,7 @@ export default function UpcomingCareCard({ appointment }: Props) {
                 <Calendar className="w-12 h-12 mb-4 opacity-20" />
                 <h3 className="text-xl font-bold">No Upcoming Appointments</h3>
                 <p className="text-sm mt-2">Book a consultation to see it here.</p>
-                <button 
+                <button
                     onClick={() => window.location.href = '/patient/find-doctors'}
                     className="mt-6 bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all"
                 >
@@ -69,116 +69,136 @@ export default function UpcomingCareCard({ appointment }: Props) {
     }
 
     const appDate = new Date(appointment.date);
+    const isToday = (date: string | Date): boolean => {
+        const d = new Date(date);
+        const now = new Date();
+        return d.getFullYear() === now.getFullYear() &&
+               d.getMonth() === now.getMonth() &&
+               d.getDate() === now.getDate();
+    };
+
     const dateFormatted = appDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const isToday = new Date().toDateString() === appDate.toDateString();
+
+    const canCheckIn = (date: string | Date, time: string): boolean => {
+        const now = new Date();
+        const d = new Date(date);
+        
+        const appt = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const [hours, minutes] = time.split(':').map(Number);
+        appt.setHours(hours, minutes, 0, 0);
+
+        const diff = (appt.getTime() - now.getTime()) / (1000 * 60);
+        return diff <= 15 && diff >= -10;
+    };
+
 
     return (
         <>
-        <div className="bg-gradient-to-br from-[#0066cc] to-[#004d99] rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-blue-200 h-full flex flex-col justify-between">
-            <div className="absolute top-[-10%] right-[-10%] w-60 h-60 bg-white/10 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-[-10%] left-[-10%] w-40 h-40 bg-blue-400/20 rounded-full blur-2xl"></div>
+            <div className="bg-gradient-to-br from-[#0066cc] to-[#004d99] rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-blue-200 h-full flex flex-col justify-between">
+                <div className="absolute top-[-10%] right-[-10%] w-60 h-60 bg-white/10 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-[-10%] left-[-10%] w-40 h-40 bg-blue-400/20 rounded-full blur-2xl"></div>
 
-            <div className="relative z-10">
-                <div className="flex justify-between items-center">
-                    <span className="text-[12px] font-bold tracking-[0.2em] opacity-80 uppercase">Upcoming Care</span>
-                    <div className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[11px] font-bold border border-white/20 flex items-center gap-1.5">
-                        <Clock className="w-3 h-3" />
-                        {isToday ? "Today" : dateFormatted}, {appointment.slotStart}
-                    </div>
-                </div>
-
-                <div className="mt-8 flex items-center gap-6">
-                    <div className="w-20 h-20 bg-white rounded-[1.5rem] flex items-center justify-center text-[#0066cc] text-2xl font-bold shadow-xl">
-                        {appointment.doctorName.split(' ').map(n => n[0]).join('').replace('Dr', '')}
-                    </div>
-                    <div>
-                        <h3 className="text-[26px] font-bold tracking-tight">{appointment.doctorName}</h3>
-                        <div className="flex items-center gap-2 mt-1.5 opacity-80 text-[14px] font-medium">
-                            <MapPin className="w-4 h-4" />
-                            <span>In-Clinic Consultation</span>
+                <div className="relative z-10">
+                    <div className="flex justify-between items-center">
+                        <span className="text-[12px] font-bold tracking-[0.2em] opacity-80 uppercase">Upcoming Care</span>
+                        <div className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[11px] font-bold border border-white/20 flex items-center gap-1.5">
+                            <Clock className="w-3 h-3" />
+                            {isToday(appointment.date) ? "Today" : dateFormatted}, {appointment.slotStart}
                         </div>
                     </div>
-                </div>
 
-                <div className="mt-10 flex flex-wrap gap-4">
-                    {isToday && !hasCheckedIn && (
-                        <button 
-                            onClick={handleCheckIn}
-                            disabled={isCheckingIn}
-                            className="bg-green-500 text-white px-6 py-3 rounded-2xl font-bold text-[14px] flex items-center gap-2 hover:bg-green-600 transition-all shadow-lg shadow-green-900/20 disabled:opacity-70"
-                        >
-                            {isCheckingIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-                            Check-In at Clinic
-                        </button>
-                    )}
-                    {isToday && hasCheckedIn && (
-                        <div className="bg-green-100 text-green-700 px-6 py-3 rounded-2xl font-bold text-[14px] flex items-center gap-2 border border-green-200">
-                            <CheckCircle className="w-4 h-4" />
-                            Checked In
+                    <div className="mt-8 flex items-center gap-6">
+                        <div className="w-20 h-20 bg-white rounded-[1.5rem] flex items-center justify-center text-[#0066cc] text-2xl font-bold shadow-xl">
+                            {appointment.doctorName.split(' ').map(n => n[0]).join('').replace('Dr', '')}
                         </div>
-                    )}
-                    {!isToday && (
-                        <button className="bg-white text-[#0066cc] px-6 py-3 rounded-2xl font-bold text-[14px] flex items-center gap-2 hover:bg-blue-50 transition-all shadow-lg shadow-blue-900/20">
-                            <Calendar className="w-4 h-4" />
-                            View Details
-                        </button>
-                    )}
-                    <button 
-                        onClick={() => setShowModal(true)}
-                        className="bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-2xl font-bold text-[14px] hover:bg-white/20 transition-all text-white hover:text-red-100 hover:bg-red-500/20 hover:border-red-400"
-                    >
-                        Cancel Booking
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        {/* Cancellation Modal */}
-        {showModal && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-gray-900">Cancel Appointment</h3>
-                        <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-900 transition-colors">
-                            <X className="w-6 h-6" />
-                        </button>
-                    </div>
-
-                    <p className="text-sm text-gray-500 mb-6 font-medium">
-                        Are you sure you want to cancel your appointment with <strong className="text-gray-900">{appointment.doctorName}</strong> on {isToday ? "Today" : dateFormatted} at {appointment.slotStart}?
-                    </p>
-
-                    <div className="space-y-4">
                         <div>
-                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Reason for Cancellation</label>
-                            <textarea
-                                value={reason}
-                                onChange={(e) => setReason(e.target.value)}
-                                placeholder="Please briefly explain why you are cancelling..."
-                                className="w-full h-32 px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 text-sm outline-none resize-none transition-all"
-                            />
+                            <h3 className="text-[26px] font-bold tracking-tight">{appointment.doctorName}</h3>
+                            <div className="flex items-center gap-2 mt-1.5 opacity-80 text-[14px] font-medium">
+                                <MapPin className="w-4 h-4" />
+                                <span>In-Clinic Consultation</span>
+                            </div>
                         </div>
+                    </div>
 
-                        <div className="flex gap-4 pt-4">
+                    <div className="mt-10 flex flex-wrap gap-4">
+                        {canCheckIn(appointment.date, appointment.slotStart) && !hasCheckedIn && (
                             <button
-                                onClick={() => setShowModal(false)}
-                                disabled={isCancelling}
-                                className="flex-1 py-3 px-4 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                                onClick={handleCheckIn}
+                                disabled={isCheckingIn}
+                                className="bg-green-500 text-white px-6 py-3 rounded-2xl font-bold text-[14px] flex items-center gap-2 hover:bg-green-600 transition-all shadow-lg shadow-green-900/20 disabled:opacity-70"
                             >
-                                Keep Appointment
+                                {isCheckingIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+                                Check-In at Clinic
                             </button>
-                            <button
-                                onClick={handleCancel}
-                                disabled={isCancelling || !reason.trim()}
-                                className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
-                            >
-                                {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirm Cancel"}
+                        )}
+                        {canCheckIn(appointment.date, appointment.slotStart) && hasCheckedIn && (
+                            <div className="bg-green-100 text-green-700 px-6 py-3 rounded-2xl font-bold text-[14px] flex items-center gap-2 border border-green-200">
+                                <CheckCircle className="w-4 h-4" />
+                                Checked In
+                            </div>
+                        )}
+                        {!canCheckIn(appointment.date, appointment.slotStart) && (
+                            <button className="bg-white text-[#0066cc] px-6 py-3 rounded-2xl font-bold text-[14px] flex items-center gap-2 hover:bg-blue-50 transition-all shadow-lg shadow-blue-900/20">
+                                <Calendar className="w-4 h-4" />
+                                View Details
                             </button>
-                        </div>
+                        )}
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-2xl font-bold text-[14px] hover:bg-white/20 transition-all text-white hover:text-red-100 hover:bg-red-500/20 hover:border-red-400"
+                        >
+                            Cancel Booking
+                        </button>
                     </div>
                 </div>
             </div>
-        )}
+
+            {/* Cancellation Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-gray-900">Cancel Appointment</h3>
+                            <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-900 transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <p className="text-sm text-gray-500 mb-6 font-medium">
+                            Are you sure you want to cancel your appointment with <strong className="text-gray-900">{appointment.doctorName}</strong> on {canCheckIn(appointment.date, appointment.slotStart) ? "Today" : dateFormatted} at {appointment.slotStart}?
+                        </p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Reason for Cancellation</label>
+                                <textarea
+                                    value={reason}
+                                    onChange={(e) => setReason(e.target.value)}
+                                    placeholder="Please briefly explain why you are cancelling..."
+                                    className="w-full h-32 px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 text-sm outline-none resize-none transition-all"
+                                />
+                            </div>
+
+                            <div className="flex gap-4 pt-4">
+                                <button
+                                    onClick={() => setShowModal(false)}
+                                    disabled={isCancelling}
+                                    className="flex-1 py-3 px-4 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                                >
+                                    Keep Appointment
+                                </button>
+                                <button
+                                    onClick={handleCancel}
+                                    disabled={isCancelling || !reason.trim()}
+                                    className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+                                >
+                                    {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirm Cancel"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

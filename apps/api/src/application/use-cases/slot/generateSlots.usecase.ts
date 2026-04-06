@@ -1,6 +1,7 @@
 import { ISlotRepository } from "@/domain/repositories/ISlotRepository";
-import { IDoctorRepository } from "@/domain/repositories/IDoctorRepository";
+import { IDoctorProfileRepository } from "@/domain/repositories/IDoctorRepository";
 import { CreateSlotInput } from "@/domain/value-objects/types/slot.types";
+import { SchedulingPolicy } from "@/domain/services/SchedulingPolicy";
 
 export interface GenerateSlotsUseCaseInput {
     doctorId: string;
@@ -10,17 +11,28 @@ export interface GenerateSlotsUseCaseInput {
 export class GenerateSlotsUseCase {
     constructor(
         private readonly slotRepo: ISlotRepository,
-        private readonly doctorRepo: IDoctorRepository
+        private readonly doctorRepo: IDoctorProfileRepository,
+        private readonly schedulingPolicy: SchedulingPolicy
     ) {}
 
     async execute(input: GenerateSlotsUseCaseInput): Promise<void> {
         const { doctorId, date } = input;
+        
+        if (!date || isNaN(date.getTime())) {
+            throw new Error("A valid date is required for slot generation");
+        }
+
         const dayOfWeek = date.getDay();
 
         const existingSlots = await this.slotRepo.findByDoctorAndDate(doctorId, date);
         if (existingSlots.length > 0) return;
 
         const schedules = await this.doctorRepo.getSchedulesByDay(doctorId, dayOfWeek);
+        
+        if (!schedules || schedules.length === 0) {
+            throw new Error("No schedules found for this doctor on the selected day");
+        }
+
         const slots: CreateSlotInput[] = [];
 
         for (const s of schedules) {
@@ -37,19 +49,12 @@ export class GenerateSlotsUseCase {
                 const next = new Date(current.getTime() + s.slotDurationMinutes * 60000);
                 if (next > end) break;
                 
-                const calculateCapacity = (duration: number): number => {
-                    if (duration === 15) return 1;
-                    if (duration === 30) return 2;
-                    if (duration === 60) return 5;
-                    return 1; 
-                };
-
                 slots.push({
                     doctorId,
                     date: new Date(date),
                     startTime: new Date(current),
                     endTime: new Date(next),
-                    capacity: calculateCapacity(s.slotDurationMinutes),
+                    capacity: this.schedulingPolicy.calculateSlotCapacity(s.slotDurationMinutes),
                     consultationType: s.consultationType
                 });
 

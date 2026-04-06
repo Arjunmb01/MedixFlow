@@ -1,5 +1,5 @@
-import { Patient } from "../../entities/Patient";
-import { UserStatus, Gender } from "@prisma/client";
+import { UserStatus } from "../enums/UserStatus";
+import { Gender } from "../enums/Gender";
 
 export interface PatientProfile {
   id: string;
@@ -36,8 +36,12 @@ export interface PatientDashboardStats {
   profileCompletion: number;
 }
 
+export interface PatientListItem extends PatientProfile {
+  appointmentsCount: number;
+}
+
 export interface PaginatedPatients {
-  data: any[];
+  data: PatientListItem[];
   meta: {
     total: number;
     page: number;

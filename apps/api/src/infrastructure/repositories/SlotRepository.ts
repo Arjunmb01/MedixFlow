@@ -14,7 +14,8 @@ export class SlotRepository implements ISlotRepository {
             where: { doctorId, date },
             orderBy: { startTime: "asc" },
         });
-        return results.map(r => this.mapper.toDto(r));
+        return results.map(r => this.mapper.toDto(r))
+            .filter((s) : s is SlotDto => s !== null)
     }
 
     async createMany(slots: CreateSlotInput[]): Promise<void> {

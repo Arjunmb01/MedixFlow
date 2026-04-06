@@ -4,7 +4,8 @@ import { GetDoctorQueueUseCase } from "../../application/use-cases/consultation/
 import { StartConsultationUseCase } from "../../application/use-cases/consultation/startConsultation.usecase";
 import { CompleteConsultationUseCase } from "../../application/use-cases/consultation/completeConsultation.usecase";
 import { GetPatientHistoryUseCase } from "../../application/use-cases/consultation/getPatientHistory.usecase";
-import { IConsultationRepository } from "../../domain/repositories/IConsultationRepository";
+import { GetConsultationDetailsUseCase } from "../../application/use-cases/consultation/getConsultationDetails.usecase";
+import { ConsultationResponseMapper } from "./dto/responses/ConsultationResponse.dto";
 
 export class ConsultationController {
     constructor(
@@ -13,7 +14,7 @@ export class ConsultationController {
         private startConsultationUseCase: StartConsultationUseCase,
         private completeConsultationUseCase: CompleteConsultationUseCase,
         private getPatientHistoryUseCase: GetPatientHistoryUseCase,
-        private consultationRepo: IConsultationRepository
+        private getConsultationDetailsUseCase: GetConsultationDetailsUseCase
     ) {}
 
     checkin = async (req: Request, res: Response, next: NextFunction) => {
@@ -74,14 +75,13 @@ export class ConsultationController {
         try {
             const doctorId = req.user.id;
             const id = req.params.id as string;
-            const consultation = await this.consultationRepo.findById(id);
-            if (!consultation) {
-                return res.status(404).json({ message: "Consultation not found" });
-            }
-            if (consultation.doctorId !== doctorId) {
-                return res.status(403).json({ message: "Unauthorized" });
-            }
-            res.json(consultation);
+            
+            const consultation = await this.getConsultationDetailsUseCase.execute({
+                id,
+                doctorId
+            });
+
+            res.json(ConsultationResponseMapper.toResponse(consultation));
         } catch (error) {
             next(error);
         }

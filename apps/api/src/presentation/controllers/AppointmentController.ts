@@ -43,10 +43,7 @@ export class AppointmentController {
         try {
             const {patientId, doctorId,date, slotStart,slotEnd} = req.body
 
-            if (!patientId || !doctorId || !date || !slotStart || !slotEnd) {
-                res.status(StatusCode.BAD_REQUEST).json({ message: "Missing required fields" });
-                return;
-            }
+
 
             const appointment = await this.bookUseCase.execute({
                 patientId,

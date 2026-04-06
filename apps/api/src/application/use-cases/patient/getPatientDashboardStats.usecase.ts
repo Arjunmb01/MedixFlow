@@ -1,6 +1,7 @@
 import { IAppointmentRepository } from "../../../domain/repositories/IAppointmentRepository";
 import { IPatientRepository } from "../../../domain/repositories/IPatientRepository";
 import { CalculateProfileCompletionUseCase } from "./CalculateProfileCompletionUseCase";
+import { DateTimeService } from "../../../domain/services/DateTimeService";
 
 export class GetPatientDashboardStatsUseCase {
     constructor(
@@ -16,7 +17,17 @@ export class GetPatientDashboardStatsUseCase {
         ]);
 
         const now = new Date();
-        const upcomingAppointments = appointments.filter(app => new Date(app.appointmentDate) >= now && app.status !== "CANCELLED" && app.status !== "COMPLETED");
+        const upcomingAppointments = appointments
+            .filter(app => 
+                DateTimeService.isTodayOrFuture(app.appointmentDate) && 
+                app.status !== "CANCELLED" && 
+                app.status !== "COMPLETED"
+            )
+            .sort((a, b) => {
+                const dateA = DateTimeService.toDateTime(a.appointmentDate, a.slotStart);
+                const dateB = DateTimeService.toDateTime(b.appointmentDate, b.slotStart);
+                return dateA.getTime() - dateB.getTime();
+            });
         const nextAppointment = upcomingAppointments.length > 0 ? upcomingAppointments[0] : null;
 
         const recentAppointments = appointments
@@ -32,7 +43,7 @@ export class GetPatientDashboardStatsUseCase {
                 id: nextAppointment.id,
                 date: nextAppointment.appointmentDate,
                 slotStart: nextAppointment.slotStart,
-                doctorName: `Dr. ${nextAppointment.doctor.firstName} ${nextAppointment.doctor.lastName}`,
+                doctorName: `Dr. ${nextAppointment.doctor?.firstName} ${nextAppointment.doctor.lastName}`,
                 specialty: nextAppointment.doctor.specialization?.name || "General",
             } : null,
             recentAppointments: recentAppointments.map(app => ({

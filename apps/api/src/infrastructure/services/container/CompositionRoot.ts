@@ -3,9 +3,11 @@ import { config } from "../config";
 
 // Mappers
 import { ConsultationMapper } from "../../database/mappers/ConsultationMapper";
+import { SchedulingPolicy } from "../../../domain/services/SchedulingPolicy";
 import { DoctorMapper } from "../../database/mappers/DoctorMapper";
 import { PatientMapper } from "../../database/mappers/PatientMapper";
 import { SlotMapper } from "../../database/mappers/SlotMapper";
+import { AppointmentMapper } from "../../database/mappers/AppointmentMapper";
 
 // Repositories
 import { PatientRepository } from "../../repositories/PatientRepository";
@@ -128,9 +130,11 @@ export class CompositionRoot {
         const doctorMapper = new DoctorMapper();
         const patientMapper = new PatientMapper();
         const slotMapper = new SlotMapper();
+        const appointmentMapper = new AppointmentMapper();
 
         // 3. Infrastructure Services
         const passwordHasher = new BcryptPasswordHasher();
+        const schedulingPolicy = new SchedulingPolicy();
         const redisSessionService = new RedisSessionService(redisClient);
         const emailService = new SmtpEmailService(smtpConfig);
         const emailOtpService = new EmailOtpService(redisClient, emailService);
@@ -140,12 +144,12 @@ export class CompositionRoot {
 
         // 4. Repositories
         const patientRepository = new PatientRepository(prisma, patientMapper);
-        const doctorRepository = new DoctorRepository(prisma, doctorMapper);
+        const doctorRepository = new DoctorRepository(prisma, doctorMapper, schedulingPolicy);
         const staffRepository = new StaffRepository(prisma, doctorMapper, passwordHasher);
         const authRepository = new AuthRepository(prisma, patientIdGenerator);
         const slotRepository = new SlotRepository(prisma, slotMapper);
-        const consultationRepository = new ConsultationRepository(prisma);
-        const appointmentRepository = new AppointmentRepository(prisma);
+        const consultationRepository = new ConsultationRepository(prisma, consultationMapper);
+        const appointmentRepository = new AppointmentRepository(prisma, appointmentMapper);
 
         // 5. App Logic
         const calculateProfileCompletionUseCase = new CalculateProfileCompletionUseCase();
@@ -170,7 +174,7 @@ export class CompositionRoot {
         const getPatientStatsUseCase = new GetPatientStatsUseCase(patientRepository);
 
         // Appointment
-        const bookAppointmentUseCase = new BookAppointmentUseCase(appointmentRepository);
+        const bookAppointmentUseCase = new BookAppointmentUseCase(appointmentRepository, schedulingPolicy);
         const cancelAppointmentUseCase = new CancelAppointmentUseCase(appointmentRepository);
         const getAllAppointmentsUseCase = new GetAllAppointmentsUseCase(appointmentRepository);
 
@@ -208,7 +212,7 @@ export class CompositionRoot {
 
         // Slot
         const bookSlotUseCase = new BookSlotUseCase(slotRepository, consultationRepository);
-        const generateSlotsUseCase = new GenerateSlotsUseCase(slotRepository, doctorRepository);
+        const generateSlotsUseCase = new GenerateSlotsUseCase(slotRepository, doctorRepository, schedulingPolicy);
         const getAvailableSlotCase = new GetAvailableSlotCase(slotRepository, generateSlotsUseCase);
 
         // Staff
@@ -228,7 +232,7 @@ export class CompositionRoot {
         
         const consultationController = new ConsultationController(
             checkinPatientUseCase, getDoctorQueueUseCase, startConsultationUseCase, 
-            completeConsultationUseCase, getPatientHistoryUseCase, consultationRepository
+            completeConsultationUseCase, getPatientHistoryUseCase, getConsultationDetailsUseCase
         );
 
         const doctorAuthController = new DoctorAuthController(

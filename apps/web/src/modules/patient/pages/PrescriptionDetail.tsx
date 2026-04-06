@@ -30,7 +30,7 @@ interface PrescriptionData {
     doctor: {
         firstName: string;
         lastName: string;
-        specialization: { name: string };
+        specialization: { name: string } | null;
     };
     consultation: {
         id: string;
@@ -177,7 +177,7 @@ export default function PrescriptionDetail() {
                                 </div>
                                 <div className="text-right">
                                     <p className="text-lg font-black print:text-gray-900">Dr. {data.doctor.firstName} {data.doctor.lastName}</p>
-                                    <p className="text-blue-100 text-sm font-medium print:text-gray-600">{data.doctor.specialization.name}</p>
+                                    <p className="text-blue-100 text-sm font-medium print:text-gray-600">{data.doctor.specialization?.name}</p>
                                 </div>
                             </div>
                         </div>
@@ -336,7 +336,7 @@ export default function PrescriptionDetail() {
                                 <div className="inline-block text-center">
                                     <div className="w-48 border-b border-gray-300 mb-2"></div>
                                     <p className="text-sm font-black text-gray-900">Dr. {data.doctor.firstName} {data.doctor.lastName}</p>
-                                    <p className="text-xs text-gray-500 font-medium">{data.doctor.specialization.name}</p>
+                                    <p className="text-xs text-gray-500 font-medium">{data.doctor.specialization?.name}</p>
                                 </div>
                             </div>
                         </div>

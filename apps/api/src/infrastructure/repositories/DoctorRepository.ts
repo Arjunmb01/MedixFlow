@@ -12,21 +12,24 @@ import {
     PrismaStaffDoctor, 
     PrismaConsultedPatient, 
     PrismaPrescriptionFull,
+    PrismaAppointmentWithPatient,
     DoctorMapper
 } from "@/infrastructure/database/mappers/DoctorMapper";
 import { UserStatus, PrismaClient, Prisma } from "@prisma/client";
 import { Doctor } from "@/domain/entities/Doctor";
-import { IDoctorRepository } from "@/domain/repositories/IDoctorRepository";
-import { BaseRepository } from "./BaseRepository";
+import { SchedulingPolicy } from "@/domain/services/SchedulingPolicy";
+import { IDoctorProfileRepository, IDoctorStatsRepository, IDoctorMedicalRepository } from "@/domain/repositories/IDoctorRepository";
 
-export class DoctorRepository extends BaseRepository<Doctor, any, any> implements IDoctorRepository {
-    protected model: Prisma.DoctorProfileDelegate;
+
+export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsRepository, IDoctorMedicalRepository {
+    private readonly model: Prisma.DoctorProfileDelegate;
 
     constructor(
         private readonly _prisma: PrismaClient,
-        private readonly mapper: DoctorMapper
+        private readonly mapper: DoctorMapper,
+        private readonly schedulingPolicy: SchedulingPolicy
     ) {
-        super();
+
         this.model = this._prisma.doctorProfile;
     }
 
@@ -79,7 +82,7 @@ export class DoctorRepository extends BaseRepository<Doctor, any, any> implement
                 schedules: true
             }
         });
-        return this.mapper.toProfile(result as PrismaDoctorWithUserAndSpec);
+        return this.mapper.toProfile(result as PrismaDoctorWithUserAndSpec)!;
     }
 
     async updatePassword(userId: string, passwordHash: string): Promise<void> {
@@ -139,7 +142,7 @@ export class DoctorRepository extends BaseRepository<Doctor, any, any> implement
             completedAppointments,
             pendingAppointments,
             totalPatients: uniquePatientsCount,
-            todayAppointments: todayAppointmentsData,
+            todayAppointments: todayAppointmentsData.map((apt: any) => this.mapper.toAppointmentPreview(apt as PrismaAppointmentWithPatient)),
             todayAppointmentsCount: todayAppointmentsData.length,
             pendingToday,
             completedToday,
@@ -255,10 +258,7 @@ export class DoctorRepository extends BaseRepository<Doctor, any, any> implement
             this._prisma.doctorSchedule.createMany({
                 data: schedules.map(s => {
                     const duration = s.slotDurationMinutes;
-                    let capacity = 1;
-                    if (duration === 15) capacity = 1;
-                    else if (duration === 30) capacity = 2;
-                    else if (duration === 60) capacity = 5;
+                    const capacity = this.schedulingPolicy.calculateSlotCapacity(duration);
                     
                     return {
                         doctorId: userId,
@@ -278,7 +278,7 @@ export class DoctorRepository extends BaseRepository<Doctor, any, any> implement
     async getDoctorsFiltered(filters: DoctorFilters & { page: number; limit: number }): Promise<PaginatedDoctors> {
         const where: Prisma.DoctorProfileWhereInput = {
             user: {
-                status: (filters.status as UserStatus) || "ACTIVE"
+                status: (filters.status as UserStatus) || UserStatus.ACTIVE
             }
         };
 
@@ -329,7 +329,7 @@ export class DoctorRepository extends BaseRepository<Doctor, any, any> implement
         ]);
 
         return { 
-            data: doctors.map(d => this.mapper.toDomain(d as PrismaDoctorWithUserAndSpec)), 
+            data: doctors.map(d => this.mapper.toDomain(d as PrismaDoctorWithUserAndSpec)!).filter(Boolean), 
             meta: {
                 total,
                 page: filters.page,

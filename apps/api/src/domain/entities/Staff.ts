@@ -1,4 +1,5 @@
-import { Role, UserStatus } from "@prisma/client";
+import { Role } from "../value-objects/enums/Role";
+import { UserStatus } from "../value-objects/enums/UserStatus";
 
 export interface CreateDoctorPayload {
     email: string;

@@ -3,11 +3,12 @@ import AdminSidebar from "../components/AdminSidebar"
 import AdminTopNav from "../components/AdminTopNav"
 import { Search, Calendar, User, Stethoscope, ChevronLeft, ChevronRight, Clock } from "lucide-react"
 import { getAdminAppointments } from "@/infrastructure/api/admin.api"
+import type { Appointment } from "@/domain/appointment/types"
 
 const STATUS_OPTIONS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"] as const
 
 export default function AdminAppointments() {
-    const [appointments, setAppointments] = useState<any[]>([])
+    const [appointments, setAppointments] = useState<Appointment[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState("")
     const [status, setStatus] = useState("ALL")
@@ -44,13 +45,14 @@ export default function AdminAppointments() {
     const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage)
     const paginatedAppointments = filteredAppointments.slice((page - 1) * itemsPerPage, page * itemsPerPage)
 
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString('en-IN', {
+    const formatDate = (date: string | Date) => {
+        return new Date(date).toLocaleDateString('en-IN', {
             month: 'short',
             day: 'numeric',
             year: 'numeric'
         })
     }
+
 
     const statusBadge = (s: string) => {
         const map: Record<string, string> = {

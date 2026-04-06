@@ -25,6 +25,16 @@ export default function PatientDashboard() {
 
     const userName = profile.name || "Patient"
 
+    // ✅ FIXED MAPPING (CRITICAL)
+    const mappedAppointment = stats?.nextAppointment
+        ? {
+              id: stats.nextAppointment.id,
+              doctorName: stats.nextAppointment.doctorName,
+              date: stats.nextAppointment.date,
+              slotStart: stats.nextAppointment.slotStart
+          }
+        : null
+
     return (
         <div className="min-h-screen bg-gray-50 flex font-outfit">
             <Sidebar />
@@ -36,32 +46,40 @@ export default function PatientDashboard() {
                 />
 
                 <main className="pt-28 pb-12 px-8">
-                    {/* Welcome Header */}
+                    {/* Header */}
                     <div className="mb-10">
-                        <h1 className="text-[32px] font-bold text-gray-900 tracking-tight">
+                        <h1 className="text-[32px] font-bold text-gray-900">
                             Welcome back, {userName.split(' ')[0]} 👋
                         </h1>
-                        <p className="text-[16px] font-medium text-gray-500 mt-2">
+                        <p className="text-gray-500 mt-2">
                             Here's your health overview today.
                         </p>
                     </div>
 
-                    {/* Stats Grid */}
+                    {/* Stats */}
                     <div className="grid grid-cols-3 gap-6 mb-10">
                         <StatCard
                             icon={<Calendar className="w-5 h-5 text-red-500" />}
                             iconBg="bg-red-50"
                             value={stats?.upcomingAppointmentsCount || 0}
                             label="Upcoming Appointments"
-                            subtitle={<span className="text-gray-400">{stats?.nextAppointment ? stats.nextAppointment.slotStart : "No sessions scheduled"}</span>}
+                            subtitle={
+                                <span className="text-gray-400">
+                                    {stats?.nextAppointment
+                                        ? stats.nextAppointment.slotStart
+                                        : "No sessions scheduled"}
+                                </span>
+                            }
                         />
+
                         <StatCard
                             icon={<UserCircle className="w-5 h-5 text-blue-500" />}
                             iconBg="bg-blue-50"
                             value={`${stats?.profileCompletion || profile.profileCompletion}%`}
                             label="Profile Completion"
-                            subtitle={<button className="text-blue-600 font-bold hover:underline">Complete profile</button>}
+                            subtitle={<button className="text-blue-600 font-bold">Complete profile</button>}
                         />
+
                         <StatCard
                             icon={<FileText className="w-5 h-5 text-gray-500" />}
                             iconBg="bg-gray-50"
@@ -71,22 +89,22 @@ export default function PatientDashboard() {
                         />
                     </div>
 
-                    {/* Main Content Sections */}
+                    {/* ✅ FIXED HERE */}
                     <div className="grid grid-cols-3 gap-8 mb-10">
                         <div className="col-span-3">
-                            <UpcomingCareCard appointment={stats?.nextAppointment} />
+                            <UpcomingCareCard appointment={mappedAppointment} />
                         </div>
                     </div>
 
-                    {/* Bottom Sections */}
+                    {/* Bottom */}
                     <div className="grid grid-cols-3 gap-8">
-                        <div className="col-span-1">
+                        <div>
                             <AppointmentHistory appointments={stats?.recentAppointments || []} />
                         </div>
-                        <div className="col-span-1">
+                        <div>
                             <DownloadCenter />
                         </div>
-                        <div className="col-span-1">
+                        <div>
                             <BillingSummary />
                         </div>
                     </div>

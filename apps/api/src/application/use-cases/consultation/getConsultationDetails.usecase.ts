@@ -1,8 +1,6 @@
-import { IConsultationRepository, ConsultationWithDetails } from "../../../domain/repositories/IConsultationRepository";
-import { ConsultationNotFoundError } from "../../../domain/value-objects/errors/ConsultationErrors";
-import { UnauthorizedError } from "../../../domain/value-objects/errors/BaseDomainError";
+import { IConsultationRepository, ConsultationWithDetails } from "@/domain/repositories/IConsultationRepository";
 
-export interface GetConsultationDetailsUseCaseInput {
+export interface GetConsultationDetailsInput {
     id: string;
     doctorId: string;
 }
@@ -10,19 +8,19 @@ export interface GetConsultationDetailsUseCaseInput {
 export class GetConsultationDetailsUseCase {
     constructor(private readonly consultationRepo: IConsultationRepository) {}
 
-    async execute(input: GetConsultationDetailsUseCaseInput): Promise<ConsultationWithDetails> {
+    async execute(input: GetConsultationDetailsInput): Promise<ConsultationWithDetails> {
         const { id, doctorId } = input;
+        
         const consultation = await this.consultationRepo.findById(id);
         
         if (!consultation) {
-            throw new ConsultationNotFoundError(id);
+            throw new Error("Consultation not found");
         }
-        
+
         if (consultation.doctorId !== doctorId) {
-            throw new UnauthorizedError("Unauthorized access to these consultation records.");
+            throw new Error("Unauthorized access to this consultation");
         }
-        
+
         return consultation;
     }
 }
-

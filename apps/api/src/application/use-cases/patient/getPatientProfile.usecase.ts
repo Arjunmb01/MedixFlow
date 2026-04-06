@@ -13,7 +13,7 @@ export class GetPatientProfileUseCase {
 
   async execute(patientId: string): Promise<PatientProfile & { profileCompletion: number }> {
     const patient = await this.patientRepository.findById(patientId);
-
+    console.log(patient);
     if (!patient) {
       throw new Error(MESSAGES.PATIENT_NOT_FOUND);
     }

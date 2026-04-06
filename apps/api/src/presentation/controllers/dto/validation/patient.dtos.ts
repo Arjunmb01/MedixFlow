@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { UserStatus, Gender } from "@prisma/client";
+import { UserStatus } from "@/domain/value-objects/enums/UserStatus";
+import { Gender } from "@/domain/value-objects/enums/Gender";
 
 export const getPatientsQuerySchema = z.object({
   search: z.string().optional(),

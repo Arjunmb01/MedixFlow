@@ -2,12 +2,28 @@ import { useState, useEffect, useCallback } from "react";
 import { getDoctorProfile, getDoctorDashboardStats } from "@/infrastructure/api/doctor.api";
 import type { DoctorProfile } from "@/domain/doctor/types/doctor.types";
 
+interface AppointmentPreview {
+    id: string;
+    patientId: string;
+    patient: {
+        id: string;
+        patientId: string;
+        firstName: string;
+        lastName: string;
+        gender: string | null;
+    };
+    slotStart: string;
+    slotEnd: string;
+    status: string;
+    appointmentDate: string;
+}
+
 interface DashboardStats {
     totalAppointments: number;
     todayAppointmentsCount: number;
     completedToday: number;
     pendingToday: number;
-    todayAppointments: any[];
+    todayAppointments: AppointmentPreview[];
 }
 
 export const useDoctorDashboard = () => {

@@ -22,7 +22,7 @@ export class StaffController {
     getDoctors = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const query = getDoctorsQuerySchema.parse(req.query);
-            const result = await this.getDoctorsUseCase.execute(query as any); // Cast for Zod output compatibility
+            const result = await this.getDoctorsUseCase.execute(query); 
             res.json(result);
         } catch (error) {
             next(error);

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { getDashboardStats, getUpcomingAppointments } from "@/infrastructure/api/patient.api";
+import type { Appointment } from "@/domain/appointment/types";
 
 export const usePatientDashboard = () => {
     const [stats, setStats] = useState<any>(null);
-    const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
+    const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchDashboardData = async () => {

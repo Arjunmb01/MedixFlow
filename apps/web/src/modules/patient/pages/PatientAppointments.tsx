@@ -20,11 +20,12 @@ import {
 import { getPatientAppointments, cancelAppointment } from "@/infrastructure/api/patient.api";
 import Badge from "../components/ui/Badge";
 import { toast } from "sonner";
+import type { Appointment } from "@/domain/appointment/types";
 
 export default function PatientAppointments() {
     const { profile } = usePatientProfile();
     const navigate = useNavigate();
-    const [appointments, setAppointments] = useState<any[]>([]);
+    const [appointments, setAppointments] = useState<Appointment[]>([])
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
@@ -92,10 +93,10 @@ export default function PatientAppointments() {
         }
     };
 
-    const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    const formatDate = (date: string | Date) => {
+        return new Date(date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
     };
+
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] flex font-outfit">
@@ -165,7 +166,8 @@ export default function PatientAppointments() {
                                                     <h3 className="text-lg font-black text-[#0F172A]">Dr. {apt.doctor.firstName} {apt.doctor.lastName}</h3>
                                                     <Badge variant={getStatusVariant(apt.status)}>{apt.status}</Badge>
                                                 </div>
-                                                <p className="text-[#64748B] font-bold text-sm mt-1">{apt.doctor.specialization.name} • Specialist</p>
+                                                <p className="text-[#64748B] font-bold text-sm mt-1">{apt.doctor.specialization?.name} • Specialist</p>
+
                                                 
                                                 <div className="flex items-center gap-6 mt-4">
                                                     <div className="flex items-center gap-2">
@@ -243,7 +245,8 @@ export default function PatientAppointments() {
                                 </div>
                                 <div>
                                     <h2 className="text-2xl font-black text-[#0F172A]">Dr. {selectedApt.doctor.firstName} {selectedApt.doctor.lastName}</h2>
-                                    <p className="text-[#64748B] font-bold">{selectedApt.doctor.specialization.name} • Specialist</p>
+                                    <p className="text-[#64748B] font-bold">{selectedApt.doctor.specialization?.name} • Specialist</p>
+
                                 </div>
                             </div>
 

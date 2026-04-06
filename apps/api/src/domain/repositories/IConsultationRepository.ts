@@ -1,6 +1,5 @@
 import { ConsultationStatus } from "../value-objects/enums/ConsultationStatus";
 
-// ─── Input DTOs ───────────────────────────────────────────────────────────
 export interface CreateConsultationDTO {
   appointmentId: string;
   doctorId: string;
@@ -32,7 +31,7 @@ export interface SavePrescriptionDTO {
   medicines: MedicineDTO[];
 }
 
-// ─── Return shapes (plain TypeScript — NO Prisma) ────────────────────────
+
 export interface ConsultationRecord {
   id: string;
   appointmentId: string;

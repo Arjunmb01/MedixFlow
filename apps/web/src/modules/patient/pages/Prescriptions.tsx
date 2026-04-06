@@ -39,7 +39,7 @@ export default function Prescriptions() {
                 )
                 .map((apt: {
                     id: string;
-                    doctor: { firstName: string; lastName: string; specialization: { name: string } };
+                    doctor: { firstName: string; lastName: string; specialization: { name: string } | null };
                     appointmentDate: string;
                     slotStart: string;
                     consultation: {
@@ -49,7 +49,8 @@ export default function Prescriptions() {
                 }) => ({
                     appointmentId: apt.id,
                     doctorName: `Dr. ${apt.doctor.firstName} ${apt.doctor.lastName}`,
-                    specialization: apt.doctor.specialization.name,
+                    specialization: apt.doctor.specialization?.name || "Specialist",
+
                     date: apt.appointmentDate,
                     slotStart: apt.slotStart,
                     medicineCount: apt.consultation.prescription.medicines.length,

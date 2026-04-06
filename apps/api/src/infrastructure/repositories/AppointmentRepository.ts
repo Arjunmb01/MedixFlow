@@ -1,21 +1,27 @@
 import { PrismaClient, Appointment, AppointmentStatus } from "@prisma/client";
 import {
   IAppointmentRepository,
-  CreateAppointmentDTO,
-  DoctorScheduleDTO,
+  AppointmentRecord,
   AppointmentWithConsultation,
   AppointmentWithDoctorAndPatient,
   AppointmentWithPatient,
-  AppointmentWithFullDoctor,
+  AppointmentPreview,
 } from "../../domain/repositories/IAppointmentRepository";
+import { CreateAppointmentInput, DoctorScheduleInput } from "../../domain/value-objects/types/appointment.types";
+
+import { AppointmentMapper } from "../database/mappers/AppointmentMapper";
+
 
 export class AppointmentRepository implements IAppointmentRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly mapper: AppointmentMapper
+  ) {}
 
   async getDoctorSchedule(
     doctorId: string,
     dayOfWeek: number
-  ): Promise<DoctorScheduleDTO | null> {
+  ): Promise<DoctorScheduleInput | null> {
     return this.prisma.doctorSchedule.findFirst({
       where: {
         doctorId,
@@ -33,13 +39,13 @@ export class AppointmentRepository implements IAppointmentRepository {
   async getAppointmentsByDoctorAndDate(
     doctorId: string,
     date: Date
-  ): Promise<{ slotStart: string; status: AppointmentStatus }[]> {
+  ): Promise<{ slotStart: string; status: AppointmentStatus | string }[]> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-    return this.prisma.appointment.findMany({
+    const matches = await this.prisma.appointment.findMany({
       where: {
         doctorId,
         appointmentDate: {
@@ -52,75 +58,69 @@ export class AppointmentRepository implements IAppointmentRepository {
         status: true,
       },
     });
+
+    return matches;
   }
 
   async createWithTransaction(
-    data: CreateAppointmentDTO
-  ): Promise<Appointment> {
-    return this.prisma.$transaction(async (tx) => {
-      const schedule = await tx.doctorSchedule.findFirst({
-        where: {
-          doctorId: data.doctorId,
-          dayOfWeek: data.appointmentDate.getDay(),
+    data: CreateAppointmentInput
+  ): Promise<AppointmentRecord> {
+    const result = await this.prisma.appointment.create({
+      data: {
+        ...data,
+        status: "PENDING",
+      },
+    });
+    return this.mapper.toRecord(result);
+  }
+
+  async countActiveBookings(doctorId: string, date: Date, slotStart: string): Promise<number> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return this.prisma.appointment.count({
+      where: {
+        doctorId,
+        appointmentDate: {
+          gte: startOfDay,
+          lte: endOfDay,
         },
-        select: { slotCapacity: true },
-      });
-
-      const capacity = schedule?.slotCapacity ?? 5;
-
-      const startOfDay = new Date(data.appointmentDate);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(data.appointmentDate);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      const activeBookings = await tx.appointment.count({
-        where: {
-          doctorId: data.doctorId,
-          appointmentDate: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
-          slotStart: data.slotStart,
-          status: {
-            not: "CANCELLED",
-          },
+        slotStart,
+        status: {
+          not: "CANCELLED",
         },
-      });
-
-      if (activeBookings >= capacity) {
-        throw new Error(`Slot is full (capacity: ${capacity} patients)`);
-      }
-
-      const existingPatientBooking = await tx.appointment.findFirst({
-        where: {
-          patientId: data.patientId,
-          doctorId: data.doctorId,
-          appointmentDate: {
-            gte: startOfDay,
-            lte: endOfDay,
-          },
-          slotStart: data.slotStart,
-          status: {
-            not: "CANCELLED",
-          },
-        },
-      });
-
-      if (existingPatientBooking) {
-        throw new Error("You already have an active appointment with this doctor at this time.");
-      }
-
-      return tx.appointment.create({
-        data: {
-          ...data,
-          status: "PENDING",
-        },
-      });
+      },
     });
   }
 
+  async findActiveBookingByPatient(patientId: string, doctorId: string, date: Date, slotStart: string): Promise<AppointmentRecord | null> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const result = await this.prisma.appointment.findFirst({
+      where: {
+        patientId,
+        doctorId,
+        appointmentDate: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        slotStart,
+        status: {
+          not: "CANCELLED",
+        },
+      },
+    });
+
+    return result ? this.mapper.toRecord(result) : null;
+  }
+
   async getAppointmentsByPatientId(patientId: string): Promise<AppointmentWithConsultation[]> {
-    return this.prisma.appointment.findMany({
+    const results = await this.prisma.appointment.findMany({
       where: { patientId },
       include: {
         doctor: {
@@ -144,10 +144,11 @@ export class AppointmentRepository implements IAppointmentRepository {
         createdAt: "desc",
       },
     });
+    return results.map(r => this.mapper.toWithConsultation(r));
   }
 
   async findById(id: string): Promise<AppointmentWithDoctorAndPatient | null> {
-    return this.prisma.appointment.findUnique({
+    const result = await this.prisma.appointment.findUnique({
       where: { id },
       include: {
         doctor: {
@@ -158,41 +159,64 @@ export class AppointmentRepository implements IAppointmentRepository {
         patient: true,
       },
     });
+    return result ? this.mapper.toWithDoctorAndPatient(result) : null;
   }
 
-  async cancelAppointment(id: string, reason: string): Promise<Appointment> {
-    return this.prisma.appointment.update({
+  async cancelAppointment(id: string, reason: string): Promise<AppointmentRecord> {
+    const result = await this.prisma.appointment.update({
       where: { id },
       data: {
         status: "CANCELLED",
         reason: reason,
       },
     });
+    return this.mapper.toRecord(result);
   }
 
-  async getAppointmentsByDoctorId(doctorId: string): Promise<AppointmentWithPatient[]> {
-    return this.prisma.appointment.findMany({
-      where: { doctorId },
+  async getUpcomingByDoctorId(doctorId: string): Promise<AppointmentWithPatient[]> {
+    const results = await this.prisma.appointment.findMany({
+      where: {
+        doctorId,
+        status: {
+          in: ["PENDING", "CONFIRMED"],
+        },
+      },
       include: {
         patient: true,
       },
+      orderBy: [
+        { appointmentDate: "asc" },
+        { slotStart: "asc" },
+      ],
     });
+    return results.map((r) => this.mapper.toWithPatient(r));
   }
 
-  async getAllAppointments(): Promise<AppointmentWithFullDoctor[]> {
-    return this.prisma.appointment.findMany({
+  async getAppointmentsByDoctorId(doctorId: string): Promise<AppointmentWithPatient[]> {
+    const results = await this.prisma.appointment.findMany({
+      where: { doctorId,
+        status : {
+          in: ["PENDING", "CONFIRMED"]
+        }
+       },
+      include: {
+        patient: true,
+      },
+      orderBy : [
+        {appointmentDate : "asc"},
+        {slotStart : "asc"}
+      ]
+    });
+    return results.map(r => this.mapper.toWithPatient(r));
+  }
+
+  async getAllAppointments(): Promise<AppointmentPreview[]> {
+    const results = await this.prisma.appointment.findMany({
       include: {
         patient: true,
         doctor: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            specialization: {
-              select: {
-                name: true,
-              },
-            },
+          include: {
+            specialization: true,
           },
         },
       },
@@ -200,12 +224,14 @@ export class AppointmentRepository implements IAppointmentRepository {
         appointmentDate: "desc",
       },
     });
+    return results.map(r => this.mapper.toPreview(r));
   }
 
-  async updateStatus(id: string, status: AppointmentStatus): Promise<Appointment> {
-    return this.prisma.appointment.update({
+  async updateStatus(id: string, status: AppointmentStatus | string): Promise<AppointmentRecord> {
+    const result = await this.prisma.appointment.update({
       where: { id },
-      data: { status },
+      data: { status: status as AppointmentStatus },
     });
+    return this.mapper.toRecord(result);
   }
 }

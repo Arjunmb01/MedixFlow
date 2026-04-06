@@ -18,9 +18,11 @@ export class LoginPatientUseCase {
   ) {}
 
   async execute(data: LoginData) {
-    const user = await this.authRepository.findUserByEmail(data.email);
+    const result = await this.authRepository.findUserByEmail(data.email);
 
-    if (!user) throw new Error(MESSAGES.INVALID_ROLE_PATIENT);
+    if (!result) throw new Error(MESSAGES.INVALID_ROLE_PATIENT);
+
+    const { user, patientId } = result;
 
     // Role mismatch: verify password before giving a helpful hint
     if (user.role !== "PATIENT") {
@@ -51,6 +53,7 @@ export class LoginPatientUseCase {
     const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as string, user.email);
 
     await this.sessionService.saveSession(user.id, refreshToken);
-    return { accessToken, refreshToken };
+    return { accessToken, refreshToken, patientId };
   }
+
 }

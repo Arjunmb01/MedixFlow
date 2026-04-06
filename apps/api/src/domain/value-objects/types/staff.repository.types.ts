@@ -1,4 +1,4 @@
-import { UserStatus, Specialization } from "@prisma/client";
+import { UserStatus } from "../enums/UserStatus";
 import { DoctorProfile, DoctorSchedule as DomainDoctorSchedule } from "./doctor.repository.types";
 
 export interface StaffDoctorListItem {

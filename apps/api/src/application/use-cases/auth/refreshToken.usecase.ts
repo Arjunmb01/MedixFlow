@@ -31,15 +31,22 @@ export class RefreshTokenUseCase {
     }
 
     // Check if user is blocked/inactive using IAuthRepository
-    const user = await this.authRepository.findUserById(userId);
-    if (!user || user.status === "INACTIVE" || user.status === "SUSPENDED") {
+    const result = await this.authRepository.findUserById(userId);
+    if (!result) {
+      await this.sessionService.deleteSession(userId);
+      throw new Error(MESSAGES.ACCOUNT_BLOCKED);
+    }
+
+    const { user, patientId } = result;
+    if (user.status === "INACTIVE" || user.status === "SUSPENDED") {
       await this.sessionService.deleteSession(userId);
       throw new Error(MESSAGES.ACCOUNT_BLOCKED);
     }
 
     const accessToken = this.tokenService.generateAccessToken(userId, role, user.email);
 
-    return { accessToken };
+    return { accessToken, patientId };
+
   }
 }
 

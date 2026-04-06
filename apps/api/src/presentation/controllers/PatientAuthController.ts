@@ -49,16 +49,16 @@ export class PatientAuthController {
             const validatedData = loginSchema.parse(req.body);
             const result = await this.loginPatientUseCase.execute(validatedData);
 
-            const { accessToken, refreshToken } = result;
+            const { accessToken, refreshToken, patientId } = result;
 
             res.cookie("patient_refreshToken", refreshToken, {
                 httpOnly: true,
-                secure: false, // Set to true in production
+                secure: false, 
                 sameSite: "strict",
                 maxAge: 7 * 24 * 60 * 60 * 1000
             });
 
-            res.json({ accessToken });
+            res.json({ accessToken, patientId });
         } catch (error) {
             const message = error instanceof Error ? error.message : "An unexpected error occurred";
             const isBlocked = message.toLowerCase().includes("blocked");
@@ -111,7 +111,7 @@ export class PatientAuthController {
                 return res.status(StatusCode.BAD_REQUEST).json({ message: MESSAGES.GOOGLE_ID_TOKEN_REQUIRED });
             }
 
-            const { accessToken, refreshToken } = await this.googleAuthUseCase.execute(idToken);
+            const { accessToken, refreshToken, patientId } = await this.googleAuthUseCase.execute(idToken);
 
             res.cookie("patient_refreshToken", refreshToken, {
                 httpOnly: true,
@@ -120,7 +120,7 @@ export class PatientAuthController {
                 maxAge: 7 * 24 * 60 * 60 * 1000
             });
 
-            res.json({ accessToken });
+            res.json({ accessToken, patientId });
         } catch (error) {
             const message = error instanceof Error ? error.message : "Google authentication failed";
             const isBlocked = message.toLowerCase().includes("blocked");

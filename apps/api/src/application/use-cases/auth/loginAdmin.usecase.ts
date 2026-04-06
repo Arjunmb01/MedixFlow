@@ -18,9 +18,13 @@ export class LoginAdminUseCase {
   ) {}
 
   async execute(data: loginAdminData) {
-    const user = await this.authRepository.findUserByEmail(data.email);
+    const result = await this.authRepository.findUserByEmail(data.email);
 
-    if (!user || user.role !== "ADMIN") throw new Error(MESSAGES.INVALID_ROLE_ADMIN);
+    if (!result) throw new Error(MESSAGES.INVALID_ROLE_ADMIN);
+
+    const { user } = result;
+
+    if (user.role !== "ADMIN") throw new Error(MESSAGES.INVALID_ROLE_ADMIN);
 
     const valid = await this.passwordHasher.compare(data.password, user.passwordHash);
     if (!valid) throw new Error(MESSAGES.LOGIN_FAILED);
@@ -31,4 +35,5 @@ export class LoginAdminUseCase {
 
     return { accessToken, refreshToken };
   }
+
 }

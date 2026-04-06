@@ -1,5 +1,7 @@
+import { DateTimeService } from "@/domain/services/DateTimeService";
 import { IAppointmentRepository } from "../../../domain/repositories/IAppointmentRepository";
 import { IConsultationRepository } from "../../../domain/repositories/IConsultationRepository";
+import app from "@/app";
 
 export class CheckinPatientUseCase {
     constructor(
@@ -7,35 +9,26 @@ export class CheckinPatientUseCase {
         private readonly consultationRepo: IConsultationRepository,
     ) {}
 
-    async execute(appointmentId: string, patientId: string) {
-        const appointment = await this.appointmentRepo.findById(appointmentId);
+    async execute (appointmentId : string,patientId : string) {
+        const appointment = await this.appointmentRepo.findById(appointmentId)
 
-        if (!appointment) {
-            throw new Error("Appointment not found");
+        if(!appointment) throw new Error("Appointment not found")
+
+        if(appointment.patientId !== patientId) throw new Error("Unauthorized")
+
+        if(!DateTimeService.isWithinCheckInWindow(appointment.appointmentDate,appointment.slotStart)) {
+            throw new Error ("Check-in is only allowed within 15 minutes before the appointment Time")
         }
 
-        if (appointment.patientId !== patientId) {
-            throw new Error("Unauthorized to check-in for this appointment");
-        }
+        const existing = await this.consultationRepo.findByAppointmentId(appointmentId)
+        if(existing) throw new Error ("Already Checked in")
 
-        if (appointment.status === "COMPLETED" || appointment.status === "CANCELLED") {
-            throw new Error(`Cannot check-in. Appointment is ${appointment.status}`);
-        }
+        await this.appointmentRepo.updateStatus(appointmentId, "CONFIRMED")
 
-        // Check if consultation already exists
-        const existing = await this.consultationRepo.findByAppointmentId(appointmentId);
-        if (existing) {
-            throw new Error("Patient is already checked in for this appointment.");
-        }
-
-        const consultation = await this.consultationRepo.create({
-            appointmentId: appointment.id,
-            doctorId: appointment.doctorId,
-            patientId: appointment.patientId
-        });
-
-
-
-        return consultation;
+        return this.consultationRepo.create({
+            appointmentId,
+            doctorId : appointment.doctorId,
+            patientId : appointment.patientId,
+        })
     }
 }

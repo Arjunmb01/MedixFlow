@@ -21,10 +21,14 @@ export class VerifyOtpUseCase {
             throw new Error(MESSAGES.OTP_EXPIRED)
         }
 
-        await this.authRepository.createPatient(userData)
+        const { patientId } = await this.authRepository.createPatient(userData)
         await this.otpService.clearRegistrationData(data.email)
 
-        return { message: MESSAGES.OTP_VERIFIED }
+        return { 
+            message: MESSAGES.OTP_VERIFIED,
+            patientId
+        }
+
     }
 }
 

@@ -1,17 +1,23 @@
 import {
     IAppointmentRepository,
-    CreateAppointmentDTO,
     AppointmentRecord
 } from "../../../domain/repositories/IAppointmentRepository";
+import { CreateAppointmentInput } from "../../../domain/value-objects/types/appointment.types";
+import { SchedulingPolicy } from "../../../domain/services/SchedulingPolicy";
 
 export class BookAppointmentUseCase {
     constructor(
         private readonly appointmentRepo: IAppointmentRepository,
+        private readonly schedulingPolicy: SchedulingPolicy
     ) { }
 
-    async execute(data: CreateAppointmentDTO): Promise<AppointmentRecord> {
+    async execute(data: CreateAppointmentInput): Promise<AppointmentRecord> {
         if (!data.patientId || !data.doctorId) {
             throw new Error("Invalid patient or doctor");
+        }
+
+        if (!data.appointmentDate) {
+            throw new Error("Invalid date");
         }
 
         if (!data.slotStart || !data.slotEnd) {
@@ -28,6 +34,27 @@ export class BookAppointmentUseCase {
 
         if (appointmentTime < now) {
             throw new Error("Cannot book an appointment in the past");
+        }
+
+        // Business Logic Moved from Repository
+        const schedule = await this.appointmentRepo.getDoctorSchedule(data.doctorId, data.appointmentDate.getDay());
+        const capacity = schedule?.slotCapacity ?? (schedule ? this.schedulingPolicy.calculateSlotCapacity(schedule.slotDurationMinutes) : 5);
+
+        const activeBookings = await this.appointmentRepo.countActiveBookings(data.doctorId, data.appointmentDate, data.slotStart);
+
+        if (activeBookings >= capacity) {
+            throw new Error(`Slot is full (capacity: ${capacity} patients)`);
+        }
+
+        const existingPatientBooking = await this.appointmentRepo.findActiveBookingByPatient(
+            data.patientId, 
+            data.doctorId, 
+            data.appointmentDate, 
+            data.slotStart
+        );
+
+        if (existingPatientBooking) {
+            throw new Error("You already have an active appointment with this doctor at this time.");
         }
 
         const appointment = await this.appointmentRepo.createWithTransaction(data);

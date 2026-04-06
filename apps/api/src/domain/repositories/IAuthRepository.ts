@@ -23,21 +23,26 @@ export interface DomainPasswordResetToken {
   user: User;
 }
 
+export interface UserWithProfile {
+  user: User;
+  patientId: string;
+}
+
 // ─── Repository contract ──────────────────────────────────────────────────
 export interface IAuthRepository {
-  findUserByEmail(email: string): Promise<User | null>;
+  findUserByEmail(email: string): Promise<UserWithProfile | null>;
   createPatient(data: {
     email: string;
     passwordHash: string;
     firstName: string;
     lastName: string;
     phone: string;
-  }): Promise<User>;
+  }): Promise<UserWithProfile>;
   createGooglePatient(data: {
     email: string;
     firstName: string;
     lastName: string;
-  }): Promise<User>;
+  }): Promise<UserWithProfile>;
   activateUser(email: string): Promise<void>;
   createPasswordResetToken(
     userId: string,
@@ -49,5 +54,6 @@ export interface IAuthRepository {
   updateUserPassword(userId: string, passwordHash: string): Promise<void>;
   findPatientProfileByUserId(userId: string): Promise<DomainPatientProfile | null>;
   findDoctorProfileByUserId(userId: string): Promise<DomainDoctorProfile | null>;
-  findUserById(userId: string): Promise<User | null>;
+  findUserById(userId: string): Promise<UserWithProfile | null>;
 }
+

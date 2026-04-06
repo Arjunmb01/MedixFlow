@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { UserStatus } from "@/domain/value-objects/enums/UserStatus";
 
 export const createDoctorSchema = z.object({
   firstName: z.string().min(2),
@@ -22,7 +23,7 @@ export const updateDoctorSchema = createDoctorSchema.partial();
 export const getDoctorsQuerySchema = z.object({
   search: z.string().optional(),
   specialty: z.string().optional(),
-  status: z.string().optional(),
+  status: z.nativeEnum(UserStatus).optional(),
   page: z.string().transform(val => parseInt(val) || 1).optional(),
   limit: z.string().transform(val => parseInt(val) || 10).optional()
 });

@@ -7,7 +7,7 @@ export class PatientMapper {
     
     return {
       id: patient.id,
-      patientId: patient.id,
+      patientId: patient.patientId,
       firstName: patient.firstName,
       lastName: patient.lastName,
       email: patient.email,

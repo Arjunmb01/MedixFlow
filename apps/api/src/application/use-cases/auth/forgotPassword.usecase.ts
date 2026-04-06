@@ -14,11 +14,13 @@ export class ForgotPasswordUseCase {
   ) {}
 
   async execute(data: ForgotPasswordPayload) {
-    const user = await this.authRepository.findUserByEmail(data.email);
+    const result = await this.authRepository.findUserByEmail(data.email);
 
-    if (!user) {
+    if (!result) {
       return { message: MESSAGES.FORGOT_PASSWORD_CONFIRM };
     }
+
+    const { user } = result;
 
     const token = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); 
@@ -37,5 +39,6 @@ export class ForgotPasswordUseCase {
 
     return { message: MESSAGES.FORGOT_PASSWORD_CONFIRM };
   }
+
 }
 

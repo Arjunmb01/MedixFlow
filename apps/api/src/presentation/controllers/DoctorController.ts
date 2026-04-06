@@ -11,6 +11,13 @@ import { GetConsultedPatientsUseCase } from "@/application/use-cases/doctor/getC
 import { GetDoctorPrescriptionsUseCase } from "@/application/use-cases/doctor/getDoctorPrescriptions.usecase";
 import { UpdatePrescriptionUseCase } from "@/application/use-cases/doctor/updatePrescription.usecase";
 
+interface AuthenticatedRequest extends Request {
+    user: {
+        id: string;
+        role: string;
+    };
+}
+
 export class DoctorController {
     constructor(
         private getDoctorProfileUseCase: GetDoctorProfileUseCase,
@@ -25,7 +32,7 @@ export class DoctorController {
         private updatePrescriptionUseCase: UpdatePrescriptionUseCase
     ) {}
 
-    getDoctorProfile = async (req: Request, res: Response, next: NextFunction) => {
+    getDoctorProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
             const profile = await this.getDoctorProfileUseCase.execute(userId);
@@ -40,7 +47,7 @@ export class DoctorController {
         }
     }
 
-    updateDoctorProfile = async (req: Request, res: Response, next: NextFunction) => {
+    updateDoctorProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
             const result = await this.updateDoctorProfileUseCase.execute(userId, req.body);
@@ -50,7 +57,7 @@ export class DoctorController {
         }
     }
 
-    updateDoctorPassword = async (req: Request, res: Response, next: NextFunction) => {
+    updateDoctorPassword = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
             console.log(`Password update requested for doctor user: ${userId}`);
@@ -62,7 +69,7 @@ export class DoctorController {
         }
     }
 
-    getDoctorDashboardStats = async (req: Request, res: Response, next: NextFunction) => {
+    getDoctorDashboardStats = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
             const stats = await this.getDoctorDashboardStatsUseCase.execute(userId);
@@ -72,7 +79,7 @@ export class DoctorController {
         }
     }
 
-    updateDoctorSchedules = async (req: Request, res: Response, next: NextFunction) => {
+    updateDoctorSchedules = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
             await this.updateDoctorSchedulesUseCase.execute(userId, req.body);
@@ -82,13 +89,10 @@ export class DoctorController {
         }
     }
 
-    generateSlots = async (req: Request, res: Response, next: NextFunction) => {
+    generateSlots = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
             const { date } = req.body;
-            if (!date) {
-                return res.status(StatusCode.BAD_REQUEST).json({ message: "Date is required" });
-            }
             await this.generateSlotsUseCase.execute({ doctorId, date: new Date(date) });
             res.json({ message: "Slots generated successfully" });
         } catch (error) {
@@ -96,7 +100,7 @@ export class DoctorController {
         }
     }
 
-    getDoctorAppointments = async (req: Request, res: Response, next: NextFunction) => {
+    getDoctorAppointments = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
             const appointments = await this.getDoctorAppointmentsUseCase.execute(userId);
@@ -106,7 +110,7 @@ export class DoctorController {
         }
     }
 
-    getConsultedPatients = async (req: Request, res: Response, next: NextFunction) => {
+    getConsultedPatients = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
             const patients = await this.getConsultedPatientsUseCase.execute(userId);
@@ -116,7 +120,7 @@ export class DoctorController {
         }
     }
 
-    getDoctorPrescriptions = async (req: Request, res: Response, next: NextFunction) => {
+    getDoctorPrescriptions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
             const prescriptions = await this.getDoctorPrescriptionsUseCase.execute(userId);

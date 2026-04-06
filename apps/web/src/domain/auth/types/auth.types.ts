@@ -55,4 +55,6 @@ export interface AuthState {
     PATIENT: RoleState;
     DOCTOR: RoleState;
     loading: boolean;
+    persistedRole: Role | null;
 }
+

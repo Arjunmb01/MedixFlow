@@ -2,6 +2,7 @@ import { PrismaClient, ConsultationStatus, Consultation, Prisma } from "@prisma/
 import { 
     IConsultationRepository, 
     CreateConsultationDTO,
+    ConsultationRecord,
     SaveVitalsDTO,
     SaveMedicalRecordDTO,
     SavePrescriptionDTO,
@@ -11,20 +12,27 @@ import {
     ConsultationHistoryItem
 } from "../../domain/repositories/IConsultationRepository";
 
-export class ConsultationRepository implements IConsultationRepository {
-    constructor(private readonly prisma: PrismaClient) {}
+import { ConsultationMapper } from "../database/mappers/ConsultationMapper";
+import { is } from "zod/locales";
 
-    async create(data: CreateConsultationDTO): Promise<Consultation> {
-        return this.prisma.consultation.create({
+export class ConsultationRepository implements IConsultationRepository {
+    constructor(
+        private readonly prisma: PrismaClient,
+        private readonly mapper: ConsultationMapper
+    ) {}
+
+    async create(data: CreateConsultationDTO): Promise<ConsultationRecord> {
+        const result = await this.prisma.consultation.create({
             data: {
                 ...data,
                 status: "WAITING"
             }
         });
+        return this.mapper.toRecord(result);
     }
 
     async findById(id: string): Promise<ConsultationWithDetails | null> {
-        return this.prisma.consultation.findUnique({
+        const result = await this.prisma.consultation.findUnique({
             where: { id },
             include: {
                 patient: true,
@@ -45,10 +53,11 @@ export class ConsultationRepository implements IConsultationRepository {
                 appointment: true
             }
         });
+        return result ? this.mapper.toWithDetails(result as any) : null;
     }
 
     async findByAppointmentId(appointmentId: string): Promise<ConsultationWithEMR | null> {
-        return this.prisma.consultation.findUnique({
+        const result = await this.prisma.consultation.findUnique({
             where: { appointmentId },
             include: {
                 vitals: true,
@@ -60,6 +69,7 @@ export class ConsultationRepository implements IConsultationRepository {
                 }
             }
         });
+        return result ? this.mapper.toWithEMR(result as any) : null;
     }
 
     async getDoctorQueue(doctorId: string, date: Date): Promise<ConsultationQueueItem[]> {
@@ -68,15 +78,17 @@ export class ConsultationRepository implements IConsultationRepository {
         const endOfDay = new Date(date);
         endOfDay.setHours(23, 59, 59, 999);
 
-        return this.prisma.consultation.findMany({
+        const results = await this.prisma.consultation.findMany({
             where: {
                 doctorId,
-                createdAt: {
-                    gte: startOfDay,
-                    lte: endOfDay
-                },
                 status: {
                     in: ["WAITING", "IN_PROGRESS"]
+                },
+                appointment: {
+                    appointmentDate : {
+                        gte : startOfDay,
+                        lte : endOfDay
+                    }
                 }
             },
             include: {
@@ -84,23 +96,28 @@ export class ConsultationRepository implements IConsultationRepository {
                 appointment: true
             },
             orderBy: {
-                createdAt: "asc"
+                appointment : {
+                    slotStart: "asc"
+                }
             }
         });
+        return results.map(r => this.mapper.toQueueItem(r as any))
+        .filter((item) : item is ConsultationQueueItem => item !== null);
     }
 
-    async updateStatus(id: string, status: ConsultationStatus): Promise<Consultation> {
-        const updateData: Prisma.ConsultationUpdateInput = { status };
+    async updateStatus(id: string, status: ConsultationStatus | string): Promise<ConsultationRecord> {
+        const updateData: Prisma.ConsultationUpdateInput = { status: status as ConsultationStatus };
         if (status === "IN_PROGRESS") {
             updateData.startedAt = new Date();
         } else if (status === "COMPLETED") {
             updateData.completedAt = new Date();
         }
 
-        return this.prisma.consultation.update({
+        const result = await this.prisma.consultation.update({
             where: { id },
             data: updateData
         });
+        return this.mapper.toRecord(result);
     }
 
     async saveConsultationData(
@@ -110,7 +127,7 @@ export class ConsultationRepository implements IConsultationRepository {
         prescription?: SavePrescriptionDTO
     ): Promise<ConsultationWithEMR> {
         return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-            // Vitals (create new entry)
+
             if (vitals) {
                 await tx.vitals.create({
                     data: {
@@ -166,7 +183,7 @@ export class ConsultationRepository implements IConsultationRepository {
                 }
             }
 
-            const result = await tx.consultation.findUnique({
+            const result: ConsultationWithEMR | null = await tx.consultation.findUnique({
                 where: { id },
                 include: {
                     vitals: true,
@@ -179,12 +196,12 @@ export class ConsultationRepository implements IConsultationRepository {
                 throw new Error("Consultation not found after save");
             }
 
-            return result;
+            return this.mapper.toWithEMR(result as any);
         });
     }
 
     async getPatientHistory(patientId: string): Promise<ConsultationHistoryItem[]> {
-        return this.prisma.consultation.findMany({
+        const results = await this.prisma.consultation.findMany({
             where: {
                 patientId,
                 status: "COMPLETED"
@@ -208,5 +225,6 @@ export class ConsultationRepository implements IConsultationRepository {
                 completedAt: "desc"
             }
         });
+        return results.map(r => this.mapper.toHistoryItem(r as any));
     }
 }

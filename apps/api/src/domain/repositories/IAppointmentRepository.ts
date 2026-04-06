@@ -1,20 +1,6 @@
 import { AppointmentStatus } from "../value-objects/enums/AppointmentStatus";
 
-// ─── Input DTOs ───────────────────────────────────────────────────────────
-export interface CreateAppointmentDTO {
-  patientId: string;
-  doctorId: string;
-  appointmentDate: Date;
-  slotStart: string;
-  slotEnd: string;
-}
-
-export interface DoctorScheduleDTO {
-  startTime: string;
-  endTime: string;
-  slotDurationMinutes: number;
-  slotCapacity: number;
-}
+import { CreateAppointmentInput, DoctorScheduleInput } from "../value-objects/types/appointment.types";
 
 export interface AppointmentRecord {
   id: string;
@@ -74,11 +60,13 @@ export interface AppointmentWithConsultation extends AppointmentRecord {
 export interface AppointmentWithPatient extends AppointmentRecord {
   patient: {
     id: string;
+    patientId: string;
     firstName: string;
     lastName: string;
     phone?: string | null;
   };
 }
+
 
 export interface AppointmentWithDoctorAndPatient extends AppointmentRecord {
   doctor: {
@@ -89,15 +77,18 @@ export interface AppointmentWithDoctorAndPatient extends AppointmentRecord {
   };
   patient: {
     id: string;
+    patientId: string;
     firstName: string;
     lastName: string;
     phone?: string | null;
   };
 }
 
-export interface AppointmentWithFullDoctor extends AppointmentRecord {
+
+export interface AppointmentPreview extends AppointmentRecord {
   patient: {
     id: string;
+    patientId: string;
     firstName: string;
     lastName: string;
     phone?: string | null;
@@ -110,24 +101,29 @@ export interface AppointmentWithFullDoctor extends AppointmentRecord {
   };
 }
 
+
 // ─── Repository contract ──────────────────────────────────────────────────
 export interface IAppointmentRepository {
   getDoctorSchedule(
     doctorId: string,
     dayOfWeek: number
-  ): Promise<DoctorScheduleDTO | null>;
+  ): Promise<DoctorScheduleInput | null>;
 
   getAppointmentsByDoctorAndDate(
     doctorId: string,
     date: Date
   ): Promise<{ slotStart: string; status: AppointmentStatus | string }[]>;
 
-  createWithTransaction(data: CreateAppointmentDTO): Promise<AppointmentRecord>;
+  createWithTransaction(data: CreateAppointmentInput): Promise<AppointmentRecord>;
+
+  countActiveBookings(doctorId: string, date: Date, slotStart: string): Promise<number>;
+  findActiveBookingByPatient(patientId: string, doctorId: string, date: Date, slotStart: string): Promise<AppointmentRecord | null>;
 
   getAppointmentsByPatientId(patientId: string): Promise<AppointmentWithConsultation[]>;
   findById(id: string): Promise<AppointmentWithDoctorAndPatient | null>;
   cancelAppointment(id: string, reason: string): Promise<AppointmentRecord>;
   getAppointmentsByDoctorId(doctorId: string): Promise<AppointmentWithPatient[]>;
-  getAllAppointments(): Promise<AppointmentWithFullDoctor[]>;
+  getAllAppointments(): Promise<AppointmentPreview[]>;
   updateStatus(id: string, status: AppointmentStatus | string): Promise<AppointmentRecord>;
+  getUpcomingByDoctorId(doctorId : string): Promise<AppointmentWithPatient[]>;
 }

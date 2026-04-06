@@ -44,4 +44,5 @@ export class Doctor {
     if (newFee < 0) throw new Error("Consultation fee cannot be negative");
     this.consultationFee = newFee;
   }
+
 }

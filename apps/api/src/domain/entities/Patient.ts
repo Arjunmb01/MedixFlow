@@ -4,6 +4,7 @@ import { Gender } from "../value-objects/enums/Gender";
 export class Patient {
   constructor(
     public readonly id: string,
+    public readonly patientId: string,
     public email: string,
     public firstName: string,
     public lastName: string,
@@ -15,6 +16,7 @@ export class Patient {
     public role: string = "PATIENT",
     public emergencyContacts: { id?: string; name: string; mobile: string; }[] = []
   ) {}
+
 
   public updateProfile(firstName: string, lastName: string, phone: string, bloodGroup: string): void {
     if (!firstName || !lastName || firstName.trim() === "" || lastName.trim() === "") {

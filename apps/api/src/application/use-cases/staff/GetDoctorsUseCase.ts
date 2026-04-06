@@ -1,6 +1,6 @@
 import { IStaffRepository } from "@/domain/repositories/IStaffRepository";
 import { StaffDoctorFilters, PaginatedStaffDoctors } from "@/domain/value-objects/types/staff.repository.types";
-import { UserStatus } from "@prisma/client";
+import { UserStatus } from "@/domain/value-objects/enums/UserStatus";
 
 export interface GetDoctorsUseCaseInput {
     search?: string;

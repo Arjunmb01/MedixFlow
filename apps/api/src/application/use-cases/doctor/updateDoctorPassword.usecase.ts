@@ -1,10 +1,10 @@
-import { IDoctorRepository } from "@/domain/repositories/IDoctorRepository";
+import { IDoctorProfileRepository } from "@/domain/repositories/IDoctorRepository";
 import { MESSAGES } from "@/shared/constants";
 import { IPasswordHasher } from "@/application/interfaces/IPasswordHasher";
 
 export class UpdateDoctorPasswordUseCase {
   constructor(
-    private doctorRepository: IDoctorRepository,
+    private doctorRepository: IDoctorProfileRepository,
     private passwordHasher: IPasswordHasher
   ) {}
 

@@ -18,9 +18,13 @@ export class LoginDoctorUseCase {
   ) {}
 
   async execute(data: LoginDoctorData) {
-    const user = await this.authRepository.findUserByEmail(data.email);
+    const result = await this.authRepository.findUserByEmail(data.email);
 
-    if (!user || user.role !== "DOCTOR") throw new Error(MESSAGES.LOGIN_FAILED);
+    if (!result) throw new Error(MESSAGES.LOGIN_FAILED);
+
+    const { user } = result;
+
+    if (user.role !== "DOCTOR") throw new Error(MESSAGES.LOGIN_FAILED);
 
     if (user.status === "INACTIVE" || user.status === "SUSPENDED") {
       throw new Error(MESSAGES.ACCOUNT_BLOCKED);
@@ -36,4 +40,6 @@ export class LoginDoctorUseCase {
 
     return { accessToken, refreshToken };
   }
+
 }
+

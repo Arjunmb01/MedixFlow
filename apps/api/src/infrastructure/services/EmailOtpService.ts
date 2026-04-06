@@ -7,7 +7,7 @@ export class EmailOtpService implements IOtpService {
   constructor(
     private readonly redisClient: IRedisClient,
     private readonly emailService: IEmailService
-  ) {}
+  ) { }
 
   async generateOtp(email: string, userData?: RegistrationData): Promise<string> {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -29,14 +29,17 @@ export class EmailOtpService implements IOtpService {
     return otp;
   }
 
-  async verifyOtp(email: string, otp: string) {
+  async verifyOtp(email: string, otp: string | number) {
     const storedOtp = await this.redisClient.get(`otp:${email}`);
 
-    if (!storedOtp) throw new Error(MESSAGES.OTP_EXPIRED_SIMPLE);
-    if (storedOtp !== otp) throw new Error(MESSAGES.INVALID_OTP);
+    if (!storedOtp) {
+      throw new Error(MESSAGES.OTP_EXPIRED_SIMPLE)
+    }
+    if (String(otp) !== String(storedOtp)) {
+      throw new Error(MESSAGES.INVALID_OTP)
+    }
 
     await this.redisClient.del(`otp:${email}`);
-
     return true;
   }
 

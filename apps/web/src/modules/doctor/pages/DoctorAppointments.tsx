@@ -118,7 +118,7 @@ export default function DoctorAppointments() {
                                                     <h3 className="text-lg font-black text-gray-900">{apt.patient.firstName} {apt.patient.lastName}</h3>
                                                     <Badge variant={getStatusVariant(apt.status)}>{apt.status}</Badge>
                                                 </div>
-                                                <p className="text-gray-400 font-bold text-sm mt-1">Patient ID: #PX-{apt.patient.patientId || apt.patient.id.split('-')[0].toUpperCase()}</p>
+                                                <p className="text-gray-400 font-bold text-sm mt-1">Patient ID: {apt.patient.patientId || `PX-${apt.patient.id.split('-')[0].toUpperCase()}`}</p>
                                                 
                                                 <div className="flex items-center gap-6 mt-4">
                                                     <div className="flex items-center gap-2">
@@ -187,7 +187,7 @@ export default function DoctorAppointments() {
                                 </div>
                                 <div>
                                     <h2 className="text-2xl font-black text-gray-900">{selectedApt.patient.firstName} {selectedApt.patient.lastName}</h2>
-                                    <p className="text-gray-400 font-bold">Patient • ID: #PX-{selectedApt.patient.patientId || 'NEW'}</p>
+                                    <p className="text-gray-400 font-bold">Patient • ID: {selectedApt.patient.patientId || 'NEW'}</p>
                                 </div>
                             </div>
 

@@ -1,17 +1,23 @@
 import { Doctor } from "../../../domain/entities/Doctor";
 import { DoctorProfile as PrismaDoctorProfile, User as PrismaUser, Specialization as PrismaSpecialization, DoctorSchedule as PrismaDoctorSchedule, Appointment as PrismaAppointment, PatientProfile as PrismaPatientProfile, Prescription as PrismaPrescription, Medicine as PrismaMedicine } from "@prisma/client";
-import { UserStatus } from "../../../domain/value-objects/enums/UserStatus";
+import { UserStatus as DomainUserStatus } from "../../../domain/value-objects/enums/UserStatus";
 import { 
     DoctorProfile, 
     DoctorSchedule, 
     ConsultedPatientRecord, 
-    PrescriptionRecord 
+    PrescriptionRecord,
+    AppointmentPreview
 } from "../../../domain/value-objects/types/doctor.repository.types";
 import { StaffDoctorListItem } from "../../../domain/value-objects/types/staff.repository.types";
 
-export type PrismaDoctorWithUserAndSpec = PrismaDoctorProfile & { user: PrismaUser; specialization: PrismaSpecialization };
+export type PrismaDoctorWithUserAndSpec = PrismaDoctorProfile & { 
+    user: PrismaUser; 
+    specialization: PrismaSpecialization | null;
+    schedules?: PrismaDoctorSchedule[];
+};
 export type PrismaStaffDoctor = PrismaDoctorWithUserAndSpec & { schedules: PrismaDoctorSchedule[] };
 export type PrismaConsultedPatient = PrismaAppointment & { patient: PrismaPatientProfile };
+export type PrismaAppointmentWithPatient = PrismaAppointment & { patient: PrismaPatientProfile };
 export type PrismaPrescriptionFull = PrismaAppointment & { 
     patient: PrismaPatientProfile; 
     consultation: { 
@@ -20,8 +26,8 @@ export type PrismaPrescriptionFull = PrismaAppointment & {
 };
 
 export class DoctorMapper {
-  toDomain(prismaDoctor: PrismaDoctorWithUserAndSpec): Doctor {
-    if (!prismaDoctor) return null as unknown as Doctor;
+  toDomain(prismaDoctor: PrismaDoctorWithUserAndSpec | null | undefined): Doctor | null {
+    if (!prismaDoctor) return null;
 
     const user = prismaDoctor.user;
     const specialization = prismaDoctor.specialization;
@@ -31,7 +37,7 @@ export class DoctorMapper {
       user.email,
       prismaDoctor.firstName,
       prismaDoctor.lastName,
-      user.status as UserStatus,
+      user.status as DomainUserStatus,
       specialization?.name || "General",
       prismaDoctor.consultationFee,
       prismaDoctor.licenseNumber,
@@ -42,8 +48,8 @@ export class DoctorMapper {
     );
   }
 
-  toProfile(prismaDoctor: PrismaDoctorWithUserAndSpec & { bio?: string | null; address?: string | null }): DoctorProfile {
-    if (!prismaDoctor) return null as unknown as DoctorProfile;
+  toProfile(prismaDoctor: PrismaDoctorWithUserAndSpec | null | undefined): DoctorProfile | null {
+    if (!prismaDoctor) return null;
 
     return {
         id: prismaDoctor.id,
@@ -57,8 +63,8 @@ export class DoctorMapper {
         status: prismaDoctor.user.status,
         bio: prismaDoctor.bio || undefined,
         avatarUrl: prismaDoctor.avatarUrl || undefined,
-        address: (prismaDoctor as any).address || undefined,
-        schedules: (prismaDoctor as any).schedules?.map((s: any) => this.toSchedule(s)) || [],
+        address: (prismaDoctor as { address?: string }).address || undefined,
+        schedules: prismaDoctor.schedules?.map((s) => this.toSchedule(s)) || [],
     };
   }
 
@@ -73,11 +79,11 @@ export class DoctorMapper {
       phone: prismaDoctor.phone || "",
       specialty: specialization?.name || "General",
       email: user.email,
-      status: user.status,
+      status: user.status as DomainUserStatus,
       user: {
         id: user.id,
         email: user.email,
-        status: user.status,
+        status: user.status as DomainUserStatus,
       },
       createdAt: user.createdAt,
       licenseNumber: prismaDoctor.licenseNumber,
@@ -95,6 +101,24 @@ export class DoctorMapper {
         slotCapacity: prismaSchedule.slotCapacity,
         fullDay: prismaSchedule.fullDay,
         consultationType: prismaSchedule.consultationType as 'VIDEO' | 'CLINIC',
+    };
+  }
+
+  toAppointmentPreview(apt: PrismaAppointmentWithPatient): AppointmentPreview {
+    return {
+        id: apt.id,
+        patientId: apt.patientId,
+        patient: {
+            id: apt.patient.id,
+            patientId: apt.patient.patientId,
+            firstName: apt.patient.firstName,
+            lastName: apt.patient.lastName,
+            gender: apt.patient.gender
+        },
+        slotStart: apt.slotStart,
+        slotEnd: apt.slotEnd,
+        status: apt.status,
+        appointmentDate: apt.appointmentDate
     };
   }
 

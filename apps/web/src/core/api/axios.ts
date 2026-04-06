@@ -10,19 +10,25 @@ const api = axios.create({
 })
 
 function getRoleFromUrl(url?: string): "ADMIN" | "PATIENT" | "DOCTOR" {
-    if (url?.startsWith("/admin") || url?.includes("/admin/")) return "ADMIN"
-    
-    if (url === "/doctor" || url?.startsWith("/doctor/") || (url?.includes("/doctor") && !url?.includes("/doctors"))) return "DOCTOR"
+    const state = store.getState();
+    const persistedRole = state.auth.persistedRole;
+
+    if (url?.startsWith("/admin") || url?.includes("/admin/")) return "ADMIN";
+    if (url === "/doctor" || url?.startsWith("/doctor/") || (url?.includes("/doctor") && !url?.includes("/doctors"))) return "DOCTOR";
+    if (url === "/patient" || url?.startsWith("/patient/")) return "PATIENT";
     
     if ((url?.includes("/common/") || url?.includes("/doctors")) && typeof window !== "undefined") {
         const path = window.location.pathname;
-        if (path.startsWith("/admin")) return "ADMIN"
-        if (path.startsWith("/patient")) return "PATIENT"
-        if (path.startsWith("/doctor")) return "DOCTOR"
+        if (path.startsWith("/admin")) return "ADMIN";
+        if (path.startsWith("/patient")) return "PATIENT";
+        if (path.startsWith("/doctor")) return "DOCTOR";
     }
 
-    return "PATIENT"
+    const finalRole = persistedRole || "PATIENT";
+    console.log(`[Axios] Detected role for URL ${url}: ${finalRole}`);
+    return finalRole;
 }
+
 
 
 function getLoginPath(role: "ADMIN" | "PATIENT" | "DOCTOR") {
@@ -76,9 +82,13 @@ api.interceptors.response.use(
                     { withCredentials: true }
                 )
 
-                const { accessToken } = response.data
-                store.dispatch(setAccessToken({ role, accessToken }))
-                return api(originalRequest)
+                const { accessToken } = response.data;
+                store.dispatch(setAccessToken({ role, accessToken }));
+
+                // Manually update the Authorization header for the retry
+                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+                
+                return api(originalRequest);
 
             } catch (refreshError: any) {
                 const role = getRoleFromUrl(originalRequest.url);
@@ -95,4 +105,4 @@ api.interceptors.response.use(
     }
 )
 
-export default api
+export default api
