@@ -12,8 +12,12 @@ import {
     ConsultationHistoryItem
 } from "../../domain/repositories/IConsultationRepository";
 
-import { ConsultationMapper } from "../database/mappers/ConsultationMapper";
-import { is } from "zod/locales";
+import { 
+    ConsultationMapper, 
+    PrismaConsultationWithDetails, 
+    PrismaConsultationQueueItem, 
+    PrismaConsultationWithEMR 
+} from "../database/mappers/ConsultationMapper";
 
 export class ConsultationRepository implements IConsultationRepository {
     constructor(
@@ -53,7 +57,7 @@ export class ConsultationRepository implements IConsultationRepository {
                 appointment: true
             }
         });
-        return result ? this.mapper.toWithDetails(result as any) : null;
+        return result ? this.mapper.toWithDetails(result as PrismaConsultationWithDetails) : null;
     }
 
     async findByAppointmentId(appointmentId: string): Promise<ConsultationWithEMR | null> {
@@ -69,7 +73,7 @@ export class ConsultationRepository implements IConsultationRepository {
                 }
             }
         });
-        return result ? this.mapper.toWithEMR(result as any) : null;
+        return result ? this.mapper.toWithEMR(result as PrismaConsultationWithEMR) : null;
     }
 
     async getDoctorQueue(doctorId: string, date: Date): Promise<ConsultationQueueItem[]> {
@@ -82,12 +86,15 @@ export class ConsultationRepository implements IConsultationRepository {
             where: {
                 doctorId,
                 status: {
-                    in: ["WAITING", "IN_PROGRESS"]
+                    in: ["WAITING", "IN_PROGRESS", "COMPLETED"]
                 },
                 appointment: {
                     appointmentDate : {
                         gte : startOfDay,
                         lte : endOfDay
+                    },
+                    status : {
+                        in : ["CONFIRMED", "COMPLETED"]
                     }
                 }
             },
@@ -101,8 +108,8 @@ export class ConsultationRepository implements IConsultationRepository {
                 }
             }
         });
-        return results.map(r => this.mapper.toQueueItem(r as any))
-        .filter((item) : item is ConsultationQueueItem => item !== null);
+        return results.map(r => this.mapper.toQueueItem(r as PrismaConsultationQueueItem))
+        .filter((item): item is ConsultationQueueItem => item !== null);
     }
 
     async updateStatus(id: string, status: ConsultationStatus | string): Promise<ConsultationRecord> {
@@ -196,7 +203,7 @@ export class ConsultationRepository implements IConsultationRepository {
                 throw new Error("Consultation not found after save");
             }
 
-            return this.mapper.toWithEMR(result as any);
+            return this.mapper.toWithEMR(result as PrismaConsultationWithEMR);
         });
     }
 
@@ -207,6 +214,7 @@ export class ConsultationRepository implements IConsultationRepository {
                 status: "COMPLETED"
             },
             include: {
+                patient: true,
                 vitals: true,
                 medicalRecord: true,
                 prescription: {
@@ -225,6 +233,12 @@ export class ConsultationRepository implements IConsultationRepository {
                 completedAt: "desc"
             }
         });
-        return results.map(r => this.mapper.toHistoryItem(r as any));
+        return results.map(r => this.mapper.toHistoryItem(r as PrismaConsultationWithDetails));
+    }
+
+    async deleteByAppointmentId(appointmentId: string): Promise<void> {
+        await this.prisma.consultation.deleteMany({
+            where: { appointmentId }
+        });
     }
 }

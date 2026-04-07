@@ -16,6 +16,9 @@ interface AppointmentPreview {
     slotEnd: string;
     status: string;
     appointmentDate: string;
+    isCheckedIn?: boolean;
+    consultationId?: string;
+    consultationStatus?: string;
 }
 
 interface DashboardStats {

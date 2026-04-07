@@ -156,7 +156,9 @@ export class AppointmentRepository implements IAppointmentRepository {
             specialization: true,
           },
         },
-        patient: true,
+        patient: {
+          include: { user: true },
+        },
       },
     });
     return result ? this.mapper.toWithDoctorAndPatient(result) : null;
@@ -182,7 +184,10 @@ export class AppointmentRepository implements IAppointmentRepository {
         },
       },
       include: {
-        patient: true,
+        patient: {
+          include: { user: true },
+        },
+        consultation: true,
       },
       orderBy: [
         { appointmentDate: "asc" },
@@ -194,13 +199,17 @@ export class AppointmentRepository implements IAppointmentRepository {
 
   async getAppointmentsByDoctorId(doctorId: string): Promise<AppointmentWithPatient[]> {
     const results = await this.prisma.appointment.findMany({
-      where: { doctorId,
+      where: { 
+        doctorId,
         status : {
           in: ["PENDING", "CONFIRMED"]
         }
        },
       include: {
-        patient: true,
+        patient: {
+          include: { user: true },
+        },
+        consultation : true,
       },
       orderBy : [
         {appointmentDate : "asc"},
@@ -213,7 +222,9 @@ export class AppointmentRepository implements IAppointmentRepository {
   async getAllAppointments(): Promise<AppointmentPreview[]> {
     const results = await this.prisma.appointment.findMany({
       include: {
-        patient: true,
+        patient: {
+          include: { user: true },
+        },
         doctor: {
           include: {
             specialization: true,

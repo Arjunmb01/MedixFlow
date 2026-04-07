@@ -92,8 +92,8 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
         });
     }
 
-    async getDashboardStats(userId: string): Promise<DoctorDashboardStats> {
-        const today = new Date();
+    async getDashboardStats(userId: string, date?: Date): Promise<DoctorDashboardStats> {
+        const today = date ? new Date(date) : new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -116,10 +116,12 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             this._prisma.appointment.findMany({
                 where: {
                     doctorId: userId,
-                    appointmentDate: { gte: today, lt: tomorrow }
+                    appointmentDate: { gte: today, lt: tomorrow },
+                    status: { not: "CANCELLED" }
                 },
                 include: {
-                    patient: true
+                    patient: true,
+                    consultation: true
                 },
                 orderBy: {
                     slotStart: "asc"
@@ -137,12 +139,30 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
         });
         const totalEarnings = completedApts.reduce((acc, apt) => acc + (apt.doctor.consultationFee || 0), 0);
 
+        // Sort priority: IN_PROGRESS > WAITING > COMPLETED > Others
+        const sortedTodayAppointments = todayAppointmentsData
+            .sort((a, b) => {
+                const getStatusPriority = (apt: any) => {
+                    if (apt.consultation?.status === "IN_PROGRESS") return 3;
+                    if (apt.consultation?.status === "WAITING") return 2;
+                    if (apt.consultation?.status === "COMPLETED") return 1;
+                    return 0;
+                };
+
+                const priorityA = getStatusPriority(a);
+                const priorityB = getStatusPriority(b);
+
+                if (priorityA !== priorityB) return priorityB - priorityA;
+                return a.slotStart.localeCompare(b.slotStart);
+            })
+            .map((apt: any) => this.mapper.toAppointmentPreview(apt as PrismaAppointmentWithPatient));
+
         return {
             totalAppointments,
             completedAppointments,
             pendingAppointments,
             totalPatients: uniquePatientsCount,
-            todayAppointments: todayAppointmentsData.map((apt: any) => this.mapper.toAppointmentPreview(apt as PrismaAppointmentWithPatient)),
+            todayAppointments: sortedTodayAppointments,
             todayAppointmentsCount: todayAppointmentsData.length,
             pendingToday,
             completedToday,

@@ -158,4 +158,5 @@ export interface IConsultationRepository {
     prescription?: SavePrescriptionDTO
   ): Promise<ConsultationWithEMR>;
   getPatientHistory(patientId: string): Promise<ConsultationHistoryItem[]>;
+  deleteByAppointmentId(appointmentId: string): Promise<void>;
 }

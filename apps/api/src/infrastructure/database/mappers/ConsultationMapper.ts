@@ -17,7 +17,7 @@ import {
     ConsultationHistoryItem
 } from "../../../domain/repositories/IConsultationRepository";
 
-type PrismaConsultationWithDetails = Consultation & {
+export type PrismaConsultationWithDetails = Consultation & {
     patient: PatientProfile;
     doctor: DoctorProfile & { specialization: Specialization | null };
     vitals: Vitals[];
@@ -26,12 +26,12 @@ type PrismaConsultationWithDetails = Consultation & {
     appointment: Appointment;
 };
 
-type PrismaConsultationQueueItem = Consultation & {
+export type PrismaConsultationQueueItem = Consultation & {
     patient: PatientProfile;
     appointment: Appointment;
 };
 
-type PrismaConsultationWithEMR = Consultation & {
+export type PrismaConsultationWithEMR = Consultation & {
     vitals: Vitals[];
     medicalRecord: MedicalRecord | null;
     prescription: (Prescription & { medicines: Medicine[] }) | null;

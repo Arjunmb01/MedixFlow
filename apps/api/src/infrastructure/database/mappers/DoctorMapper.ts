@@ -1,5 +1,5 @@
 import { Doctor } from "../../../domain/entities/Doctor";
-import { DoctorProfile as PrismaDoctorProfile, User as PrismaUser, Specialization as PrismaSpecialization, DoctorSchedule as PrismaDoctorSchedule, Appointment as PrismaAppointment, PatientProfile as PrismaPatientProfile, Prescription as PrismaPrescription, Medicine as PrismaMedicine } from "@prisma/client";
+import { DoctorProfile as PrismaDoctorProfile, User as PrismaUser, Specialization as PrismaSpecialization, DoctorSchedule as PrismaDoctorSchedule, Appointment as PrismaAppointment, PatientProfile as PrismaPatientProfile, Prescription as PrismaPrescription, Medicine as PrismaMedicine, Consultation } from "@prisma/client";
 import { UserStatus as DomainUserStatus } from "../../../domain/value-objects/enums/UserStatus";
 import { 
     DoctorProfile, 
@@ -17,7 +17,10 @@ export type PrismaDoctorWithUserAndSpec = PrismaDoctorProfile & {
 };
 export type PrismaStaffDoctor = PrismaDoctorWithUserAndSpec & { schedules: PrismaDoctorSchedule[] };
 export type PrismaConsultedPatient = PrismaAppointment & { patient: PrismaPatientProfile };
-export type PrismaAppointmentWithPatient = PrismaAppointment & { patient: PrismaPatientProfile };
+export type PrismaAppointmentWithPatient = PrismaAppointment & { 
+    patient: PrismaPatientProfile;
+    consultation?: Consultation | null;
+};
 export type PrismaPrescriptionFull = PrismaAppointment & { 
     patient: PrismaPatientProfile; 
     consultation: { 
@@ -118,7 +121,10 @@ export class DoctorMapper {
         slotStart: apt.slotStart,
         slotEnd: apt.slotEnd,
         status: apt.status,
-        appointmentDate: apt.appointmentDate
+        appointmentDate: apt.appointmentDate,
+        isCheckedIn: !!apt.consultation,
+        consultationId: apt.consultation?.id,
+        consultationStatus: apt.consultation?.status
     };
   }
 

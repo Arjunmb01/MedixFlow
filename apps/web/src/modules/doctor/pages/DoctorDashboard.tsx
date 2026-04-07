@@ -1,6 +1,9 @@
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import DoctorSidebar from "../components/DoctorSidebar"
 import DoctorTopNav from "../components/DoctorTopNav"
 import { useDoctorDashboard } from "@/application/doctor/hooks/useDoctorDashboard"
+import { startConsultation } from "@/infrastructure/api/consultation.api"
 import { 
     CheckCircle2, 
     RefreshCcw, 
@@ -11,6 +14,27 @@ import {
 
 export default function DoctorDashboard() {
     const { profile, stats, loading } = useDoctorDashboard()
+    const navigate = useNavigate()
+    const [isStartingSession, setIsStartingSession] = useState(false)
+
+    const handleEnterWorkspace = async (consultationId?: string, consultationStatus?: string) => {
+        if (!consultationId) return;
+
+        if (consultationStatus === "IN_PROGRESS" || consultationStatus === "COMPLETED") {
+            navigate(`/doctor/workspace/${consultationId}`);
+            return;
+        }
+
+        try {
+            setIsStartingSession(true);
+            await startConsultation(consultationId);
+            navigate(`/doctor/workspace/${consultationId}`);
+        } catch (error) {
+            console.error("Failed to start session", error);
+        } finally {
+            setIsStartingSession(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -83,33 +107,62 @@ export default function DoctorDashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Current/Ongoing Session */}
                         <div className="lg:col-span-2 space-y-6">
-                            {stats?.todayAppointments && stats.todayAppointments.length > 0 ? (
-                                <div className="bg-white rounded-[2.5rem] border border-teal-100 p-8 shadow-xl shadow-teal-50 relative overflow-hidden group">
-                                    <div className="absolute top-0 right-0 py-2 px-8 bg-teal-600 text-white text-[10px] font-black uppercase tracking-widest rotate-45 translate-x-12 translate-y-4">
-                                        Next Session
+                            {stats?.todayAppointments && stats.todayAppointments.length > 0 ? (() => {
+                                const isCompleted = (a: any) => a.status === "COMPLETED" || a.consultationStatus === "COMPLETED";
+                                const activeApt = stats.todayAppointments.find(a => a.consultationStatus === "IN_PROGRESS") || 
+                                                 stats.todayAppointments.find(a => !isCompleted(a));
+                                
+                                if (!activeApt) return (
+                                    <div className="bg-white rounded-[2.5rem] border border-gray-100 p-8 text-center">
+                                        <p className="text-gray-400 font-bold">All sessions for today are completed</p>
+                                    </div>
+                                );
+
+                                const isOngoing = activeApt.consultationStatus === "IN_PROGRESS";
+                                return (
+                                <div className={`bg-white rounded-[2.5rem] border ${isOngoing ? "border-green-400 ring-4 ring-green-50" : "border-teal-100"} p-8 shadow-xl shadow-teal-50 relative overflow-hidden group transition-all`}>
+                                    <div className={`absolute top-0 right-0 py-2 px-8 ${isOngoing ? "bg-green-500" : "bg-teal-600"} text-white text-[10px] font-black uppercase tracking-widest rotate-45 translate-x-12 translate-y-4`}>
+                                        {isOngoing ? "Active Session" : "Next Session"}
                                     </div>
                                     <div className="flex items-start gap-8">
-                                        <div className="w-20 h-20 bg-teal-600 rounded-3xl flex items-center justify-center text-white text-2xl font-black border-4 border-teal-50 shadow-inner">
-                                            {stats.todayAppointments[0].patient.firstName[0]}{stats.todayAppointments[0].patient.lastName[0]}
+                                        <div className={`w-20 h-20 ${isOngoing ? "bg-green-500" : "bg-teal-600"} rounded-3xl flex items-center justify-center text-white text-2xl font-black border-4 ${isOngoing ? "border-green-50" : "border-teal-50"} shadow-inner`}>
+                                            {activeApt.patient.firstName[0]}{activeApt.patient.lastName[0]}
                                         </div>
                                         <div className="flex-1">
                                             <h3 className="text-2xl font-black text-gray-900 tracking-tight">
-                                                {stats.todayAppointments[0].patient.firstName} {stats.todayAppointments[0].patient.lastName}
+                                                {activeApt.patient.firstName} {activeApt.patient.lastName}
                                             </h3>
                                             <p className="text-gray-400 font-bold text-sm mt-1">
-                                                {stats.todayAppointments[0].patient.gender} <span className="mx-1">•</span> ID: {stats.todayAppointments[0].patient.patientId || stats.todayAppointments[0].patient.id.slice(-6).toUpperCase()}
+                                                {activeApt.patient.gender} <span className="mx-1">•</span> ID: {activeApt.patient.patientId || activeApt.patient.id.slice(-6).toUpperCase()}
                                             </p>
                                             <div className="inline-flex items-center gap-2 bg-teal-50 text-teal-700 px-4 py-1.5 rounded-full mt-4 text-[11px] font-black uppercase tracking-tight border border-teal-100">
-                                                TIME: {stats.todayAppointments[0].slotStart}
+                                                TIME: {activeApt.slotStart}
                                             </div>
                                         </div>
-                                        <button className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3.5 rounded-2xl font-black text-sm shadow-xl shadow-teal-200 transition-all active:scale-95 flex items-center gap-2">
-                                            Enter Workspace 
-                                            <ArrowRight className="w-4 h-4" />
+                                        <button 
+                                            onClick={() => handleEnterWorkspace(activeApt.consultationId, activeApt.consultationStatus)}
+                                            disabled={isStartingSession || !activeApt.isCheckedIn}
+                                            className={`px-8 py-3.5 rounded-2xl font-black text-sm shadow-xl transition-all active:scale-95 flex items-center gap-2 ${
+                                                !activeApt.isCheckedIn 
+                                                ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+                                                : isOngoing
+                                                    ? "bg-green-600 hover:bg-green-700 text-white shadow-green-200"
+                                                    : "bg-teal-600 hover:bg-teal-700 text-white shadow-teal-200"
+                                            }`}
+                                        >
+                                            {isStartingSession ? (
+                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            ) : (
+                                                <>
+                                                    {!activeApt.isCheckedIn ? "Not Checked In" : (isOngoing ? "Resume Workspace" : "Enter Workspace")}
+                                                    {activeApt.isCheckedIn && <ArrowRight className="w-4 h-4" />}
+                                                </>
+                                            )}
                                         </button>
                                     </div>
                                 </div>
-                            ) : (
+                                );
+                            })() : (
                                 <div className="bg-white rounded-[2.5rem] border border-gray-100 p-8 text-center">
                                     <p className="text-gray-400 font-bold">No sessions scheduled for today</p>
                                 </div>
@@ -124,15 +177,22 @@ export default function DoctorDashboard() {
                                     </button>
                                 </div>
                                 <div className="space-y-3">
-                                    {stats?.todayAppointments?.map((apt, idx) => (
-                                        <QueueItem 
-                                            key={apt.id}
-                                            number={idx + 1} 
-                                            name={`${apt.patient.firstName} ${apt.patient.lastName}`} 
-                                            status={`${apt.status} • Scheduled at ${apt.slotStart}`} 
-                                            statusType={apt.status === 'CONFIRMED' ? 'READY' : 'WAITING'}
-                                        />
-                                    ))}
+                                    {stats?.todayAppointments?.map((apt, idx) => {
+                                        const statusType = apt.status === 'COMPLETED' ? 'COMPLETED' : 
+                                                          apt.consultationStatus === "IN_PROGRESS" ? "ONGOING" : 
+                                                          apt.isCheckedIn ? "READY" : "WAITING";
+                                        return (
+                                            <QueueItem 
+                                                key={apt.id}
+                                                number={idx + 1} 
+                                                name={`${apt.patient.firstName} ${apt.patient.lastName}`} 
+                                                status={`${apt.consultationStatus ? apt.consultationStatus : apt.status} • Scheduled at ${apt.slotStart}`} 
+                                                statusType={statusType}
+                                                onClickAction={() => handleEnterWorkspace(apt.consultationId, apt.consultationStatus)}
+                                                isDisabled={isStartingSession || (statusType === 'WAITING')}
+                                            />
+                                        );
+                                    })}
                                     {(!stats?.todayAppointments || stats.todayAppointments.length === 0) && (
                                         <p className="text-gray-400 text-sm italic text-center py-4">Your queue is empty.</p>
                                     )}
@@ -191,24 +251,35 @@ function StatCard({ icon: Icon, label, value, color, pulse }: any) {
 }
 
 
-function QueueItem({ number, name, status, statusType = "READY" }: any) {
+function QueueItem({ number, name, status, statusType = "READY", onClickAction, isDisabled }: any) {
+    const isOngoing = statusType === "ONGOING";
+    const isReady = statusType === "READY";
+    const isCompleted = statusType === "COMPLETED";
+    
     return (
         <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center justify-between group hover:shadow-lg hover:shadow-gray-100/50 transition-all cursor-pointer">
             <div className="flex items-center gap-5">
-                <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-xs font-black text-gray-400 border border-gray-100">
+                <div className={`w-10 h-10 ${isOngoing ? "bg-green-50 border-green-100 text-green-600" : isCompleted ? "bg-blue-50 border-blue-100 text-blue-600" : "bg-gray-50 border-gray-100 text-gray-400"} rounded-xl flex items-center justify-center text-xs font-black border`}>
                     #{number}
                 </div>
                 <div>
                     <h4 className="text-sm font-black text-gray-900">{name}</h4>
-                    <p className={`text-xs font-bold ${statusType === 'READY' ? 'text-teal-600/60' : 'text-gray-400'}`}>{status}</p>
+                    <p className={`text-xs font-bold ${isOngoing ? 'text-green-600' : isCompleted ? 'text-blue-600' : isReady ? 'text-teal-600/60' : 'text-gray-400'}`}>{status}</p>
                 </div>
             </div>
-            <button className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                statusType === 'READY' 
-                ? 'bg-teal-50 text-teal-600 hover:bg-teal-600 hover:text-white' 
-                : 'bg-gray-50 text-gray-400'
+            <button 
+                onClick={onClickAction}
+                disabled={isDisabled}
+                className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                isOngoing 
+                ? 'bg-green-50 text-green-600 hover:bg-green-700 hover:text-white' 
+                : isReady 
+                    ? 'bg-teal-50 text-teal-600 hover:bg-teal-600 hover:text-white' 
+                    : isCompleted
+                        ? 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white'
+                        : 'bg-gray-50 text-gray-400 cursor-not-allowed'
             }`}>
-               {statusType === 'READY' ? 'Call Next' : 'Waiting'}
+               {isOngoing ? 'Resume' : isReady ? 'Call Next' : isCompleted ? 'Edit Prescription' : 'Waiting'}
             </button>
         </div>
     )

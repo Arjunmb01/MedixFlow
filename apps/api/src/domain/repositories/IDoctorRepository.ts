@@ -20,7 +20,7 @@ export interface IDoctorProfileRepository {
 }
 
 export interface IDoctorStatsRepository {
-    getDashboardStats(userId: string): Promise<DoctorDashboardStats>;
+    getDashboardStats(userId: string, date?: Date): Promise<DoctorDashboardStats>;
     getDoctorsFiltered(filters: DoctorFilters & { page: number; limit: number }): Promise<PaginatedDoctors>;
 }
 
