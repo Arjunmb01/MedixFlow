@@ -30,6 +30,10 @@ export interface AppointmentPreview {
     slotEnd: string;
     status: string;
     appointmentDate: Date;
+
+    isCheckedIn: boolean;
+    consultationId?: string;
+    consultationStatus?: string;
 }
 
 export interface DoctorDashboardStats {

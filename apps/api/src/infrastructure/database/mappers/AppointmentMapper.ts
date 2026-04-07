@@ -35,7 +35,12 @@ type PrismaAppointmentWithConsultation = Prisma.AppointmentGetPayload<{
 }>;
 
 type PrismaAppointmentWithPatient = Prisma.AppointmentGetPayload<{
-    include: { patient: true }
+    include: { 
+        patient: {
+            include: { user: true }
+        },
+        consultation: true
+    }
 }>;
 
 type PrismaAppointmentWithDoctorAndPatient = Prisma.AppointmentGetPayload<{
@@ -43,13 +48,17 @@ type PrismaAppointmentWithDoctorAndPatient = Prisma.AppointmentGetPayload<{
         doctor: {
             include: { specialization: true }
         },
-        patient: true
+        patient: {
+            include: { user: true }
+        }
     }
 }>;
 
 type PrismaAppointmentPreview = Prisma.AppointmentGetPayload<{
     include: {
-        patient: true,
+        patient: {
+            include: { user: true }
+        },
         doctor: {
             include: { specialization: true }
         }
@@ -122,8 +131,13 @@ export class AppointmentMapper {
                 patientId: prismaApp.patient.patientId,
                 firstName: prismaApp.patient.firstName,
                 lastName: prismaApp.patient.lastName,
+                email: prismaApp.patient.user.email,
                 phone: prismaApp.patient.phone,
-            }
+            },
+            consultation: prismaApp.consultation ? {
+                id: prismaApp.consultation.id,
+                status: prismaApp.consultation.status,
+            } : null,
         };
     }
 
@@ -133,9 +147,9 @@ export class AppointmentMapper {
             ...this.toWithDoctor(prismaApp),
             patient: {
                 id: prismaApp.patient.id,
-                patientId: prismaApp.patient.patientId,
-                firstName: prismaApp.patient.firstName,
+                patientId: prismaApp.patient.patientId,                firstName: prismaApp.patient.firstName,
                 lastName: prismaApp.patient.lastName,
+                email: prismaApp.patient.user.email,
                 phone: prismaApp.patient.phone,
             }
         };
@@ -150,6 +164,7 @@ export class AppointmentMapper {
                 patientId: prismaApp.patient.patientId,
                 firstName: prismaApp.patient.firstName,
                 lastName: prismaApp.patient.lastName,
+                email: prismaApp.patient.user.email,
                 phone: prismaApp.patient.phone,
             },
             doctor: {

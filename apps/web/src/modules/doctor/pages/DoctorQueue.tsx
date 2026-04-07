@@ -27,7 +27,7 @@ export default function DoctorQueue() {
     };
 
     const handleStartConsultation = async (consultationId: string, status: string) => {
-        if (status === "IN_PROGRESS") {
+        if (status === "IN_PROGRESS" || status === "COMPLETED") {
             navigate(`/doctor/workspace/${consultationId}`);
             return;
         }
@@ -80,7 +80,9 @@ export default function DoctorQueue() {
                                         className={`bg-white rounded-2xl p-6 flex items-center justify-between shadow-sm border ${
                                             consultation.status === "IN_PROGRESS" 
                                             ? "border-green-400 ring-2 ring-green-100" 
-                                            : "border-gray-100 hover:border-blue-200"
+                                            : consultation.status === "COMPLETED"
+                                                ? "border-blue-400 ring-2 ring-blue-100"
+                                                : "border-gray-100 hover:border-blue-200"
                                         } transition-all`}
                                     >
                                         <div className="flex gap-6 items-center">
@@ -100,6 +102,10 @@ export default function DoctorQueue() {
                                                         <span className="bg-green-100 text-green-700 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase">
                                                             Ongoing
                                                         </span>
+                                                    ) : consultation.status === "COMPLETED" ? (
+                                                        <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase">
+                                                            Completed
+                                                        </span>
                                                     ) : (
                                                         <span className="bg-orange-100 text-orange-700 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase">
                                                             Waiting
@@ -115,14 +121,16 @@ export default function DoctorQueue() {
                                             className={`px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all ${
                                                 consultation.status === "IN_PROGRESS"
                                                 ? "bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-200"
-                                                : "bg-[#0066cc] hover:bg-blue-700 text-white shadow-lg shadow-blue-200"
+                                                : consultation.status === "COMPLETED"
+                                                    ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200"
+                                                    : "bg-[#0066cc] hover:bg-blue-700 text-white shadow-lg shadow-blue-200"
                                             }`}
                                         >
                                             {isStarting === consultation.id ? (
                                                 <Loader2 className="w-5 h-5 animate-spin" />
                                             ) : (
                                                 <>
-                                                    {consultation.status === "IN_PROGRESS" ? "Resume Consultation" : "Start Consultation"}
+                                                    {consultation.status === "IN_PROGRESS" ? "Resume Consultation" : consultation.status === "COMPLETED" ? "Edit Prescription" : "Start Consultation"}
                                                     <ArrowRight className="w-5 h-5" />
                                                 </>
                                             )}

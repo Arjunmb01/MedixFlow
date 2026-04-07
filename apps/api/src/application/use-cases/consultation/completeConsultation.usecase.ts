@@ -24,18 +24,19 @@ export class CompleteConsultationUseCase {
             throw new Error("Unauthorized to modify this consultation.");
         }
 
-        if (consultation.status !== "IN_PROGRESS") {
-            throw new Error(`Cannot complete consultation from status: ${consultation.status}`);
+        if (consultation.status !== "IN_PROGRESS" && consultation.status !== "COMPLETED") {
+            throw new Error(`Cannot modify consultation from status: ${consultation.status}`);
         }
 
         // Save EMR Data via Repo
         await this.consultationRepo.saveConsultationData(consultationId, vitals, medicalRecord, prescription);
 
-        // Update consultation status
-        await this.consultationRepo.updateStatus(consultationId, "COMPLETED");
-
-        // Update parent appointment status
-        await this.appointmentRepo.updateStatus(consultation.appointmentId, "COMPLETED");
+        // Update consultation status if it was in progress
+        if (consultation.status === "IN_PROGRESS") {
+            await this.consultationRepo.updateStatus(consultationId, "COMPLETED");
+            // Update parent appointment status
+            await this.appointmentRepo.updateStatus(consultation.appointmentId, "COMPLETED");
+        }
 
         return this.consultationRepo.findById(consultationId);
     }

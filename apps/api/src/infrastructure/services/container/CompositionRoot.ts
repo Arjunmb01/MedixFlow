@@ -175,7 +175,7 @@ export class CompositionRoot {
 
         // Appointment
         const bookAppointmentUseCase = new BookAppointmentUseCase(appointmentRepository, schedulingPolicy);
-        const cancelAppointmentUseCase = new CancelAppointmentUseCase(appointmentRepository);
+        const cancelAppointmentUseCase = new CancelAppointmentUseCase(appointmentRepository, consultationRepository);
         const getAllAppointmentsUseCase = new GetAllAppointmentsUseCase(appointmentRepository);
 
         // Consultation

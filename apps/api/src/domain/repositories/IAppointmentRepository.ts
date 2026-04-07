@@ -63,8 +63,13 @@ export interface AppointmentWithPatient extends AppointmentRecord {
     patientId: string;
     firstName: string;
     lastName: string;
+    email: string;
     phone?: string | null;
   };
+  consultation?: {
+    id: string;
+    status: string;
+  } | null;
 }
 
 
@@ -80,6 +85,7 @@ export interface AppointmentWithDoctorAndPatient extends AppointmentRecord {
     patientId: string;
     firstName: string;
     lastName: string;
+    email: string;
     phone?: string | null;
   };
 }
@@ -91,6 +97,7 @@ export interface AppointmentPreview extends AppointmentRecord {
     patientId: string;
     firstName: string;
     lastName: string;
+    email: string;
     phone?: string | null;
   };
   doctor: {

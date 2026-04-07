@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { completeConsultation, getConsultationDetails, getPatientHistory } from "@/infrastructure/api/consultation.api";
+import { getDoctorProfile } from "@/infrastructure/api/doctor.api";
 import { Loader2, ArrowLeft, Save, FileText, Activity, Stethoscope, Pill, History, ChevronDown, ChevronUp, AlertTriangle, X, Check } from "lucide-react";
 import DoctorSidebar from "../components/DoctorSidebar";
 import DoctorTopNav from "../components/DoctorTopNav";
@@ -57,6 +58,26 @@ interface ConsultationDetails {
         appointmentDate: string;
         slotStart: string;
     };
+    vitals?: Array<{
+        bloodPressure: string | null;
+        heartRate: number | null;
+        temperature: number | null;
+        weight: number | null;
+    }>;
+    medicalRecord?: {
+        symptoms: string;
+        diagnosis: string;
+        notes: string | null;
+    } | null;
+    prescription?: {
+        instructions: string | null;
+        medicines: Array<{
+            name: string;
+            dosage: string;
+            frequency: string;
+            duration: string;
+        }>;
+    } | null;
 }
 
 export default function ConsultationWorkspace() {
@@ -64,6 +85,7 @@ export default function ConsultationWorkspace() {
     const navigate = useNavigate();
 
     const [consultation, setConsultation] = useState<ConsultationDetails | null>(null);
+    const [doctorProfile, setDoctorProfile] = useState<any>(null);
     const [pastVisits, setPastVisits] = useState<PastVisit[]>([]);
     const [expandedVisit, setExpandedVisit] = useState<string | null>(null);
     const [isLoadingDetails, setIsLoadingDetails] = useState(true);
@@ -98,7 +120,17 @@ export default function ConsultationWorkspace() {
 
     useEffect(() => {
         if (id) fetchConsultation();
+        fetchProfile();
     }, [id]);
+
+    const fetchProfile = async () => {
+        try {
+            const profile = await getDoctorProfile();
+            setDoctorProfile(profile);
+        } catch (error) {
+            console.error("Failed to fetch doctor profile", error);
+        }
+    };
 
     const fetchConsultation = async () => {
         try {
@@ -110,6 +142,30 @@ export default function ConsultationWorkspace() {
                 const history = await getPatientHistory(data.patientId);
                 // Filter out current consultation from history
                 setPastVisits(history.filter((h: PastVisit) => h.id !== id));
+            }
+
+            // Pre-populate form if data exists (e.g. for completed or resumed consultations)
+            if (data.vitals && data.vitals.length > 0) {
+                const latestVitals = data.vitals[0];
+                setVitals({
+                    bloodPressure: latestVitals.bloodPressure || "",
+                    heartRate: latestVitals.heartRate?.toString() || "",
+                    temperature: latestVitals.temperature?.toString() || "",
+                    weight: latestVitals.weight?.toString() || "",
+                });
+            }
+            if (data.medicalRecord) {
+                setMedicalRecord({
+                    symptoms: data.medicalRecord.symptoms || "",
+                    diagnosis: data.medicalRecord.diagnosis || "",
+                    notes: data.medicalRecord.notes || "",
+                });
+            }
+            if (data.prescription) {
+                setPrescription({
+                    instructions: data.prescription.instructions || "",
+                    medicines: data.prescription.medicines || [],
+                });
             }
         } catch (error) {
             console.error("Failed to fetch consultation details", error);
@@ -184,7 +240,11 @@ export default function ConsultationWorkspace() {
             <div className="flex h-screen bg-gray-50">
                 <DoctorSidebar />
                 <div className="flex-1 flex flex-col overflow-hidden">
-                    <DoctorTopNav />
+                    <DoctorTopNav 
+                        doctorName={doctorProfile ? `Dr. ${doctorProfile.firstName} ${doctorProfile.lastName}` : "Loading..."}
+                        doctorSpecialty={doctorProfile?.specialty}
+                        avatarUrl={doctorProfile?.avatarUrl}
+                    />
                     <div className="flex-1 flex items-center justify-center">
                         <div className="text-center">
                             <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto mb-3" />
@@ -211,9 +271,9 @@ export default function ConsultationWorkspace() {
                         <h1 className="text-xl font-bold text-gray-900">
                             Consultation — {consultation?.patient.firstName} {consultation?.patient.lastName}
                         </h1>
-                        <p className="text-sm text-green-600 font-medium flex items-center gap-1.5 mt-0.5">
-                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                            In Progress
+                        <p className={`text-sm font-medium flex items-center gap-1.5 mt-0.5 ${consultation?.status === 'COMPLETED' ? 'text-blue-600' : 'text-green-600'}`}>
+                            <span className={`w-2 h-2 rounded-full animate-pulse ${consultation?.status === 'COMPLETED' ? 'bg-blue-500' : 'bg-green-500'}`}></span>
+                            {consultation?.status === 'COMPLETED' ? 'Consultation Completed (Edit Mode)' : 'In Progress'}
                         </p>
                     </div>
                 </div>
@@ -224,7 +284,7 @@ export default function ConsultationWorkspace() {
                         className="bg-[#0066cc] hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all disabled:opacity-70 shadow-lg shadow-blue-200"
                     >
                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Complete & Save EMR
+                        {consultation?.status === 'COMPLETED' ? 'Update Consultation' : 'Complete & Save EMR'}
                     </button>
                 </div>
             </header>
@@ -529,9 +589,13 @@ export default function ConsultationWorkspace() {
                                 <AlertTriangle className="w-7 h-7 text-amber-600" />
                             </div>
 
-                            <h2 className="text-2xl font-black text-gray-900 mb-2">Complete & Save Consultation?</h2>
+                            <h2 className="text-2xl font-black text-gray-900 mb-2">
+                                {consultation?.status === "COMPLETED" ? "Update Consultation details?" : "Complete & Save Consultation?"}
+                            </h2>
                             <p className="text-gray-500 font-medium mb-6">
-                                This action will finalize the EMR. Please review the summary below before confirming.
+                                {consultation?.status === "COMPLETED" 
+                                    ? "This action will update the existing clinical record. Please review the changes before confirming."
+                                    : "This action will finalize the EMR. Please review the summary below before confirming."}
                             </p>
 
                             {/* Summary */}
@@ -574,7 +638,7 @@ export default function ConsultationWorkspace() {
                                     ) : (
                                         <Check className="w-4 h-4" />
                                     )}
-                                    Confirm & Save
+                                    {consultation?.status === "COMPLETED" ? "Confirm & Update" : "Confirm & Save"}
                                 </button>
                             </div>
                         </div>
