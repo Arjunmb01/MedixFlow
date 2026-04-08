@@ -26,6 +26,7 @@ import { JwtTokenService } from "../JwtTokenService";
 import { GoogleAuthService } from "../GoogleAuthService";
 import { SmtpEmailService } from "../SmtpEmailService";
 import { PatientIdGenerator } from "../PatientIdGenerator";
+import { SystemDateTimeService } from "../SystemDateTimeService";
 import redisClient from "../redisClient";
 
 // Use Cases - Auth
@@ -100,10 +101,14 @@ import { AdminAuthController } from "@/presentation/controllers/AdminAuthControl
 import { AppointmentController } from "@/presentation/controllers/AppointmentController";
 import { ConsultationController } from "@/presentation/controllers/ConsultationController";
 import { DoctorAuthController } from "@/presentation/controllers/DoctorAuthController";
-import { DoctorController } from "@/presentation/controllers/DoctorController";
+import { DoctorProfileController } from "@/presentation/controllers/DoctorProfileController";
+import { DoctorAppointmentController } from "@/presentation/controllers/DoctorAppointmentController";
+import { DoctorClinicalController } from "@/presentation/controllers/DoctorClinicalController";
 import { DoctorSlotController } from "@/presentation/controllers/DoctorSlotController";
 import { PatientAuthController } from "@/presentation/controllers/PatientAuthController";
-import { PatientController } from "@/presentation/controllers/PatientController";
+import { PatientProfileController } from "@/presentation/controllers/PatientProfileController";
+import { PatientAppointmentController } from "@/presentation/controllers/PatientAppointmentController";
+import { AdminPatientController } from "@/presentation/controllers/AdminPatientController";
 import { PublicDoctorController } from "@/presentation/controllers/PublicDoctorController";
 import { SlotController } from "@/presentation/controllers/SlotController";
 import { StaffController } from "@/presentation/controllers/StaffController";
@@ -111,7 +116,6 @@ import { createAuthMiddleware } from "@/presentation/controllers/middleware/auth
 
 export class CompositionRoot {
     static assemble() {
-        // 1. Core Config & Clients
         const jwtConfig = {
             jwtAccessSecret: config.jwtAccessSecret,
             jwtRefreshSecret: config.jwtRefreshSecret
@@ -125,7 +129,6 @@ export class CompositionRoot {
             frontendUrl: config.frontendUrl
         };
 
-        // 2. Mappers
         const consultationMapper = new ConsultationMapper();
         const doctorMapper = new DoctorMapper();
         const patientMapper = new PatientMapper();
@@ -135,6 +138,7 @@ export class CompositionRoot {
         // 3. Infrastructure Services
         const passwordHasher = new BcryptPasswordHasher();
         const schedulingPolicy = new SchedulingPolicy();
+        const dateTimeService = new SystemDateTimeService();
         const redisSessionService = new RedisSessionService(redisClient);
         const emailService = new SmtpEmailService(smtpConfig);
         const emailOtpService = new EmailOtpService(redisClient, emailService);
@@ -143,13 +147,13 @@ export class CompositionRoot {
         const patientIdGenerator = new PatientIdGenerator(prisma);
 
         // 4. Repositories
-        const patientRepository = new PatientRepository(prisma, patientMapper);
+        const patientRepository = new PatientRepository(prisma, patientMapper, dateTimeService);
         const doctorRepository = new DoctorRepository(prisma, doctorMapper, schedulingPolicy);
         const staffRepository = new StaffRepository(prisma, doctorMapper, passwordHasher);
         const authRepository = new AuthRepository(prisma, patientIdGenerator);
         const slotRepository = new SlotRepository(prisma, slotMapper);
-        const consultationRepository = new ConsultationRepository(prisma, consultationMapper);
-        const appointmentRepository = new AppointmentRepository(prisma, appointmentMapper);
+        const consultationRepository = new ConsultationRepository(prisma, consultationMapper, dateTimeService);
+        const appointmentRepository = new AppointmentRepository(prisma, appointmentMapper, dateTimeService);
 
         // 5. App Logic
         const calculateProfileCompletionUseCase = new CalculateProfileCompletionUseCase();
@@ -171,15 +175,15 @@ export class CompositionRoot {
         // Admin
         const toggleBlockPatientUseCase = new ToggleBlockPatientUseCase(patientRepository, redisSessionService);
         const deletePatientUseCase = new DeletePatientUseCase(patientRepository);
-        const getPatientStatsUseCase = new GetPatientStatsUseCase(patientRepository);
+        const getPatientStatsUseCase = new GetPatientStatsUseCase(patientRepository, staffRepository);
 
         // Appointment
-        const bookAppointmentUseCase = new BookAppointmentUseCase(appointmentRepository, schedulingPolicy);
+        const bookAppointmentUseCase = new BookAppointmentUseCase(appointmentRepository, schedulingPolicy, dateTimeService);
         const cancelAppointmentUseCase = new CancelAppointmentUseCase(appointmentRepository, consultationRepository);
         const getAllAppointmentsUseCase = new GetAllAppointmentsUseCase(appointmentRepository);
 
         // Consultation
-        const checkinPatientUseCase = new CheckinPatientUseCase(appointmentRepository, consultationRepository);
+        const checkinPatientUseCase = new CheckinPatientUseCase(appointmentRepository, consultationRepository, dateTimeService);
         const completeConsultationUseCase = new CompleteConsultationUseCase(consultationRepository, appointmentRepository);
         const getConsultationDetailsUseCase = new GetConsultationDetailsUseCase(consultationRepository);
         const getDoctorQueueUseCase = new GetDoctorQueueUseCase(consultationRepository);
@@ -189,8 +193,8 @@ export class CompositionRoot {
         // Doctor
         const getAllDoctorsUseCase = new GetAllDoctorsUseCase(doctorRepository);
         const getConsultedPatientsUseCase = new GetConsultedPatientsUseCase(doctorRepository);
-        const getDoctorAppointmentsUseCase = new GetDoctorAppointmentsUseCase(appointmentRepository);
-        const getDoctorDashboardStatsUseCase = new GetDoctorDashboardStatsUseCase(doctorRepository);
+        const getDoctorAppointmentsUseCase = new GetDoctorAppointmentsUseCase(appointmentRepository, dateTimeService);
+        const getDoctorDashboardStatsUseCase = new GetDoctorDashboardStatsUseCase(doctorRepository, dateTimeService);
         const getDoctorPrescriptionsUseCase = new GetDoctorPrescriptionsUseCase(doctorRepository);
         const getDoctorProfileUseCase = new GetDoctorProfileUseCase(doctorRepository);
         const getPublicDoctorDetailsUseCase = new GetPublicDoctorDetailsUseCase(doctorRepository);
@@ -203,9 +207,9 @@ export class CompositionRoot {
         const getAllPatientsUseCase = new GetAllPatientsUseCase(patientRepository);
         const getPatientAppointmentsUseCase = new GetPatientAppointmentsUseCase(appointmentRepository);
         const getPatientByIdUseCase = new GetPatientByIdUseCase(patientRepository);
-        const getPatientDashboardStatsUseCase = new GetPatientDashboardStatsUseCase(appointmentRepository, patientRepository, calculateProfileCompletionUseCase);
+        const getPatientDashboardStatsUseCase = new GetPatientDashboardStatsUseCase(appointmentRepository, patientRepository, calculateProfileCompletionUseCase, dateTimeService);
         const getPatientProfileUseCase = new GetPatientProfileUseCase(patientRepository, calculateProfileCompletionUseCase);
-        const getUpcomingAppointmentsUseCase = new GetUpcomingAppointmentsUseCase(appointmentRepository);
+        const getUpcomingAppointmentsUseCase = new GetUpcomingAppointmentsUseCase(appointmentRepository, dateTimeService);
         const updateEmergencyContactUseCase = new UpdateEmergencyContactUseCase(patientRepository);
         const updatePasswordUseCase = new UpdatePasswordUseCase(patientRepository, passwordHasher);
         const updatePatientProfileUseCase = new UpdatePatientProfileUseCase(patientRepository, calculateProfileCompletionUseCase);
@@ -239,10 +243,17 @@ export class CompositionRoot {
             loginDoctorUseCase, refreshTokenUseCase, logoutUseCase, forgotPasswordUseCase, resetPasswordUseCase
         );
         
-        const doctorController = new DoctorController(
-            getDoctorProfileUseCase, updateDoctorProfileUseCase, updateDoctorPasswordUseCase, 
-            getDoctorDashboardStatsUseCase, updateDoctorSchedulesUseCase, getDoctorAppointmentsUseCase, 
-            generateSlotsUseCase, getConsultedPatientsUseCase, getDoctorPrescriptionsUseCase, updatePrescriptionUseCase
+        const doctorProfileController = new DoctorProfileController(
+            getDoctorProfileUseCase, updateDoctorProfileUseCase, updateDoctorPasswordUseCase
+        );
+        
+        const doctorAppointmentController = new DoctorAppointmentController(
+            getDoctorDashboardStatsUseCase, getDoctorAppointmentsUseCase, 
+            updateDoctorSchedulesUseCase, generateSlotsUseCase
+        );
+
+        const doctorClinicalController = new DoctorClinicalController(
+            getConsultedPatientsUseCase, getDoctorPrescriptionsUseCase, updatePrescriptionUseCase
         );
         
         const doctorSlotController = new DoctorSlotController(getAvailableSlotCase);
@@ -252,11 +263,19 @@ export class CompositionRoot {
             refreshTokenUseCase, logoutUseCase, resendOtpUseCase, forgotPasswordUseCase, resetPasswordUseCase
         );
         
-        const patientController = new PatientController(
+        const patientProfileController = new PatientProfileController(
             updatePatientProfileUseCase, updateEmergencyContactUseCase, getPatientProfileUseCase, 
-            updatePasswordUseCase, getAllPatientsUseCase, getPatientByIdUseCase, 
-            toggleBlockPatientUseCase, deletePatientUseCase, getPatientStatsUseCase, getUpcomingAppointmentsUseCase, 
-            getPatientDashboardStatsUseCase, getPatientAppointmentsUseCase, cancelAppointmentUseCase, getAllAppointmentsUseCase
+            updatePasswordUseCase
+        );
+
+        const patientAppointmentController = new PatientAppointmentController(
+            getUpcomingAppointmentsUseCase, getPatientDashboardStatsUseCase, getPatientAppointmentsUseCase, 
+            cancelAppointmentUseCase
+        );
+
+        const adminPatientController = new AdminPatientController(
+            getAllPatientsUseCase, getPatientByIdUseCase, toggleBlockPatientUseCase, 
+            deletePatientUseCase, getPatientStatsUseCase, getAllAppointmentsUseCase
         );
 
         const publicDoctorController = new PublicDoctorController(getAllDoctorsUseCase, getPublicDoctorDetailsUseCase);
@@ -273,10 +292,14 @@ export class CompositionRoot {
             appointmentController,
             consultationController,
             doctorAuthController,
-            doctorController,
+            doctorProfileController,
+            doctorAppointmentController,
+            doctorClinicalController,
             doctorSlotController,
             patientAuthController,
-            patientController,
+            patientProfileController,
+            patientAppointmentController,
+            adminPatientController,
             publicDoctorController,
             slotController,
             staffController,

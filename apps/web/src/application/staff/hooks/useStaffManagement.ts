@@ -51,9 +51,9 @@ export const useStaffManagement = () => {
 
     const handleBlockDoctor = async (id: string, currentStatus: string) => {
         try {
-            const newStatus = currentStatus === "BLOCKED" ? "ACTIVE" : "BLOCKED";
+            const newStatus = currentStatus === "SUSPENDED" ? "ACTIVE" : "SUSPENDED";
             await blockDoctor(id, newStatus);
-            toast.success(`Doctor ${newStatus === 'BLOCKED' ? 'blocked' : 'unblocked'} successfully`);
+            toast.success(`Doctor ${newStatus === 'SUSPENDED' ? 'suspended' : 'activated'} successfully`);
             await fetchDoctors();
         } catch (error: any) {
             toast.error("Failed to update status");

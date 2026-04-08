@@ -13,17 +13,34 @@ import {
     X,
     CheckCircle2,
     AlertCircle,
-    Eye
+    Eye,
+    FileText,
+    ChevronLeft,
+    ChevronRight,
+    Pill
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import Badge from "../../patient/components/ui/Badge";
 
 export default function DoctorAppointments() {
     const { profile } = useDoctorDashboard();
-    const { appointments, loading } = useDoctorAppointments();
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
+    const [fromDate, setFromDate] = useState("");
+    const [toDate, setToDate] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
     const [selectedApt, setSelectedApt] = useState<any | null>(null);
+    const [selectedPrescription, setSelectedPrescription] = useState<any | null>(null);
+
+    const apiFilters = useMemo(() => ({
+        status: statusFilter === "ALL" ? undefined : statusFilter,
+        fromDate: fromDate || undefined,
+        toDate: toDate || undefined,
+        page: currentPage,
+        limit: 4
+    }), [statusFilter, fromDate, toDate, currentPage]);
+
+    const { appointments, loading, meta } = useDoctorAppointments(apiFilters);
 
     const filteredAppointments = useMemo(() => {
         return appointments.filter(apt => {
@@ -93,6 +110,40 @@ export default function DoctorAppointments() {
                                     <option value="CANCELLED">Cancelled</option>
                                 </select>
                             </div>
+
+                            <div className="flex items-center gap-2">
+                                <div className="relative">
+                                    <input 
+                                        type="date"
+                                        value={fromDate}
+                                        onChange={(e) => setFromDate(e.target.value)}
+                                        className="pl-4 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl text-xs font-bold text-gray-600 focus:outline-none focus:border-teal-600 transition-all cursor-pointer"
+                                        placeholder="From"
+                                    />
+                                    <span className="absolute -top-2 left-4 bg-white px-1 text-[10px] font-black text-gray-400 uppercase tracking-tighter">From</span>
+                                </div>
+                                <div className="relative">
+                                    <input 
+                                        type="date"
+                                        value={toDate}
+                                        onChange={(e) => setToDate(e.target.value)}
+                                        className="pl-4 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl text-xs font-bold text-gray-600 focus:outline-none focus:border-teal-600 transition-all cursor-pointer"
+                                        placeholder="To"
+                                    />
+                                    <span className="absolute -top-2 left-4 bg-white px-1 text-[10px] font-black text-gray-400 uppercase tracking-tighter">To</span>
+                                </div>
+                                
+                                {(statusFilter !== "ALL" || fromDate || toDate || searchTerm) && (
+                                    <button 
+                                        onClick={() => {setSearchTerm(""); setStatusFilter("ALL"); setFromDate(""); setToDate(""); setCurrentPage(1)}}
+                                        className="p-3.5 bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all flex items-center gap-2 group border border-transparent hover:border-red-100"
+                                        title="Clear all filters"
+                                    >
+                                        <X className="w-5 h-5" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Clear All</span>
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </header>
 
@@ -123,7 +174,7 @@ export default function DoctorAppointments() {
                                                 <div className="flex items-center gap-6 mt-4">
                                                     <div className="flex items-center gap-2">
                                                         <Calendar className="w-4 h-4 text-teal-600" />
-                                                        <span className="text-sm font-black text-gray-600">{formatDate(apt.appointmentDate)}</span>
+                                                        <span className="text-sm font-black text-gray-600">{formatDate(apt.appointmentDate as any)}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <Clock className="w-4 h-4 text-teal-600" />
@@ -140,9 +191,21 @@ export default function DoctorAppointments() {
                                             >
                                                 <Eye className="w-4 h-4" /> Details
                                             </button>
-                                            <button className="px-6 py-3 bg-teal-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-teal-700 transition-all shadow-lg shadow-teal-100 active:scale-95">
-                                                Reschedule
-                                            </button>
+                                            
+                                            {apt.status === 'COMPLETED' && (
+                                                <button 
+                                                    onClick={() => setSelectedPrescription(apt.consultation?.prescription)}
+                                                    className="px-6 py-3 bg-teal-50 text-teal-600 border border-teal-100 rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-teal-100 transition-all flex items-center gap-2"
+                                                >
+                                                    <FileText className="w-4 h-4" /> Prescriptions
+                                                </button>
+                                            )}
+
+                                            {(apt.status === 'PENDING' || apt.status === 'CONFIRMED') && new Date(apt.appointmentDate) >= new Date(new Date().setHours(0,0,0,0)) && (
+                                                <button className="px-6 py-3 bg-teal-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-teal-700 transition-all shadow-lg shadow-teal-100 active:scale-95">
+                                                    Reschedule
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))
@@ -154,10 +217,47 @@ export default function DoctorAppointments() {
                                     <h3 className="text-xl font-black text-gray-900 mb-2">No results found</h3>
                                     <p className="text-gray-400 font-medium max-w-xs text-center">We couldn't find any patient appointments matching your current criteria.</p>
                                     <button 
-                                        onClick={() => {setSearchTerm(""); setStatusFilter("ALL")}}
+                                        onClick={() => {setSearchTerm(""); setStatusFilter("ALL"); setFromDate(""); setToDate(""); setCurrentPage(1)}}
                                         className="mt-8 text-teal-600 font-black text-sm uppercase tracking-widest hover:underline"
                                     >
-                                        Clear Search
+                                        Clear Filters
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Pagination Controls */}
+                            {meta && meta.totalPages > 1 && (
+                                <div className="mt-12 flex items-center justify-center gap-2">
+                                    <button 
+                                        disabled={currentPage === 1}
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        className="p-3 bg-white border border-gray-100 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:border-teal-600 transition-all text-gray-600"
+                                    >
+                                        <ChevronLeft className="w-5 h-5" />
+                                    </button>
+                                    
+                                    <div className="flex items-center gap-2 px-4">
+                                        {[...Array(meta.totalPages)].map((_, i) => (
+                                            <button
+                                                key={i + 1}
+                                                onClick={() => setCurrentPage(i + 1)}
+                                                className={`w-10 h-10 rounded-xl text-sm font-black transition-all ${
+                                                    currentPage === i + 1 
+                                                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-100' 
+                                                    : 'bg-white text-gray-500 border border-gray-100 hover:border-teal-600'
+                                                }`}
+                                            >
+                                                {i + 1}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <button 
+                                        disabled={currentPage === meta.totalPages}
+                                        onClick={() => setCurrentPage(p => Math.min(meta.totalPages, p + 1))}
+                                        className="p-3 bg-white border border-gray-100 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:border-teal-600 transition-all text-gray-600"
+                                    >
+                                        <ChevronRight className="w-5 h-5" />
                                     </button>
                                 </div>
                             )}
@@ -198,7 +298,7 @@ export default function DoctorAppointments() {
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Date</span>
-                                    <span className="text-sm font-black text-gray-700">{formatDate(selectedApt.appointmentDate)}</span>
+                                    <span className="text-sm font-black text-gray-700">{formatDate(selectedApt.appointmentDate as any)}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Time</span>
@@ -231,6 +331,85 @@ export default function DoctorAppointments() {
                                     Dismiss
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Prescription Details Modal */}
+            {selectedPrescription && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#0F172A]/40 backdrop-blur-sm" onClick={() => setSelectedPrescription(null)} />
+                    <div className="relative bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                        {/* Header */}
+                        <div className="bg-teal-600 px-8 py-6 text-white">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
+                                        <Pill className="w-6 h-6 text-white" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-black uppercase tracking-tighter leading-none">Prescription</h2>
+                                        <p className="text-[10px] font-black text-teal-100 uppercase tracking-widest mt-1">Medical Assessment & Dosage</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setSelectedPrescription(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                                    <X className="w-6 h-6 text-white" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                            {/* Medicines List */}
+                            <div>
+                                <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                                    Prescribed Medications
+                                </p>
+                                <div className="space-y-3">
+                                    {selectedPrescription.medicines?.map((med: any, i: number) => (
+                                        <div key={i} className="flex items-center justify-between p-5 bg-gray-50 rounded-2xl border border-gray-100 hover:border-teal-100 transition-all">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-teal-600 font-black border border-gray-100 shadow-sm">
+                                                    {i + 1}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-black text-gray-900 text-[15px]">{med.name}</h4>
+                                                    <p className="text-xs font-bold text-gray-500">{med.dosage} • {med.frequency}</p>
+                                                </div>
+                                            </div>
+                                            <div className="px-4 py-1.5 bg-teal-50 text-teal-700 text-[10px] font-black uppercase tracking-widest rounded-lg border border-teal-100">
+                                                {med.duration}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {(!selectedPrescription.medicines || selectedPrescription.medicines.length === 0) && (
+                                        <div className="text-center py-12 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                                            <p className="text-gray-400 font-bold">No medications recorded.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Instructions */}
+                            {selectedPrescription.instructions && (
+                                <div className="p-6 bg-teal-50/50 rounded-3xl border border-teal-100">
+                                    <p className="text-[10px] font-black text-teal-600 uppercase tracking-widest mb-2">Instructions & Notes</p>
+                                    <p className="text-sm font-bold text-teal-900 leading-relaxed italic">
+                                        "{selectedPrescription.instructions}"
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-8 pt-0 flex justify-end">
+                            <button 
+                                onClick={() => setSelectedPrescription(null)}
+                                className="px-8 py-3 bg-gray-900 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-gray-800 transition-all shadow-lg shadow-gray-200"
+                            >
+                                Close Viewer
+                            </button>
                         </div>
                     </div>
                 </div>

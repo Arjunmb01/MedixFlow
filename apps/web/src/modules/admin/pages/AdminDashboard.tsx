@@ -40,14 +40,14 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     <StatCard 
                         label="TOTAL PATIENTS"
-                        value={loading ? "..." : stats.patientCount.toLocaleString()}
+                        value={loading ? "..." : (stats?.patientCount ?? 0).toLocaleString()}
                         icon={<Users className="w-5 h-5 text-teal-600" />}
                         iconBg="bg-teal-50"
                         subtitle={<span className="text-green-600 flex items-center gap-1 font-bold"><ArrowUpRight className="w-3 h-3" /> 12.4% vs last mo</span>}
                     />
                     <StatCard 
                         label="ACTIVE DOCTORS"
-                        value={loading ? "..." : stats.doctorCount.toLocaleString()}
+                        value={loading ? "..." : (stats?.doctorCount ?? 0).toLocaleString()}
                         icon={<UserPlus className="w-5 h-5 text-teal-600" />}
                         iconBg="bg-teal-50"
                         subtitle={<span className="text-gray-400 font-medium">Synced from Database</span>}

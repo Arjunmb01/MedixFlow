@@ -1,51 +1,47 @@
-import { useState, type ChangeEvent } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
 import { useAppDispatch } from "@/core/store/hooks"
 import { setAuth } from "../../store/authSlice"
-
 import { adminLogin } from "@/infrastructure/api/auth.api"
 import { toast } from "sonner"
+import { Eye, EyeOff, ShieldCheck, AlertCircle } from "lucide-react"
 
-import type { LoginPayload } from "../types/auth.types"
+const adminLoginSchema = z.object({
+  email: z.string().min(1, "Admin email is required").email("Invalid admin email format"),
+  password: z.string().min(1, "Access key is required")
+})
 
-import { Eye, EyeOff } from "lucide-react"
+type AdminLoginFormValues = z.infer<typeof adminLoginSchema>
 
 export default function AdminLogin() {
-
     const navigate = useNavigate()
     const dispatch = useAppDispatch()
 
-    const [form, setForm] = useState<LoginPayload>({
-        email: "",
-        password: ""
-    })
     const [showPassword, setShowPassword] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [loading, setLoading] = useState(false)
 
-    const handleChange = (
-        e: ChangeEvent<HTMLInputElement>
-    ) => {
+    const {
+        register,
+        handleSubmit,
+        formState: { errors }
+    } = useForm<AdminLoginFormValues>({
+        resolver: zodResolver(adminLoginSchema),
+        defaultValues: {
+            email: "",
+            password: ""
+        }
+    })
 
-        const { name, value } = e.target
-
-        setForm(prev => ({
-            ...prev,
-            [name]: value
-        }))
-
-    }
-
-    const handleSubmit = async (
-        e: ChangeEvent<HTMLFormElement>
-    ) => {
-
-        e.preventDefault()
+    const onFormSubmit = async (data: AdminLoginFormValues) => {
         setErrorMessage(null)
+        setLoading(true)
 
         try {
-
-            const response = await adminLogin(form)
+            const response = await adminLogin(data)
             const { accessToken } = response
             dispatch(
                 setAuth({
@@ -53,92 +49,117 @@ export default function AdminLogin() {
                     accessToken
                 })
             )
-            toast.success("Welcome back, Admin!")
+            toast.success("Welcome back, Super Admin!")
             navigate("/admin/dashboard")
-
         } catch (error: any) {
-
             console.error("Admin login failed:", error)
-            if (error.response?.data?.message) {
-                setErrorMessage(error.response.data.message)
-            } else {
-                setErrorMessage("Admin login failed. Please check your credentials.")
-            }
-
+            const msg = error.response?.data?.message || "Internal Access Error. Please check security protocols."
+            setErrorMessage(msg)
+        } finally {
+            setLoading(false)
         }
-
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-[#222222]">
+        <div className="flex items-center justify-center min-h-screen bg-[#121212] font-outfit">
+             {/* Cyberpunk grid background effect */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_-100px,#10b98115,transparent)]"></div>
+
             <form
-                onSubmit={handleSubmit}
-                className="bg-[#1e1e1e] p-10 rounded-xl border border-[#333333] w-[400px] shadow-2xl"
+                onSubmit={handleSubmit(onFormSubmit)}
+                noValidate
+                className="bg-[#1a1a1a] p-10 rounded-2xl border border-white/5 w-[420px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative z-10 overflow-hidden"
             >
-                {/* Logo */}
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-white mb-6">
-                   <span className="text-black font-bold text-xl">M</span>
+                {/* Security line at top */}
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#10b981] to-transparent"></div>
+
+                {/* Logo Section */}
+                <div className="text-center mb-8">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#10b981] to-[#059669] mb-5 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                       <ShieldCheck className="text-white w-8 h-8" />
+                    </div>
+                    <h2 className="text-2xl font-black text-white tracking-tight uppercase">
+                        Core Terminal
+                    </h2>
+                    <p className="text-[11px] font-bold text-gray-500 mt-1 uppercase tracking-[0.3em]">
+                        Administrative Security Layer
+                    </p>
                 </div>
 
-                <h2 className="text-[22px] font-semibold text-center text-white">
-                    System Admin
-                </h2>
-
-                <p className="text-[13px] text-gray-400 text-center mt-2 mb-8">
-                    Secure administrative access only
-                </p>
-
                 {errorMessage && (
-                    <div className="mb-6 p-3 bg-red-900/30 text-red-400 text-sm rounded-md border border-red-800/50 text-center">
-                        {errorMessage}
+                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold rounded-xl flex items-center gap-3 animate-in fade-in zoom-in-95">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        <span>{errorMessage}</span>
                     </div>
                 )}
 
-                <div className="mb-5">
-                    <label className="block text-[12px] text-gray-300 mb-1.5 font-medium">
-                        Admin Email
-                    </label>
-                    <input
-                        name="email"
-                        type="email"
-                        placeholder="admin@medixflow.com"
-                        className="w-full bg-[#666666] text-white border-none rounded-md px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#10b981] outline-none placeholder:text-gray-300/80 transition-all font-medium"
-                        value={form.email}
-                        onChange={handleChange}
-                        required
-                    />
-                </div>
-
-                <div className="mb-8">
-                    <label className="block text-[12px] text-gray-300 mb-1.5 font-medium">
-                        Secure Password
-                    </label>
-                    <div className="relative">
+                <div className="space-y-5">
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
+                            Auth Identifier
+                        </label>
                         <input
-                            name="password"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            className={`w-full bg-[#666666] text-white border-none rounded-md pl-3 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-[#10b981] outline-none placeholder:text-gray-300/80 transition-all font-bold ${!showPassword ? 'tracking-widest' : ''}`}
-                            value={form.password}
-                            onChange={handleChange}
-                            required
+                            {...register("email")}
+                            type="email"
+                            placeholder="SYSTEM_ROOT_ADMIN"
+                            className={`w-full bg-[#222222] text-white border-2 rounded-xl px-4 py-3.5 text-sm transition-all outline-none font-medium placeholder:text-gray-700 ${
+                                errors.email 
+                                    ? 'border-red-500/50 focus:border-red-500' 
+                                    : 'border-white/5 focus:border-[#10b981]/50 focus:bg-[#282828]'
+                            }`}
                         />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                        >
-                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
+                        {errors.email && (
+                            <p className="text-[10px] font-black text-red-500 uppercase tracking-widest ml-1 mt-1.5">
+                                [ACCESS_DENIED]: {errors.email.message}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="space-y-2">
+                         <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
+                            Encryption Key
+                        </label>
+                        <div className="relative group">
+                            <input
+                                {...register("password")}
+                                type={showPassword ? "text" : "password"}
+                                placeholder="••••••••"
+                                className={`w-full bg-[#222222] text-white border-2 rounded-xl pl-4 pr-12 py-3.5 text-sm transition-all outline-none font-bold tracking-widest placeholder:tracking-normal placeholder:font-medium placeholder:text-gray-700 ${
+                                    errors.password 
+                                        ? 'border-red-500/50 focus:border-red-500' 
+                                        : 'border-white/5 focus:border-[#10b981]/50 focus:bg-[#282828]'
+                                }`}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-[#10b981] transition-colors"
+                            >
+                                {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                            </button>
+                        </div>
+                        {errors.password && (
+                            <p className="text-[10px] font-black text-red-500 uppercase tracking-widest ml-1 mt-1.5">
+                                [KEY_REQUIRED]: {errors.password.message}
+                            </p>
+                        )}
                     </div>
                 </div>
 
                 <button
                     type="submit"
-                    className="w-full bg-[#10b981] hover:bg-[#0ea5e9] text-white font-medium py-2.5 text-[14px] rounded-md transition-colors"
+                    disabled={loading}
+                    className="w-full mt-10 bg-[#10b981] hover:bg-[#12d192] text-[#0a0a0a] font-black py-4 text-xs uppercase tracking-[0.2em] rounded-xl transition-all shadow-[0_10px_30px_rgba(16,185,129,0.2)] active:scale-[0.98] disabled:opacity-50"
                 >
-                    Sign in to Workspace
+                    {loading ? "Decrypting..." : "Initialize Workspace"}
                 </button>
+
+                <div className="text-center mt-10 opacity-30 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+                    <p className="text-[9px] font-black text-white uppercase tracking-[0.5em]">
+                        MedixFlow Protocol v2.4.0
+                    </p>
+                </div>
             </form>
         </div>
     )

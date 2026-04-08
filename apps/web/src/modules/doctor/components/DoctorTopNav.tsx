@@ -27,9 +27,6 @@ export default function DoctorTopNav({ doctorName = "Doctor", doctorSpecialty = 
                     <button className="p-2.5 rounded-xl bg-gray-50 text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-all border border-transparent hover:border-teal-100">
                         <MessageSquare className="w-5 h-5" />
                     </button>
-                    <button className="p-2.5 rounded-xl bg-gray-50 text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-all border border-transparent hover:border-teal-100">
-                        <MessageSquare className="w-5 h-5" />
-                    </button>
                 </div>
 
                 <div className="flex items-center gap-4 pl-6 border-l border-gray-100">

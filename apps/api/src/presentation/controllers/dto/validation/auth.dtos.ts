@@ -51,3 +51,13 @@ export const resetPasswordSchema = z.object({
       "Password must contain letters, numbers and symbols"
     ),
 });
+
+export const updatePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(
+      /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&]).+$/,
+      "Password must contain letters, numbers and symbols"
+    ),
+});

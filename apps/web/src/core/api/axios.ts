@@ -61,10 +61,11 @@ api.interceptors.response.use(
         const originalRequest = error.config
 
         const isLoginRequest = originalRequest.url?.includes("/auth/login") || originalRequest.url?.includes("/auth/google-login");
-        if (error.response?.status === 403 && error.response?.data?.code === "ACCOUNT_BLOCKED" && !isLoginRequest) {
+        if (error.response?.status === 403 && (error.response?.data?.code === "ACCOUNT_BLOCKED" || error.response?.data?.code === "ACCOUNT_SUSPENDED") && !isLoginRequest) {
             const role = getRoleFromUrl(originalRequest.url);
             store.dispatch(logout({ role: role as any }));
-            toast.error("Your account has been blocked by the administrator. Please contact support.");
+            const isSuspended = error.response?.data?.code === "ACCOUNT_SUSPENDED";
+            toast.error(isSuspended ? "Your account has been suspended. Please contact support." : "Your account has been blocked by the administrator. Please contact support.");
             window.location.href = getLoginPath(role);
             return Promise.reject(error);
         }

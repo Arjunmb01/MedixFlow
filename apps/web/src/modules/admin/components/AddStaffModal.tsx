@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { X, Clock } from "lucide-react"
 import { toast } from "sonner"
+import ConfirmModal from "./ConfirmModal"
 import { createDoctor, updateStaffDoctor } from "@/infrastructure/api/staff.api"
 import type { DoctorProfile } from "@/domain/doctor/types/doctor.types"
 import { SPECIALTY_OPTIONS } from "../types/specialty"
@@ -52,6 +53,9 @@ const days = [
 export default function AddStaffModal({ isOpen, onClose, onSuccess, staffToEdit }: Props) {
     const [loading, setLoading] = useState(false)
     const [setupUrl, setSetupUrl] = useState<string | null>(null)
+
+    const [showConfirm, setShowConfirm] = useState(false)
+    const [pendingData, setPendingData] = useState<any>(null)
 
     const { register, control, handleSubmit, formState: { errors }, watch, reset } = useForm({
         resolver: zodResolver(schema),
@@ -122,7 +126,16 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess, staffToEdit 
         }
     }, [staffToEdit, reset])
 
-    const onSubmit = async (data: any) => { 
+    const onSubmit = (data: any) => {
+        setPendingData(data)
+        setShowConfirm(true)
+    }
+
+    const processSubmit = async () => {
+        const data = pendingData
+        if (!data) return
+
+        setShowConfirm(false)
         setLoading(true)
         setSetupUrl(null)
         try {
@@ -156,6 +169,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess, staffToEdit 
             toast.error(typeof msg === 'string' ? msg : "Validation failed. Please check your inputs.")
         } finally {
             setLoading(false)
+            setPendingData(null)
         }
     }
 
@@ -396,6 +410,15 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess, staffToEdit 
                     )}
                 </div>
             </div>
+
+            <ConfirmModal 
+                isOpen={showConfirm}
+                title={staffToEdit ? "Confirm Update" : "Confirm Registration"}
+                message={staffToEdit ? "Are you sure you want to save the changes to this staff profile?" : "Are you sure you want to register this new staff member?"}
+                confirmText={staffToEdit ? "Save Changes" : "Create Account"}
+                onConfirm={processSubmit}
+                onClose={() => setShowConfirm(false)}
+            />
         </div>
     )
 }

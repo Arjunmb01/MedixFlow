@@ -1,6 +1,6 @@
 import { AppointmentStatus } from "../value-objects/enums/AppointmentStatus";
 
-import { CreateAppointmentInput, DoctorScheduleInput } from "../value-objects/types/appointment.types";
+import { CreateAppointmentInput, DoctorAppointmentFilter, DoctorScheduleInput } from "../value-objects/types/appointment.types";
 
 export interface AppointmentRecord {
   id: string;
@@ -11,6 +11,7 @@ export interface AppointmentRecord {
   slotEnd: string;
   status: AppointmentStatus | string;
   reason?: string | null;
+  notes?: string | null;
   createdAt: Date;
 }
 
@@ -69,6 +70,17 @@ export interface AppointmentWithPatient extends AppointmentRecord {
   consultation?: {
     id: string;
     status: string;
+    prescription?: {
+      id: string;
+      instructions?: string | null;
+      medicines: Array<{
+        id: string;
+        name: string;
+        dosage: string;
+        frequency: string;
+        duration: string;
+      }>;
+    } | null;
   } | null;
 }
 
@@ -129,7 +141,7 @@ export interface IAppointmentRepository {
   getAppointmentsByPatientId(patientId: string): Promise<AppointmentWithConsultation[]>;
   findById(id: string): Promise<AppointmentWithDoctorAndPatient | null>;
   cancelAppointment(id: string, reason: string): Promise<AppointmentRecord>;
-  getAppointmentsByDoctorId(doctorId: string): Promise<AppointmentWithPatient[]>;
+  getAppointmentsByDoctorId(doctorId: string, filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentWithPatient[]; total: number }>;
   getAllAppointments(): Promise<AppointmentPreview[]>;
   updateStatus(id: string, status: AppointmentStatus | string): Promise<AppointmentRecord>;
   getUpcomingByDoctorId(doctorId : string): Promise<AppointmentWithPatient[]>;

@@ -6,6 +6,14 @@ import { CompleteConsultationUseCase } from "../../application/use-cases/consult
 import { GetPatientHistoryUseCase } from "../../application/use-cases/consultation/getPatientHistory.usecase";
 import { GetConsultationDetailsUseCase } from "../../application/use-cases/consultation/getConsultationDetails.usecase";
 import { ConsultationResponseMapper } from "./dto/responses/ConsultationResponse.dto";
+import { 
+    appointmentIdParamSchema, 
+    getQueueQuerySchema, 
+    consultationIdSchema, 
+    completeConsultationSchema,
+    getHistoryQuerySchema 
+} from "./dto/validation/consultation.dtos";
+import { z } from "zod";
 
 export class ConsultationController {
     constructor(
@@ -20,7 +28,7 @@ export class ConsultationController {
     checkin = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
-            const appointmentId = req.params.appointmentId as string;
+            const { appointmentId } = appointmentIdParamSchema.parse(req.params);
             const consultation = await this.checkinPatientUseCase.execute(appointmentId, patientId);
             res.json({ message: "Checked in successfully", data: consultation });
         } catch (error) {
@@ -31,8 +39,7 @@ export class ConsultationController {
     getQueue = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
-            const dateStr = req.query.date as string;
-            const date = dateStr ? new Date(dateStr) : new Date();
+            const { date } = getQueueQuerySchema.parse(req.query);
             const queue = await this.getDoctorQueueUseCase.execute(doctorId, date);
             res.json(queue);
         } catch (error) {
@@ -43,7 +50,7 @@ export class ConsultationController {
     start = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
-            const id = req.params.id as string;
+            const { id } = consultationIdSchema.parse(req.params);
             const consultation = await this.startConsultationUseCase.execute(id, doctorId);
             res.json({ message: "Consultation started", data: consultation });
         } catch (error) {
@@ -54,8 +61,8 @@ export class ConsultationController {
     complete = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
-            const id = req.params.id as string;
-            const { vitals, medicalRecord, prescription } = req.body;
+            const { id } = consultationIdSchema.parse(req.params);
+            const { vitals, medicalRecord, prescription } = completeConsultationSchema.parse(req.body);
             
             const consultation = await this.completeConsultationUseCase.execute(
                 id,
@@ -74,7 +81,7 @@ export class ConsultationController {
     getDetails = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
-            const id = req.params.id as string;
+            const { id } = consultationIdSchema.parse(req.params);
             
             const consultation = await this.getConsultationDetailsUseCase.execute({
                 id,
@@ -89,10 +96,7 @@ export class ConsultationController {
 
     getPatientHistory = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const patientId = req.query.patientId as string;
-            if (!patientId) {
-                return res.status(400).json({ message: "patientId query parameter is required" });
-            }
+            const { patientId } = getHistoryQuerySchema.parse(req.query);
             const history = await this.getPatientHistoryUseCase.execute(patientId);
             res.json(history);
         } catch (error) {

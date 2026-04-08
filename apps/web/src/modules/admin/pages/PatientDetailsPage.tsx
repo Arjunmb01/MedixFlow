@@ -19,6 +19,7 @@ import {
     XCircle
 } from "lucide-react"
 import { toast } from "sonner"
+import ConfirmModal from "../components/ConfirmModal"
 
 interface PatientDetails {
     id: string
@@ -50,6 +51,20 @@ export default function PatientDetailsPage() {
     const navigate = useNavigate()
     const [patient, setPatient] = useState<PatientDetails | null>(null)
     const [loading, setLoading] = useState(true)
+    const [confirmModalConfig, setConfirmModalConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        actionText: string;
+        onConfirm: () => void;
+        isDestructive?: boolean;
+    }>({
+        isOpen: false,
+        title: "",
+        message: "",
+        actionText: "",
+        onConfirm: () => {},
+    })
 
     const fetchDetails = async () => {
         if (!id) return
@@ -70,10 +85,10 @@ export default function PatientDetailsPage() {
 
     const handleToggleStatus = async () => {
         if (!patient) return
-        const newStatus = patient.user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+        const newStatus = patient.user.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
         try {
             await updatePatientStatus(patient.id, newStatus)
-            toast.success(`Patient account ${newStatus === 'ACTIVE' ? 'activated' : 'deactivated'} successfully`)
+            toast.success(`Patient account ${newStatus === 'ACTIVE' ? 'activated' : 'suspended'} successfully`)
             fetchDetails()
         } catch (error) {
             console.error("Failed to update status:", error)
@@ -83,7 +98,6 @@ export default function PatientDetailsPage() {
 
     const handleDelete = async () => {
         if (!patient) return
-        if (!window.confirm("Are you sure you want to delete this patient profile? This action cannot be undone.")) return
         try {
             await deletePatient(patient.id)
             toast.success("Patient profile deleted successfully")
@@ -260,7 +274,20 @@ export default function PatientDetailsPage() {
                             <h3 className="text-lg font-bold mb-6 font-outfit">Administrative Controls</h3>
                             <div className="space-y-4">
                                 <button 
-                                    onClick={handleToggleStatus}
+                                    onClick={() => {
+                                        const actionText = patient.user.status === 'ACTIVE' ? 'suspend' : 'activate'
+                                        setConfirmModalConfig({
+                                            isOpen: true,
+                                            title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Account`,
+                                            message: `Are you sure you want to ${actionText} this patient account? Their access will be updated immediately.`,
+                                            actionText: actionText.charAt(0).toUpperCase() + actionText.slice(1),
+                                            isDestructive: actionText === 'suspend',
+                                            onConfirm: () => {
+                                                setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))
+                                                handleToggleStatus()
+                                            }
+                                        })
+                                    }}
                                     className={`w-full py-3.5 px-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 ${
                                         patient.user.status === 'ACTIVE'
                                         ? 'bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20'
@@ -274,7 +301,19 @@ export default function PatientDetailsPage() {
                                     )}
                                 </button>
                                 <button 
-                                    onClick={handleDelete}
+                                    onClick={() => {
+                                        setConfirmModalConfig({
+                                            isOpen: true,
+                                            title: "Delete Patient profile",
+                                            message: "Are you sure you want to permanently delete this patient profile? This action cannot be undone.",
+                                            actionText: "Delete Profile",
+                                            isDestructive: true,
+                                            onConfirm: () => {
+                                                setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))
+                                                handleDelete()
+                                            }
+                                        })
+                                    }}
                                     className="w-full py-3.5 px-4 rounded-2xl bg-white/5 border border-white/10 font-bold text-sm text-white/50 flex items-center justify-center gap-2 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all active:scale-95"
                                 >
                                     <Trash2 className="w-4 h-4" /> Delete Profile
@@ -288,6 +327,16 @@ export default function PatientDetailsPage() {
                     </div>
                 </div>
             </main>
+
+            <ConfirmModal 
+                isOpen={confirmModalConfig.isOpen}
+                title={confirmModalConfig.title}
+                message={confirmModalConfig.message}
+                confirmText={confirmModalConfig.actionText}
+                isDestructive={confirmModalConfig.isDestructive}
+                onConfirm={confirmModalConfig.onConfirm}
+                onClose={() => setConfirmModalConfig(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     )
 }

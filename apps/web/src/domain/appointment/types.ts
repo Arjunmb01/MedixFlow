@@ -20,5 +20,19 @@ export interface Appointment {
         } | null;
     };
     reason?: string;
-    consultation?: any;
+    consultation?: {
+        id: string;
+        status: string;
+        prescription?: {
+            id: string;
+            instructions?: string | null;
+            medicines: Array<{
+                id: string;
+                name: string;
+                dosage: string;
+                frequency: string;
+                duration: string;
+            }>;
+        } | null;
+    } | null;
 }

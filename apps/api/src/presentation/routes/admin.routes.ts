@@ -3,17 +3,17 @@ import { authorize } from "@/presentation/controllers/middleware/authorize.middl
 import { container } from "@/infrastructure/services/container/CompositionRoot";
 
 const router = Router();
-const patientController = container.patientController;
+const adminController = container.adminPatientController;
 const authMiddleware = container.authMiddleware;
 
 router.use(authMiddleware, authorize(["ADMIN"]));
 
-router.get("/patients", patientController.getAllPatients);
-router.get("/patients/:id", patientController.getPatientById);
-router.put("/patients/:id/status", patientController.blockPatient);
-router.delete("/patients/:id", patientController.deletePatient);
-router.get("/stats", patientController.getPatientStats);
-router.get("/appointments", patientController.getAllAppointments.bind(patientController));
+router.get("/patients", adminController.getAllPatients);
+router.get("/patients/:id", adminController.getPatientById);
+router.put("/patients/:id/status", adminController.blockPatient);
+router.delete("/patients/:id", adminController.deletePatient);
+router.get("/stats", adminController.getPatientStats);
+router.get("/appointments", adminController.getAllAppointments);
 
 export default router;
 

@@ -1,4 +1,5 @@
 import { PrismaClient, ConsultationStatus, Consultation, Prisma } from "@prisma/client";
+import { IDateTimeService } from "@/domain/services/IDateTimeService";
 import { 
     IConsultationRepository, 
     CreateConsultationDTO,
@@ -22,7 +23,8 @@ import {
 export class ConsultationRepository implements IConsultationRepository {
     constructor(
         private readonly prisma: PrismaClient,
-        private readonly mapper: ConsultationMapper
+        private readonly mapper: ConsultationMapper,
+        private readonly dateTimeService: IDateTimeService
     ) {}
 
     async create(data: CreateConsultationDTO): Promise<ConsultationRecord> {
@@ -115,9 +117,9 @@ export class ConsultationRepository implements IConsultationRepository {
     async updateStatus(id: string, status: ConsultationStatus | string): Promise<ConsultationRecord> {
         const updateData: Prisma.ConsultationUpdateInput = { status: status as ConsultationStatus };
         if (status === "IN_PROGRESS") {
-            updateData.startedAt = new Date();
+            updateData.startedAt = this.dateTimeService.now();
         } else if (status === "COMPLETED") {
-            updateData.completedAt = new Date();
+            updateData.completedAt = this.dateTimeService.now();
         }
 
         const result = await this.prisma.consultation.update({

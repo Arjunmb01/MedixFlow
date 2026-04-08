@@ -56,7 +56,7 @@ export default function PatientDirectory() {
     }
 
     const handleToggleBlock = async (id: string, currentStatus: string) => {
-        const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+        const newStatus = currentStatus === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
         const success = await handleUpdatePatientStatus(id, newStatus)
         if (success) handleFetch()
     }
@@ -269,7 +269,7 @@ export default function PatientDirectory() {
                                                     </span>
                                                 </td>
                                                 <td className="px-8 py-5 text-right">
-                                                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div className="flex items-center justify-end gap-2 transition-opacity">
                                                         <button
                                                             onClick={() => navigate(`/admin/patients/${patient.id}`)}
                                                             className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg transition-all shadow-md active:scale-95"

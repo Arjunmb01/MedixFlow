@@ -13,6 +13,7 @@ export const MESSAGES = {
     LOGIN_SUCCESS: "Login successful",
     LOGIN_FAILED: "Invalid credentials",
     ACCOUNT_BLOCKED: "Your account has been blocked by the administrator. Please contact support.",
+    ACCOUNT_SUSPENDED: "Your account has been suspended by the administrator. Please contact support.",
     INVALID_ROLE_ADMIN: "Invalid admin login",
     INVALID_ROLE_PATIENT: "Invalid Patient Login",
     INVALID_ROLE_DOCTOR: "Invalid Doctor login",

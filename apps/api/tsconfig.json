@@ -6,10 +6,8 @@
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
-
-    "baseUrl": "./src",
     "paths": {
-      "@/*": ["*"]
+       "@/*": ["./src/*"]
     },
 
     "typeRoots": ["./node_modules/@types", "./src/core/types"]

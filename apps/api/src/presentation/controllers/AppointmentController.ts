@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { GetAvailableSlotCase } from "@/application/use-cases/slot/getAvailableSlots.usecase";
 import { BookAppointmentUseCase } from "@/application/use-cases/appointment/bookAppointment.usecase";
 import { StatusCode } from "@/shared/constants";
+import { getAvailableSlotsSchema, bookAppointmentSchema } from "./dto/validation/appointment.dtos";
 
 type GetSlotsParams = {
   doctorId: string;
@@ -14,43 +15,36 @@ export class AppointmentController {
 
     async getSlots (req : Request<GetSlotsParams>, res : Response) : Promise<void>{
         try {
-            const { doctorId } = req.params;
-            const { date } = req.query;
-
-            if(!doctorId || !date || typeof date !== 'string'){
-                res.status(StatusCode.BAD_REQUEST).json({message : "Invalid input"})
-                return;
-            }
+            const { params, query } = getAvailableSlotsSchema.parse({
+                params: req.params,
+                query: req.query
+            });
 
             const slots = await this.getSlotsUseCase.execute({ 
-                doctorId, 
-                date: new Date(date) 
+                doctorId: params.doctorId, 
+                date: query.date 
             });
             res.status(StatusCode.OK).json(slots)
 
         } catch (error) {
-            
             if(error instanceof Error) {
                 res.status(StatusCode.INTERNAL_SERVER_ERROR).json({message : error.message})
             }else {
                 res.status(StatusCode.INTERNAL_SERVER_ERROR).json({message : "Unknown error"})
             }
-
         }
     }
 
     async book (req : Request, res : Response) : Promise<void> {
         try {
-            const {patientId, doctorId,date, slotStart,slotEnd} = req.body
-
-
+            const data = bookAppointmentSchema.parse(req.body);
 
             const appointment = await this.bookUseCase.execute({
-                patientId,
-                doctorId,
-                appointmentDate : new Date(date),
-                slotStart,
-                slotEnd,
+                patientId: data.patientId,
+                doctorId: data.doctorId,
+                appointmentDate : data.date,
+                slotStart: data.slotStart,
+                slotEnd: data.slotEnd,
             })
 
             res.status(StatusCode.CREATED).json(appointment)
@@ -63,4 +57,4 @@ export class AppointmentController {
             }
         }
     }
- }
+ }

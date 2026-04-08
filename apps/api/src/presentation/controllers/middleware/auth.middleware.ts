@@ -15,7 +15,6 @@ export function createAuthMiddleware(
 
       const token = authHeader.split(" ")[1];
       const decoded = tokenService.verifyAccessToken(token);
-      console.log("[AuthMiddleware] Decoded Token:", decoded);
 
       const result = await authRepository.findUserById(decoded.id);
 
@@ -25,7 +24,7 @@ export function createAuthMiddleware(
         return res.status(401).json({ message: "User session not found" });
       }
 
-      if (result.user.status === "INACTIVE" || result.user.status === "SUSPENDED") {
+      if (result.user.status === "INACTIVE") {
         console.log("[AuthMiddleware] User is blocked:", result.user.status);
         return res.status(403).json({
           message: "Your account has been blocked by the administrator.",
@@ -33,14 +32,18 @@ export function createAuthMiddleware(
         });
       }
 
+      if (result.user.status === "SUSPENDED") {
+        console.log("[AuthMiddleware] User is suspended:", result.user.status);
+        return res.status(403).json({
+          message: "Your account has been suspended by the administrator.",
+          code: "ACCOUNT_SUSPENDED",
+        });
+      }
+
       req.user = {
         id: decoded.id,
         role: decoded.role,
       };
-
-      console.log("[AuthMiddleware] req.user set to:", req.user);
-
-
       next();
     } catch {
       return res.status(401).json({ message: "Invalid or expired token" });

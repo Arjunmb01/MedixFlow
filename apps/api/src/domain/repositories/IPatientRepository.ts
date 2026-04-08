@@ -15,5 +15,5 @@ export interface IPatientRepository {
   getPatients(query: PatientFilters & { page: number; limit: number }): Promise<PaginatedPatients>;
   toggleBlock(userId: string, status: UserStatus): Promise<void>;
   deletePatient(userId: string): Promise<void>;
-  getStats(): Promise<{ patientCount: number; doctorCount: number }>;
+  getStats(): Promise<{ total: number; active: number; blocked: number }>;
 }
