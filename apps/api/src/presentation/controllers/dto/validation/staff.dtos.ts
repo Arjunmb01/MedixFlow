@@ -13,7 +13,9 @@ export const createDoctorSchema = z.object({
       dayOfWeek: z.number().min(0).max(6),
       startTime: z.string(),
       endTime: z.string(),
-      slotDuration: z.number().default(30),
+      slotDurationMinutes: z.number().default(30),
+      slotCapacity: z.number().default(1),
+      fullDay: z.boolean().default(false),
       consultationType: z.enum(["VIDEO", "CLINIC"]).default("CLINIC")
   })).min(1)
 });
@@ -26,4 +28,29 @@ export const getDoctorsQuerySchema = z.object({
   status: z.nativeEnum(UserStatus).optional(),
   page: z.string().transform(val => parseInt(val) || 1).optional(),
   limit: z.string().transform(val => parseInt(val) || 10).optional()
+});
+
+import { AppointmentStatus } from "@/domain/value-objects/enums/AppointmentStatus";
+
+export const getDoctorAppointmentsQuerySchema = z.object({
+  status: z.nativeEnum(AppointmentStatus).optional(),
+  fromDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
+  toDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
+  type: z.enum(["upcoming", "past"]).optional(),
+  page: z.string().transform(val => parseInt(val) || 1).optional(),
+  limit: z.string().transform(val => parseInt(val) || 10).optional()
+});
+
+export const generateSlotsSchema = z.object({
+  date: z.string().transform(val => new Date(val))
+});
+
+export const updatePrescriptionSchema = z.object({
+  instructions: z.string().optional(),
+  medicines: z.array(z.object({
+    name: z.string().min(1, "Medicine name is required"),
+    dosage: z.string().min(1, "Dosage is required"),
+    frequency: z.string().min(1, "Frequency is required"),
+    duration: z.string().min(1, "Duration is required")
+  }))
 });

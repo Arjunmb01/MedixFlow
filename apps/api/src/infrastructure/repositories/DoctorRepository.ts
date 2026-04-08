@@ -93,7 +93,41 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
     }
 
     async getDashboardStats(userId: string, date?: Date): Promise<DoctorDashboardStats> {
-        const today = date ? new Date(date) : new Date();
+        // This will be deprecated/simplified as logic moves to Use Case
+        const raw = await this.getRawStats(userId, date || new Date());
+        
+        const sortedTodayAppointments = raw.todayAppointments
+            .sort((a, b) => {
+                const getStatusPriority = (apt: any) => {
+                    if (apt.consultation?.status === "IN_PROGRESS") return 3;
+                    if (apt.consultation?.status === "WAITING") return 2;
+                    if (apt.consultation?.status === "COMPLETED") return 1;
+                    return 0;
+                };
+
+                const priorityA = getStatusPriority(a);
+                const priorityB = getStatusPriority(b);
+
+                if (priorityA !== priorityB) return priorityB - priorityA;
+                return a.slotStart.localeCompare(b.slotStart);
+            })
+            .map((apt: any) => this.mapper.toAppointmentPreview(apt as PrismaAppointmentWithPatient));
+
+        return {
+            totalAppointments: raw.totalAppointments,
+            completedAppointments: raw.completedAppointments,
+            pendingAppointments: raw.pendingAppointments,
+            totalPatients: raw.uniquePatientsCount,
+            todayAppointments: sortedTodayAppointments,
+            todayAppointmentsCount: raw.todayAppointments.length,
+            pendingToday: raw.todayAppointments.filter(a => ["PENDING", "CONFIRMED"].includes(a.status)).length,
+            completedToday: raw.todayAppointments.filter(a => a.status === "COMPLETED").length,
+            totalEarnings: raw.totalEarnings
+        };
+    }
+
+    async getRawStats(userId: string, date: Date) {
+        const today = new Date(date);
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -103,7 +137,8 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             completedAppointments, 
             pendingAppointments, 
             uniquePatientsCount,
-            todayAppointmentsData
+            todayAppointments,
+            completedAptsForEarnings
         ] = await Promise.all([
             this._prisma.appointment.count({ where: { doctorId: userId } }),
             this._prisma.appointment.count({ where: { doctorId: userId, status: "COMPLETED" } }),
@@ -126,46 +161,21 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
                 orderBy: {
                     slotStart: "asc"
                 }
+            }),
+            this._prisma.appointment.findMany({
+                where: { doctorId: userId, status: "COMPLETED" },
+                include: { doctor: { select: { consultationFee: true } } }
             })
         ]);
 
-        const pendingToday = todayAppointmentsData.filter(a => ["PENDING", "CONFIRMED"].includes(a.status)).length;
-        const completedToday = todayAppointmentsData.filter(a => a.status === "COMPLETED").length;
-
-        // Calculate total earnings
-        const completedApts = await this._prisma.appointment.findMany({
-            where: { doctorId: userId, status: "COMPLETED" },
-            include: { doctor: true }
-        });
-        const totalEarnings = completedApts.reduce((acc, apt) => acc + (apt.doctor.consultationFee || 0), 0);
-
-        // Sort priority: IN_PROGRESS > WAITING > COMPLETED > Others
-        const sortedTodayAppointments = todayAppointmentsData
-            .sort((a, b) => {
-                const getStatusPriority = (apt: any) => {
-                    if (apt.consultation?.status === "IN_PROGRESS") return 3;
-                    if (apt.consultation?.status === "WAITING") return 2;
-                    if (apt.consultation?.status === "COMPLETED") return 1;
-                    return 0;
-                };
-
-                const priorityA = getStatusPriority(a);
-                const priorityB = getStatusPriority(b);
-
-                if (priorityA !== priorityB) return priorityB - priorityA;
-                return a.slotStart.localeCompare(b.slotStart);
-            })
-            .map((apt: any) => this.mapper.toAppointmentPreview(apt as PrismaAppointmentWithPatient));
+        const totalEarnings = completedAptsForEarnings.reduce((acc, apt) => acc + (apt.doctor.consultationFee || 0), 0);
 
         return {
             totalAppointments,
             completedAppointments,
             pendingAppointments,
-            totalPatients: uniquePatientsCount,
-            todayAppointments: sortedTodayAppointments,
-            todayAppointmentsCount: todayAppointmentsData.length,
-            pendingToday,
-            completedToday,
+            uniquePatientsCount,
+            todayAppointments,
             totalEarnings
         };
     }

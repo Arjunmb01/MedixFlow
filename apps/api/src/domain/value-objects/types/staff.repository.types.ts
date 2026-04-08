@@ -42,7 +42,10 @@ export interface CreateDoctorInput {
         dayOfWeek: number;
         startTime: string;
         endTime: string;
-        slotDuration: number;
+        slotDurationMinutes: number;
+        slotCapacity: number;
+        fullDay: boolean;
+        consultationType: 'VIDEO' | 'CLINIC';
     }[];
 }
 

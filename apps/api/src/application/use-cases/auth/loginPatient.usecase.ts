@@ -42,8 +42,12 @@ export class LoginPatientUseCase {
       throw new Error(MESSAGES.INVALID_ROLE_PATIENT);
     }
 
-    if (user.status === "INACTIVE" || user.status === "SUSPENDED") {
+    if (user.status === "INACTIVE") {
       throw new Error(MESSAGES.ACCOUNT_BLOCKED);
+    }
+
+    if (user.status === "SUSPENDED") {
+      throw new Error(MESSAGES.ACCOUNT_SUSPENDED);
     }
 
     const valid = await this.passwordHasher.compare(data.password, user.passwordHash);

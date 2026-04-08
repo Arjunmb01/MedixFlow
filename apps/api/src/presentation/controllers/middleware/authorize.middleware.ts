@@ -10,8 +10,6 @@ export const authorize = (roles: string[]) => {
     const userRole = req.user.role.toUpperCase();
     const uppercaseRoles = roles.map(r => r.toUpperCase());
 
-    console.log("[AuthorizeMiddleware] Checking access. User Role (UC):", userRole, "Required Roles (UC):", uppercaseRoles);
-
     if (!uppercaseRoles.includes(userRole)) {
       console.log("[AuthorizeMiddleware] Access Denied for role:", userRole);
       return res.status(403).json({ message: "Access denied: insufficient permissions" });

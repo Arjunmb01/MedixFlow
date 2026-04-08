@@ -1,4 +1,4 @@
-import { DateTimeService } from "@/domain/services/DateTimeService";
+import { IDateTimeService } from "@/domain/services/IDateTimeService";
 import { IAppointmentRepository } from "../../../domain/repositories/IAppointmentRepository";
 import { IConsultationRepository } from "../../../domain/repositories/IConsultationRepository";
 import app from "@/app";
@@ -7,6 +7,7 @@ export class CheckinPatientUseCase {
     constructor(
         private readonly appointmentRepo: IAppointmentRepository,
         private readonly consultationRepo: IConsultationRepository,
+        private readonly dateTimeService: IDateTimeService
     ) {}
 
     async execute (appointmentId : string,patientId : string) {
@@ -16,7 +17,7 @@ export class CheckinPatientUseCase {
 
         if(appointment.patientId !== patientId) throw new Error("Unauthorized")
 
-        if(!DateTimeService.isWithinCheckInWindow(appointment.appointmentDate,appointment.slotStart)) {
+        if(!this.dateTimeService.isWithinCheckInWindow(appointment.appointmentDate,appointment.slotStart)) {
             throw new Error ("Check-in is only allowed within 15 minutes before the appointment Time")
         }
 

@@ -1,13 +1,14 @@
 import { IAppointmentRepository } from "../../../domain/repositories/IAppointmentRepository";
 import { IPatientRepository } from "../../../domain/repositories/IPatientRepository";
 import { CalculateProfileCompletionUseCase } from "./CalculateProfileCompletionUseCase";
-import { DateTimeService } from "../../../domain/services/DateTimeService";
+import { IDateTimeService } from "../../../domain/services/IDateTimeService";
 
 export class GetPatientDashboardStatsUseCase {
     constructor(
         private readonly appointmentRepo: IAppointmentRepository,
         private readonly patientRepo: IPatientRepository,
-        private readonly calculateProfileCompletionUseCase: CalculateProfileCompletionUseCase
+        private readonly calculateProfileCompletionUseCase: CalculateProfileCompletionUseCase,
+        private readonly dateTimeService: IDateTimeService
     ) {}
 
     async execute(userId: string) {
@@ -16,16 +17,16 @@ export class GetPatientDashboardStatsUseCase {
             this.patientRepo.findById(userId)
         ]);
 
-        const now = new Date();
+        const now = this.dateTimeService.now();
         const upcomingAppointments = appointments
             .filter(app => 
-                DateTimeService.isTodayOrFuture(app.appointmentDate) && 
+                this.dateTimeService.isTodayOrFuture(app.appointmentDate) && 
                 app.status !== "CANCELLED" && 
                 app.status !== "COMPLETED"
             )
             .sort((a, b) => {
-                const dateA = DateTimeService.toDateTime(a.appointmentDate, a.slotStart);
-                const dateB = DateTimeService.toDateTime(b.appointmentDate, b.slotStart);
+                const dateA = this.dateTimeService.toDateTime(a.appointmentDate, a.slotStart);
+                const dateB = this.dateTimeService.toDateTime(b.appointmentDate, b.slotStart);
                 return dateA.getTime() - dateB.getTime();
             });
         const nextAppointment = upcomingAppointments.length > 0 ? upcomingAppointments[0] : null;

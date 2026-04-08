@@ -5,8 +5,10 @@ export interface PatientProfile {
   id: string;
   firstName: string;
   lastName: string;
+  name?: string;
   email: string;
   phone: string;
+  mobile?: string;
   dob?: Date;
   gender?: Gender;
   bloodGroup?: string;

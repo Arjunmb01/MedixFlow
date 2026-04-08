@@ -1,4 +1,5 @@
 import { PrismaClient, Appointment, AppointmentStatus } from "@prisma/client";
+import { IDateTimeService } from "@/domain/services/IDateTimeService";
 import {
   IAppointmentRepository,
   AppointmentRecord,
@@ -7,16 +8,17 @@ import {
   AppointmentWithPatient,
   AppointmentPreview,
 } from "../../domain/repositories/IAppointmentRepository";
-import { CreateAppointmentInput, DoctorScheduleInput } from "../../domain/value-objects/types/appointment.types";
+import { CreateAppointmentInput, DoctorAppointmentFilter, DoctorScheduleInput } from "../../domain/value-objects/types/appointment.types";
 
-import { AppointmentMapper } from "../database/mappers/AppointmentMapper";
+import { AppointmentMapper, AppointmentStatusMapper } from "../database/mappers/AppointmentMapper";
 
 
 export class AppointmentRepository implements IAppointmentRepository {
   constructor(
     private readonly prisma: PrismaClient,
-    private readonly mapper: AppointmentMapper
-  ) {}
+    private readonly mapper: AppointmentMapper,
+    private readonly dateTimeService: IDateTimeService
+  ) { }
 
   async getDoctorSchedule(
     doctorId: string,
@@ -197,26 +199,84 @@ export class AppointmentRepository implements IAppointmentRepository {
     return results.map((r) => this.mapper.toWithPatient(r));
   }
 
-  async getAppointmentsByDoctorId(doctorId: string): Promise<AppointmentWithPatient[]> {
-    const results = await this.prisma.appointment.findMany({
-      where: { 
-        doctorId,
-        status : {
-          in: ["PENDING", "CONFIRMED"]
-        }
-       },
-      include: {
-        patient: {
-          include: { user: true },
+  async getAppointmentsByDoctorId(doctorId: string, filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentWithPatient[]; total: number }> {
+
+    const where: any = {
+      doctorId,
+    };
+
+
+    if (filter?.status) {
+      const validStatuses: AppointmentStatus[] = [
+        "PENDING",
+        "CONFIRMED",
+        "COMPLETED",
+        "CANCELLED",
+      ];
+
+      const prismaStatus = AppointmentStatusMapper.toPrisma(filter.status);
+      if (validStatuses.includes(prismaStatus)) {
+        where.status = prismaStatus;
+      }
+    }
+
+
+    if (filter?.fromDate || filter?.toDate) {
+      where.appointmentDate = {};
+
+      if (filter.fromDate) {
+        where.appointmentDate.gte = filter.fromDate;
+      }
+
+      if (filter.toDate) {
+        where.appointmentDate.lte = filter.toDate;
+      }
+    }
+
+
+    if (filter?.isUpcoming !== undefined) {
+      const now = this.dateTimeService.now();
+      where.appointmentDate = {
+        ...(where.appointmentDate || {}),
+        ...(filter.isUpcoming
+          ? { gte: now }
+          : { lt: now }),
+      };
+    }
+
+    const { page = 1, limit = 10 } = filter || {};
+    const skip = (page - 1) * limit;
+
+    const [appointments, total] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where,
+        include: {
+          patient: {
+            include: { user: true },
+          },
+          consultation: {
+            include: {
+              prescription: {
+                include: {
+                  medicines: true,
+                },
+              },
+            },
+          },
         },
-        consultation : true,
-      },
-      orderBy : [
-        {appointmentDate : "asc"},
-        {slotStart : "asc"}
-      ]
-    });
-    return results.map(r => this.mapper.toWithPatient(r));
+        orderBy: {
+          appointmentDate: "desc",
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.appointment.count({ where }),
+    ]);
+
+    return {
+      appointments: appointments.map(r => this.mapper.toWithPatient(r)),
+      total,
+    };
   }
 
   async getAllAppointments(): Promise<AppointmentPreview[]> {
@@ -235,14 +295,18 @@ export class AppointmentRepository implements IAppointmentRepository {
         appointmentDate: "desc",
       },
     });
-    return results.map(r => this.mapper.toPreview(r));
+    return results.map((r) => this.mapper.toPreview(r as any));
   }
 
   async updateStatus(id: string, status: AppointmentStatus | string): Promise<AppointmentRecord> {
     const result = await this.prisma.appointment.update({
       where: { id },
-      data: { status: status as AppointmentStatus },
+      data: {
+        status: status as AppointmentStatus,
+      },
     });
     return this.mapper.toRecord(result);
   }
 }
+
+

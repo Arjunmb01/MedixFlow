@@ -123,7 +123,10 @@ export class StaffRepository implements IStaffRepository {
                                     dayOfWeek: s.dayOfWeek,
                                     startTime: s.startTime,
                                     endTime: s.endTime,
-                                    slotDurationMinutes: s.slotDuration
+                                    slotDurationMinutes: s.slotDurationMinutes,
+                                    slotCapacity: s.slotCapacity,
+                                    fullDay: s.fullDay,
+                                    consultationType: s.consultationType
                                 }))
                             }
                         }
@@ -199,7 +202,10 @@ export class StaffRepository implements IStaffRepository {
                         dayOfWeek: s.dayOfWeek,
                         startTime: s.startTime,
                         endTime: s.endTime,
-                        slotDurationMinutes: s.slotDuration,
+                        slotDurationMinutes: s.slotDurationMinutes,
+                        slotCapacity: s.slotCapacity,
+                        fullDay: s.fullDay,
+                        consultationType: s.consultationType,
                         doctorId: profile.id
                     }))
                 });

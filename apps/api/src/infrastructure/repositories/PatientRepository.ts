@@ -1,5 +1,7 @@
-import { PrismaClient, UserStatus } from "@prisma/client";
+import { PrismaClient, UserStatus as PrismaUserStatus } from "@prisma/client";
 import { IPatientRepository } from "@/domain/repositories/IPatientRepository";
+import { IDateTimeService } from "@/domain/services/IDateTimeService";
+import { UserStatus } from "@/domain/value-objects/enums/UserStatus";
 
 import { PatientMapper, PrismaPatientWithUser } from "@/infrastructure/database/mappers/PatientMapper";
 import { Patient } from "@/domain/entities/Patient";
@@ -17,7 +19,8 @@ export class PatientRepository implements IPatientRepository {
 
     constructor(
         private readonly _prisma: PrismaClient,
-        private readonly mapper: PatientMapper
+        private readonly mapper: PatientMapper,
+        private readonly dateTimeService: IDateTimeService
     ) {
 
         this.model = this._prisma.patientProfile;
@@ -143,7 +146,7 @@ export class PatientRepository implements IPatientRepository {
     async toggleBlock(userId: string, status: UserStatus): Promise<void> {
         await this._prisma.user.update({
             where: { id: userId },
-            data: { status }
+            data: { status: status as any }
         });
     }
 
@@ -151,21 +154,25 @@ export class PatientRepository implements IPatientRepository {
         await this._prisma.user.update({
             where: { id: userId },
             data: {
-                deletedAt: new Date(),
-                status: "INACTIVE"
+                deletedAt: this.dateTimeService.now(),
+                status: UserStatus.INACTIVE as any
             }
         });
     }
 
-    async getStats(): Promise<{ patientCount: number; doctorCount: number }> {
-        const [patientCount, doctorCount] = await Promise.all([
-            this._prisma.patientProfile.count(),
-            this._prisma.doctorProfile.count()
+    async getStats(): Promise<{ total: number; active: number; blocked: number }> {
+        const [total, active, blocked] = await Promise.all([
+            this._prisma.patientProfile.count({
+                where: { user: { deletedAt: null } }
+            }),
+            this._prisma.patientProfile.count({
+                where: { user: { status: UserStatus.ACTIVE as any, deletedAt: null } }
+            }),
+            this._prisma.patientProfile.count({
+                where: { user: { status: UserStatus.INACTIVE as any, deletedAt: null } }
+            })
         ]);
 
-        return {
-            patientCount,
-            doctorCount
-        };
+        return { total, active, blocked };
     }
 }

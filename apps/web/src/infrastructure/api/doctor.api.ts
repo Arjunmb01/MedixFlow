@@ -21,8 +21,8 @@ export const getDoctorDashboardStats = async () => {
     return response.data;
 };
 
-export const getDoctorAppointments = async () => {
-    const response = await axiosInstance.get("/doctor/appointments");
+export const getDoctorAppointments = async (filters: any = {}) => {
+    const response = await axiosInstance.get("/doctor/appointments", { params: filters });
     return response.data;
 };
 

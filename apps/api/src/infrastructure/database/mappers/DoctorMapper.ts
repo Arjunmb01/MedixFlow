@@ -133,7 +133,7 @@ export class DoctorMapper {
           id: apt.id,
           firstName: apt.patient.firstName,
           lastName: apt.patient.lastName,
-          patientId: apt.patientId,
+          patientId: apt.patient.patientId,
           lastConsultationDate: apt.appointmentDate,
       };
   }

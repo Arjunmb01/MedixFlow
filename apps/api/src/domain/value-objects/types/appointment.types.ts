@@ -18,3 +18,14 @@ export interface AppointmentDateTime {
   appointmentDate: Date;
   slotStart : string
 }
+
+import { AppointmentStatus } from "../enums/AppointmentStatus";
+
+export type DoctorAppointmentFilter = {
+  status?: AppointmentStatus;
+  fromDate?: Date;
+  toDate?: Date;
+  isUpcoming?: boolean;
+  page?: number;
+  limit?: number;
+}

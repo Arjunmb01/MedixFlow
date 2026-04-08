@@ -3,7 +3,8 @@ import { authorize } from "@/presentation/controllers/middleware/authorize.middl
 import { container } from "@/infrastructure/services/container/CompositionRoot";
 
 const router = Router();
-const controller = container.patientController;
+const profileController = container.patientProfileController;
+const appointmentController = container.patientAppointmentController;
 const consultationController = container.consultationController;
 const authMiddleware = container.authMiddleware;
 
@@ -11,25 +12,25 @@ const authMiddleware = container.authMiddleware;
 router.use(authMiddleware);
 
 // Profile routes
-router.get("/profile", authorize(["PATIENT"]), controller.getPatientProfile);
-router.put("/profile", authorize(["PATIENT"]), controller.updatePatientProfile);
-router.put("/emergency-contacts", authorize(["PATIENT"]), controller.updateEmergencyContacts);
-router.put("/update-password", authorize(["PATIENT"]), controller.updatePassword);
+router.get("/profile", authorize(["PATIENT"]), profileController.getPatientProfile);
+router.put("/profile", authorize(["PATIENT"]), profileController.updatePatientProfile);
+router.put("/emergency-contacts", authorize(["PATIENT"]), profileController.updateEmergencyContacts);
+router.put("/update-password", authorize(["PATIENT"]), profileController.updatePassword);
 
-// Dashboard routes
-router.get("/appointments/upcoming", authorize(["PATIENT"]), controller.getUpcomingAppointments);
-router.get("/appointments/upcoming", authorize(["PATIENT"]), controller.getUpcomingAppointments);
-router.get("/appointments", authorize(["PATIENT"]), controller.getPatientAppointments);
-router.patch("/appointments/:id/cancel", authorize(["PATIENT"]), controller.cancelAppointment);
+// Dashboard/Appointment routes
+router.get("/appointments/upcoming", authorize(["PATIENT"]), appointmentController.getUpcomingAppointments);
+router.get("/appointments", authorize(["PATIENT"]), appointmentController.getPatientAppointments);
+router.patch("/appointments/:id/cancel", authorize(["PATIENT"]), appointmentController.cancelAppointment);
 router.post("/appointments/:appointmentId/checkin", authorize(["PATIENT"]), consultationController.checkin);
-router.get("/dashboard-stats", authorize(["PATIENT"]), controller.getPatientDashboardStats);
+router.get("/dashboard-stats", authorize(["PATIENT"]), appointmentController.getPatientDashboardStats);
 
-// Admin routes for patient management
-router.get("/all", authorize(["ADMIN"]), controller.getAllPatients);
-router.get("/stats", authorize(["ADMIN"]), controller.getPatientStats); // Updated from getDashboardStats to getPatientStats
-router.get("/:id", authorize(["ADMIN"]), controller.getPatientById);
-router.put("/:id/block", authorize(["ADMIN"]), controller.blockPatient);
-router.delete("/:id", authorize(["ADMIN"]), controller.deletePatient);
+// Admin routes for patient management (Note: These might be better in admin.routes.ts)
+const adminController = container.adminPatientController;
+router.get("/all", authorize(["ADMIN"]), adminController.getAllPatients);
+router.get("/stats", authorize(["ADMIN"]), adminController.getPatientStats);
+router.get("/:id", authorize(["ADMIN"]), adminController.getPatientById);
+router.put("/:id/block", authorize(["ADMIN"]), adminController.blockPatient);
+router.delete("/:id", authorize(["ADMIN"]), adminController.deletePatient);
 
 export default router;
 

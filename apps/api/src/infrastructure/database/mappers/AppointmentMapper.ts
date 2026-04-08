@@ -8,6 +8,8 @@ import {
     AppointmentPreview 
 } from "../../../domain/repositories/IAppointmentRepository";
 import { Prisma } from "@prisma/client";
+import { AppointmentStatus as PrismaAppointmentstatus } from "@prisma/client";
+import { AppointmentStatus as DomainAppointmentStatus } from "../../../domain/value-objects/enums/AppointmentStatus";
 
 type PrismaAppointmentWithDoctor = Prisma.AppointmentGetPayload<{
     include: {
@@ -76,6 +78,7 @@ export class AppointmentMapper {
             slotEnd: prismaApp.slotEnd,
             status: prismaApp.status,
             reason: prismaApp.reason,
+            notes: prismaApp.notes,
             createdAt: prismaApp.createdAt,
         };
     }
@@ -176,4 +179,15 @@ export class AppointmentMapper {
         };
     }
 
+};
+
+
+export class AppointmentStatusMapper {
+    static toPrisma(status : DomainAppointmentStatus) : PrismaAppointmentstatus {
+        return status as unknown as PrismaAppointmentstatus
+    }
+
+    static toDomain(status : PrismaAppointmentstatus) : DomainAppointmentStatus {
+        return status as unknown as DomainAppointmentStatus
+    }
 }

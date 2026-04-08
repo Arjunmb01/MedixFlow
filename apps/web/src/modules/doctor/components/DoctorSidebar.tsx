@@ -6,7 +6,6 @@ import { toast } from "sonner"
 import { 
     LayoutDashboard, 
     Calendar, 
-    Users, 
     MessageSquare, 
     FileText, 
     Settings,
@@ -19,7 +18,6 @@ const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/doctor/dashboard" },
     { icon: Clock, label: "Live Queue", path: "/doctor/queue" },
     { icon: Calendar, label: "Appointments", path: "/doctor/appointments" },
-    { icon: Users, label: "Patients", path: "/doctor/patients" },
     { icon: FileText, label: "Prescriptions", path: "/doctor/prescriptions" },
     { icon: UserCircle, label: "My Calendar", path: "/doctor/calendar" },
     { icon: MessageSquare, label: "Message", path: "/doctor/messages" },

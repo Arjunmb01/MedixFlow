@@ -1,24 +1,20 @@
-import app from "@/app";
 import { IAppointmentRepository } from "../../../domain/repositories/IAppointmentRepository";
-import { DateTimeService } from "@/domain/services/DateTimeService";
+import { IDateTimeService } from "@/domain/services/IDateTimeService";
 
 export class GetUpcomingAppointmentsUseCase {
-    constructor(private readonly appointmentRepo: IAppointmentRepository) {}
+    constructor(
+        private readonly appointmentRepo: IAppointmentRepository,
+        private readonly dateTimeService: IDateTimeService
+    ) {}
 
     async execute (patientId: string) {
         const appointments = await this.appointmentRepo.getAppointmentsByPatientId(patientId);
+        const now = this.dateTimeService.now();
 
-        return appointments.filter(app => {
-            const apptTime = DateTimeService.toDateTime(
-                app.appointmentDate,
-                app.slotStart
-            );
-
-            return (
-                apptTime >= new Date() &&
-                app.status !== "CANCELLED" &&
-                app.status !== "COMPLETED"
-            )
-        })
+        return appointments.filter(app => 
+            this.dateTimeService.isUpcoming(app.appointmentDate, app.slotStart) &&
+            app.status !== "CANCELLED" &&
+            app.status !== "COMPLETED"
+        );
     }
 }
