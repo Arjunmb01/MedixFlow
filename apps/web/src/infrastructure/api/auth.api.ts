@@ -1,5 +1,5 @@
 import axiosInstance from "@/core/api/axios";
-import type { LoginPayload, RegisterPayload, VerifyOtpPayload, ResendOtpPayload, ForgotPasswordPayload, ResetPasswordPayload } from "@/domain/auth/types/auth.types";
+import { UserRole, type LoginPayload, type RegisterPayload, type VerifyOtpPayload, type ResendOtpPayload, type ForgotPasswordPayload, type ResetPasswordPayload } from "@/domain/auth/types/auth.types";
 
 export const patientLogin = async (data: LoginPayload) => {
     const response = await axiosInstance.post("/auth/login", data);
@@ -56,22 +56,22 @@ export const googleLogin = async (idToken: string) => {
     return response.data;
 };
 
-export const refreshToken = async (role: "PATIENT" | "DOCTOR" | "ADMIN") => {
-    const endpoint = role === "PATIENT" ? "/auth/refresh-token" :
-                     role === "DOCTOR" ? "/doctor/auth/refresh-token" :
+export const refreshToken = async (role: UserRole) => {
+    const endpoint = role === UserRole.PATIENT ? "/auth/refresh-token" :
+                     role === UserRole.DOCTOR ? "/doctor/auth/refresh-token" :
                      "/admin/auth/refresh-token";
     const response = await axiosInstance.get(endpoint);
     return response.data;
 };
 
-export const logout = async (role: "PATIENT" | "DOCTOR" | "ADMIN" = "PATIENT") => {
-    const endpoint = role === "PATIENT" ? "/auth/logout" :
-                     role === "DOCTOR" ? "/doctor/auth/logout" :
+export const logout = async (role: UserRole = UserRole.PATIENT) => {
+    const endpoint = role === UserRole.PATIENT ? "/auth/logout" :
+                     role === UserRole.DOCTOR ? "/doctor/auth/logout" :
                      "/admin/auth/logout";
     const response = await axiosInstance.post(endpoint);
     return response.data;
 };
 
-export const patientLogout = () => logout("PATIENT");
-export const doctorLogout = () => logout("DOCTOR");
-export const adminLogout = () => logout("ADMIN");
+export const patientLogout = () => logout(UserRole.PATIENT);
+export const doctorLogout = () => logout(UserRole.DOCTOR);
+export const adminLogout = () => logout(UserRole.ADMIN);

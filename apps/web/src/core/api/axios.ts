@@ -2,6 +2,7 @@ import axios from "axios";
 import type { InternalAxiosRequestConfig } from "axios";
 import { store } from "../store/store";
 import { setAccessToken, logout } from "@/modules/store/authSlice";
+import { UserRole } from "@/domain/auth/types/auth.types";
 import { toast } from "sonner";
 
 const api = axios.create({
@@ -9,37 +10,37 @@ const api = axios.create({
     withCredentials: true
 })
 
-function getRoleFromUrl(url?: string): "ADMIN" | "PATIENT" | "DOCTOR" {
+function getRoleFromUrl(url?: string): UserRole {
     const state = store.getState();
     const persistedRole = state.auth.persistedRole;
 
-    if (url?.startsWith("/admin") || url?.includes("/admin/")) return "ADMIN";
-    if (url === "/doctor" || url?.startsWith("/doctor/") || (url?.includes("/doctor") && !url?.includes("/doctors"))) return "DOCTOR";
-    if (url === "/patient" || url?.startsWith("/patient/")) return "PATIENT";
+    if (url?.startsWith("/admin") || url?.includes("/admin/")) return UserRole.ADMIN;
+    if (url === "/doctor" || url?.startsWith("/doctor/") || (url?.includes("/doctor") && !url?.includes("/doctors"))) return UserRole.DOCTOR;
+    if (url === "/patient" || url?.startsWith("/patient/")) return UserRole.PATIENT;
     
     if ((url?.includes("/common/") || url?.includes("/doctors")) && typeof window !== "undefined") {
         const path = window.location.pathname;
-        if (path.startsWith("/admin")) return "ADMIN";
-        if (path.startsWith("/patient")) return "PATIENT";
-        if (path.startsWith("/doctor")) return "DOCTOR";
+        if (path.startsWith("/admin")) return UserRole.ADMIN;
+        if (path.startsWith("/patient")) return UserRole.PATIENT;
+        if (path.startsWith("/doctor")) return UserRole.DOCTOR;
     }
 
-    const finalRole = persistedRole || "PATIENT";
+    const finalRole = (persistedRole as UserRole) || UserRole.PATIENT;
     console.log(`[Axios] Detected role for URL ${url}: ${finalRole}`);
     return finalRole;
 }
 
 
 
-function getLoginPath(role: "ADMIN" | "PATIENT" | "DOCTOR") {
-    if (role === "ADMIN") return "/admin/login"
-    if (role === "DOCTOR") return "/doctor/login"
+function getLoginPath(role: UserRole) {
+    if (role === UserRole.ADMIN) return "/admin/login"
+    if (role === UserRole.DOCTOR) return "/doctor/login"
     return "/patient/login"
 }
 
-function getRefreshUrl(role: "ADMIN" | "PATIENT" | "DOCTOR") {
-    if (role === "ADMIN") return "http://localhost:5000/api/admin/auth/refresh-token"
-    if (role === "DOCTOR") return "http://localhost:5000/api/doctor/auth/refresh-token"
+function getRefreshUrl(role: UserRole) {
+    if (role === UserRole.ADMIN) return "http://localhost:5000/api/admin/auth/refresh-token"
+    if (role === UserRole.DOCTOR) return "http://localhost:5000/api/doctor/auth/refresh-token"
     return "http://localhost:5000/api/auth/refresh-token"
 }
 

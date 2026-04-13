@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { Home, ArrowLeft, Stethoscope } from "lucide-react"
 
 export default function NotFoundPage() {
@@ -7,6 +7,11 @@ export default function NotFoundPage() {
     return (
         <div className="min-h-screen bg-white flex items-center justify-center p-6 text-outfit">
             <div className="max-w-md w-full text-center space-y-8 relative">
+                <div className="flex justify-center mb-8">
+                    <Link to="/">
+                        <img src="/logo.png" alt="MedixFlow Logo" className="h-16 w-auto object-contain" />
+                    </Link>
+                </div>
                 {/* Decorative background elements */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-teal-50 rounded-full blur-3xl opacity-50 -z-10"></div>
                 

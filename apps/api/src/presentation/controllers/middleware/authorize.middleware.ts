@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 
-export const authorize = (roles: string[]) => {
+export const authorize = (roles: UserRole[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       console.log("[AuthorizeMiddleware] No user found on request object");

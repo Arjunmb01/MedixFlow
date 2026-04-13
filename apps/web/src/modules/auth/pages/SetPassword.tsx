@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useSearchParams, useNavigate } from "react-router-dom"
+import { useSearchParams, useNavigate, Link } from "react-router-dom"
 import { setupDoctorPassword as setupPassword } from "@/infrastructure/api/staff.api"
 
 export default function SetPassword() {
@@ -42,15 +42,15 @@ export default function SetPassword() {
 
     if (!token) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-                <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 max-w-md w-full text-center">
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">Invalid Link</h2>
-                    <p className="text-gray-500 mb-6">The password setup link is missing or invalid.</p>
+            <div className="min-h-screen bg-gray-50/50 flex flex-col items-center justify-center p-6 font-outfit">
+                <div className="bg-white p-12 rounded-[40px] shadow-[0_20px_60px_rgba(0,0,0,0.03)] border border-gray-100 max-w-md w-full text-center space-y-8">
+                    <h2 className="text-[28px] font-black text-gray-900 tracking-tight leading-tight">Invalid Link</h2>
+                    <p className="text-gray-400 font-bold leading-relaxed px-4">The password setup link is missing or has expired in the security protocol.</p>
                     <button 
                         onClick={() => navigate("/admin/login")}
-                        className="w-full bg-teal-600 text-white py-3 rounded-xl font-bold hover:bg-teal-700 transition-all"
+                        className="w-full bg-primary-600 text-white h-16 rounded-[24px] font-black hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 uppercase tracking-widest text-[14px]"
                     >
-                        Go to Login
+                        Return to Hub
                     </button>
                 </div>
             </div>
@@ -59,18 +59,22 @@ export default function SetPassword() {
 
     if (success) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 font-outfit">
-                <div className="bg-white p-12 rounded-[2rem] shadow-2xl shadow-gray-200/50 max-w-md w-full text-center border border-gray-50">
-                    <div className="w-12 h-12 bg-teal-500 rounded-xl flex items-center justify-center mx-auto mb-6">
-                        <span className="text-white font-bold text-xl">M</span>
+            <div className="min-h-screen bg-gray-50/50 flex flex-col items-center justify-center p-6 font-outfit">
+                <div className="bg-white p-12 rounded-[40px] shadow-[0_20px_60px_rgba(0,0,0,0.03)] max-w-md w-full text-center border border-gray-100 space-y-8">
+                    <div className="flex justify-center mx-auto mb-6">
+                        <Link to="/">
+                            <img src="/logo.png" alt="MedixFlow Logo" className="h-20 w-auto object-contain" />
+                        </Link>
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Password Set!</h2>
-                    <p className="text-gray-500 mb-8">Your account is now active. You can now login to your clinical workspace.</p>
+                    <div className="space-y-3">
+                        <h2 className="text-[32px] font-black text-gray-900 tracking-tight leading-tight">Access Granted!</h2>
+                        <p className="text-gray-400 font-bold leading-relaxed">Your account is now active. You may proceed to your clinical workspace.</p>
+                    </div>
                     <button 
                         onClick={() => navigate("/admin/login")}
-                        className="w-full bg-teal-500 text-white py-4 rounded-xl font-bold hover:bg-teal-600 transition-all shadow-lg shadow-teal-500/20"
+                        className="w-full bg-primary-600 text-white h-16 rounded-[24px] font-black hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 uppercase tracking-widest text-[14px]"
                     >
-                        Redirect to Login
+                        Launch Workspace
                     </button>
                 </div>
             </div>
@@ -78,58 +82,66 @@ export default function SetPassword() {
     }
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-4 font-outfit">
-            <div className="bg-white p-10 pb-12 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] max-w-md w-full border border-gray-50">
-                <div className="flex flex-col items-center mb-8">
-                    <div className="w-12 h-12 bg-[#10B981] rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-500/20">
-                        <span className="text-white font-bold text-xl uppercase tracking-tighter">M</span>
+        <div className="min-h-screen bg-gray-50/50 flex flex-col items-center justify-center p-6 font-outfit">
+            <div className="bg-white p-10 md:p-12 rounded-[40px] shadow-[0_20px_60px_rgba(0,0,0,0.03)] max-w-md w-full border border-gray-100 space-y-10">
+                <div className="flex flex-col items-center space-y-6">
+                    <div className="flex justify-center mb-6">
+                        <Link to="/">
+                            <img src="/logo.png" alt="MedixFlow Logo" className="h-16 w-auto object-contain" />
+                        </Link>
                     </div>
-                    <h1 className="text-2xl font-bold text-[#1E293B] mb-1">Set Password</h1>
-                    <p className="text-[#64748B] text-sm">Access your clinical workspace</p>
+                    <div className="text-center space-y-2">
+                        <h1 className="text-[32px] font-black text-gray-900 tracking-tight leading-tight">Set Access Key</h1>
+                        <p className="text-gray-400 font-bold uppercase tracking-widest text-[11px]">Initialize your clinical profile</p>
+                    </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-8">
                     {error && (
-                        <div className="p-4 bg-red-50 text-red-600 text-sm font-medium rounded-xl border border-red-100 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        <div className="p-5 bg-red-50/50 text-red-600 text-[13px] font-black rounded-[20px] border-2 border-red-50 flex items-center gap-3 uppercase tracking-widest leading-none">
+                            <span className="w-2 h-2 rounded-full bg-red-500"></span>
                             {error}
                         </div>
                     )}
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-[#475569] ml-1">New Password</label>
-                        <input 
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
-                            className="w-full px-5 py-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-[#10B981] outline-none transition-all placeholder:text-[#94A3B8] font-medium text-[#1E293B]"
-                            required
-                        />
-                    </div>
+                    <div className="space-y-6">
+                        <div className="space-y-3">
+                            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">New Password</label>
+                            <input 
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••"
+                                className="w-full px-6 py-5 bg-gray-50/50 border-2 border-gray-50 rounded-[24px] focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/50 outline-none transition-all placeholder:text-gray-300 font-bold text-gray-900 text-[15px]"
+                                maxLength={35}
+                                required
+                            />
+                        </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-[#475569] ml-1">Confirm Password</label>
-                        <input 
-                            type="password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder="••••••••"
-                            className="w-full px-5 py-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl focus:ring-4 focus:ring-emerald-500/10 focus:border-[#10B981] outline-none transition-all placeholder:text-[#94A3B8] font-medium text-[#1E293B]"
-                            required
-                        />
+                        <div className="space-y-3">
+                            <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirm Access Key</label>
+                            <input 
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder="••••••••"
+                                className="w-full px-6 py-5 bg-gray-50/50 border-2 border-gray-50 rounded-[24px] focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/50 outline-none transition-all placeholder:text-gray-300 font-bold text-gray-900 text-[15px]"
+                                maxLength={35}
+                                required
+                            />
+                        </div>
                     </div>
 
                     <button 
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-[#10B981] text-white py-4 rounded-2xl font-bold hover:bg-[#059669] transition-all shadow-xl shadow-emerald-500/25 active:scale-[0.98] disabled:opacity-50 mt-4 h-14 flex items-center justify-center"
+                        className="w-full bg-primary-600 text-white h-16 rounded-[24px] font-black hover:bg-primary-700 transition-all shadow-xl shadow-primary-100 uppercase tracking-widest text-[14px] disabled:opacity-50 active:scale-[0.98]"
                     >
-                        {loading ? "Processing..." : "Set Password"}
+                        {loading ? "Optimizing Layer..." : "Finalize Protocol"}
                     </button>
                     
-                    <p className="text-center text-xs text-[#94A3B8] mt-6">
-                        Securely managed by <strong>MedixFlow</strong> Security Protocol
+                    <p className="text-center text-[10px] text-gray-300 font-bold uppercase tracking-[0.2em] pt-4">
+                        Secured by <strong className="text-gray-400">MedixFlow</strong> Quantum Layer
                     </p>
                 </form>
             </div>

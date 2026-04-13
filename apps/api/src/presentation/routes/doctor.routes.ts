@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authorize } from "@/presentation/controllers/middleware/authorize.middleware";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 import { container } from "@/infrastructure/services/container/CompositionRoot";
 
 
@@ -13,7 +14,7 @@ const slotController = container.doctorSlotController;
 const authMiddleware = container.authMiddleware;
 
 router.use(authMiddleware);
-router.use(authorize(["DOCTOR"]));
+router.use(authorize([UserRole.DOCTOR]));
 
 router.get("/profile", profileController.getDoctorProfile);
 router.put("/profile", profileController.updateDoctorProfile);

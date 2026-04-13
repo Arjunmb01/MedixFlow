@@ -12,17 +12,20 @@ import { SPECIALTY_OPTIONS } from "../types/specialty"
 const schema = z.object({
     firstName: z.string()
         .regex(/^[a-zA-Z\s]+$/, "First name should only contain letters")
-        .min(1, "First name is required"),
+        .min(1, "First name is required")
+        .max(30, "First name cannot exceed 30 characters"),
     lastName: z.string()
         .regex(/^[a-zA-Z\s]+$/, "Last name should only contain letters")
-        .min(1, "Last name is required"),
-    email: z.string().email("Invalid email address"),
+        .min(1, "Last name is required")
+        .max(30, "Last name cannot exceed 30 characters"),
+    email: z.string().email("Invalid email address").max(30, "Email cannot exceed 30 characters"),
     phone: z.string()
         .regex(/^\d+$/, "Phone must only contain numbers")
-        .min(10, "Phone number must be at least 10 digits"),
-    specialty: z.string().min(1, "Specialization is required"),
+        .min(10, "Phone number must be at least 10 digits")
+        .max(15, "Phone number cannot exceed 15 characters"),
+    specialty: z.string().min(1, "Specialization is required").max(20, "Specialization cannot exceed 20 characters"),
     consultationFee: z.number().min(0, "Invalid fee"),
-    licenseNumber: z.string().min(1, "License number is required"),
+    licenseNumber: z.string().min(1, "License number is required").max(20, "License number cannot exceed 20 characters"),
     slotDuration: z.number().default(30),
     schedules: z.array(z.object({
         dayOfWeek: z.number(),
@@ -242,11 +245,13 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess, staffToEdit 
                                             <input 
                                                 {...register("firstName")}
                                                 placeholder="First Name"
+                                                maxLength={30}
                                                 className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-teal-500/20 transition-all font-medium"
                                             />
                                             <input 
                                                 {...register("lastName")}
                                                 placeholder="Last Name"
+                                                maxLength={30}
                                                 className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-teal-500/20 transition-all font-medium"
                                             />
                                         </div>
@@ -261,6 +266,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess, staffToEdit 
                                             {...register("email")}
                                             type="email"
                                             placeholder="name@medixflow.com"
+                                            maxLength={30}
                                             className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-teal-500/20 transition-all font-medium"
                                         />
                                         {errors.email && <p className="text-xs text-red-500 font-medium">{errors.email.message}</p>}
@@ -271,6 +277,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess, staffToEdit 
                                         <input 
                                             {...register("phone")}
                                             placeholder="5550000000"
+                                            maxLength={15}
                                             className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-teal-500/20 transition-all font-medium"
                                         />
                                         {errors.phone && <p className="text-xs text-red-500 font-medium">{errors.phone.message}</p>}
@@ -382,6 +389,7 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess, staffToEdit 
                                         <input 
                                             {...register("licenseNumber")}
                                             placeholder="MED-XXXX"
+                                            maxLength={20}
                                             className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-teal-500/20 transition-all font-medium"
                                         />
                                         {errors.licenseNumber && <p className="text-xs text-red-500 font-medium">{errors.licenseNumber.message}</p>}

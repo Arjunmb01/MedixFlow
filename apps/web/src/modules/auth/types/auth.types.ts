@@ -1,3 +1,5 @@
+import { UserRole, type Role } from "@/domain/auth/types/auth.types"
+
 export interface LoginPayload {
   email: string
   password: string
@@ -21,7 +23,7 @@ export interface LoginResponse {
   accessToken: string
 }
 
-export type Role = "ADMIN" | "PATIENT" | "DOCTOR"
+export { UserRole, type Role }
 
 export interface User {
   id: string
@@ -36,8 +38,8 @@ export interface RoleState {
 }
 
 export interface AuthState {
-  ADMIN: RoleState
-  PATIENT: RoleState
-  DOCTOR: RoleState
+  [UserRole.ADMIN]: RoleState
+  [UserRole.PATIENT]: RoleState
+  [UserRole.DOCTOR]: RoleState
   loading: boolean
 }

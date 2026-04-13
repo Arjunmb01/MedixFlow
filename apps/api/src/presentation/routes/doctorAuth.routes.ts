@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authorize } from "@/presentation/controllers/middleware/authorize.middleware";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 import { container } from "@/infrastructure/services/container/CompositionRoot";
 
 const router = Router();
@@ -8,7 +9,7 @@ const authMiddleware = container.authMiddleware;
 
 router.post("/login", controller.login);
 router.post("/refresh-token", controller.refreshToken);
-router.post("/logout", authMiddleware, authorize(["DOCTOR"]), controller.logout);
+router.post("/logout", authMiddleware, authorize([UserRole.DOCTOR]), controller.logout);
 router.post("/forgot-password", controller.forgotPassword);
 router.post("/reset-password", controller.resetPassword);
 

@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import type { Role, AuthState } from "@/domain/auth/types/auth.types";
+import { UserRole, type Role, type AuthState } from "@/domain/auth/types/auth.types";
 
 const getPersistedRole = (): Role | null => {
     if (typeof window === "undefined") return null;
@@ -7,9 +7,9 @@ const getPersistedRole = (): Role | null => {
 };
 
 const initialState: AuthState = {
-    ADMIN: { isAuthenticated: false, user: null, accessToken: null },
-    PATIENT: { isAuthenticated: false, user: null, accessToken: null },
-    DOCTOR: { isAuthenticated: false, user: null, accessToken: null },
+    [UserRole.ADMIN]: { isAuthenticated: false, user: null, accessToken: null },
+    [UserRole.PATIENT]: { isAuthenticated: false, user: null, accessToken: null },
+    [UserRole.DOCTOR]: { isAuthenticated: false, user: null, accessToken: null },
     loading: false,
     persistedRole: getPersistedRole()
 }

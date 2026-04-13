@@ -1,5 +1,6 @@
 import { Route } from "react-router-dom"
 import ProtectedRoute from "@/core/routes/ProtectedRoute"
+import { UserRole } from "@/domain/auth/types/auth.types"
 import PatientDashboard from "../pages/PatientDashboard"
 import PatientAppointments from "../pages/PatientAppointments"
 import PatientProfile from "../pages/PatientProfile"
@@ -14,7 +15,7 @@ export const PatientRoutes = (
         <Route
             path="/patient/dashboard"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <PatientDashboard />
                 </ProtectedRoute>
             }
@@ -23,7 +24,7 @@ export const PatientRoutes = (
         <Route
             path="/patient/appointments"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <PatientAppointments />
                 </ProtectedRoute>
             }
@@ -32,7 +33,7 @@ export const PatientRoutes = (
         <Route
             path="/patient/profile"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <PatientProfile />
                 </ProtectedRoute>
             }
@@ -41,7 +42,7 @@ export const PatientRoutes = (
         <Route
             path="/patient/find-doctors"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <FindDoctors />
                 </ProtectedRoute>
             }
@@ -50,7 +51,7 @@ export const PatientRoutes = (
         <Route
             path="/patient/doctor/:id"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <DoctorDetailsPage />
                 </ProtectedRoute>
             }
@@ -59,7 +60,7 @@ export const PatientRoutes = (
         <Route
             path="/patient/book-appointment/:id"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <BookingPage />
                 </ProtectedRoute>
             }
@@ -68,7 +69,7 @@ export const PatientRoutes = (
         <Route
             path="/patient/prescriptions"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <Prescriptions />
                 </ProtectedRoute>
             }
@@ -77,7 +78,7 @@ export const PatientRoutes = (
         <Route
             path="/patient/prescriptions/:appointmentId"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <PrescriptionDetail />
                 </ProtectedRoute>
             }

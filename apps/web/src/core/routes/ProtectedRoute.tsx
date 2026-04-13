@@ -1,9 +1,10 @@
 import { Navigate } from "react-router-dom";
 import { useAppSelector } from "@/core/store/hooks";
+import { UserRole } from "@/domain/auth/types/auth.types";
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    role: "PATIENT" | "ADMIN" | "DOCTOR";
+    role: UserRole;
 }
 
 type WithPersist = { _persist?: { rehydrated: boolean; version: number } };
@@ -21,8 +22,8 @@ export default function ProtectedRoute({ children, role }: ProtectedRouteProps) 
     }
 
     if (!authState[role].isAuthenticated) {
-        if (role === "ADMIN") return <Navigate to="/admin/login" replace />;
-        if (role === "DOCTOR") return <Navigate to="/doctor/login" replace />;
+        if (role === UserRole.ADMIN) return <Navigate to="/admin/login" replace />;
+        if (role === UserRole.DOCTOR) return <Navigate to="/doctor/login" replace />;
         return <Navigate to="/patient/login" replace />;
     }
 

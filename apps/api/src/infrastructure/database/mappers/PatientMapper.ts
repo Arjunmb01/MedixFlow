@@ -2,6 +2,7 @@ import { Patient } from "../../../domain/entities/Patient";
 import { PatientProfile as PrismaPatientProfile, User as PrismaUser, Role, EmergencyContact as PrismaEmergencyContact } from "@prisma/client";
 import { UserStatus } from "../../../domain/value-objects/enums/UserStatus";
 import { Gender } from "../../../domain/value-objects/enums/Gender";
+import { UserRole } from "../../../domain/value-objects/enums/UserRole";
 import { PatientProfile as DomainPatientProfile, PatientListItem } from "../../../domain/value-objects/types/patient.repository.types";
 
 export type PrismaPatientWithUser = PrismaPatientProfile & { user: PrismaUser, emergencyContacts?: PrismaEmergencyContact[] };
@@ -19,6 +20,13 @@ export class PatientMapper {
     };
     const status = statusMap[user.status] || UserStatus.INACTIVE;
 
+    const roleMap: Record<string, UserRole> = {
+      ADMIN: UserRole.ADMIN,
+      DOCTOR: UserRole.DOCTOR,
+      PATIENT: UserRole.PATIENT
+    };
+    const role = roleMap[user.role] || UserRole.PATIENT;
+
     return new Patient(
       prismaPatient.id,
       prismaPatient.patientId,
@@ -30,7 +38,7 @@ export class PatientMapper {
       prismaPatient.bloodGroup || undefined,
       prismaPatient.gender as Gender,
       user.passwordHash,
-      user.role,
+      role,
       prismaPatient.emergencyContacts || []
     );
   }

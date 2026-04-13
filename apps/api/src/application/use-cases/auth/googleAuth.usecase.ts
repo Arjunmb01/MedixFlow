@@ -3,6 +3,7 @@ import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { ITokenService } from "@/application/interfaces/ITokenService";
 import { ISessionService } from "@/application/interfaces/IAuthServices";
 import { IGoogleAuthService } from "@/application/interfaces/IGoogleAuthService";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 
 export class GoogleAuthUseCase {
   constructor(
@@ -20,9 +21,9 @@ export class GoogleAuthUseCase {
     let result = await this.authRepository.findUserByEmail(email);
 
     if (result) {
-      if (result.user.role !== "PATIENT") {
-        if (result.user.role === "DOCTOR") throw new Error("It looks like you have a Doctor account. Please login through the Doctor Portal.");
-        if (result.user.role === "ADMIN") throw new Error("This is an Admin account. Please login through the Admin Portal.");
+      if (result.user.role !== UserRole.PATIENT) {
+        if (result.user.role === UserRole.DOCTOR) throw new Error("It looks like you have a Doctor account. Please login through the Doctor Portal.");
+        if (result.user.role === UserRole.ADMIN) throw new Error("This is an Admin account. Please login through the Admin Portal.");
         throw new Error(MESSAGES.INVALID_ROLE_PATIENT);
       }
     } else {
@@ -39,8 +40,8 @@ export class GoogleAuthUseCase {
       throw new Error(MESSAGES.ACCOUNT_BLOCKED);
     }
 
-    const accessToken = this.tokenService.generateAccessToken(user.id, user.role as string, user.email);
-    const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as string, user.email);
+    const accessToken = this.tokenService.generateAccessToken(user.id, user.role as UserRole, user.email);
+    const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as UserRole, user.email);
 
     await this.sessionService.saveSession(user.id, refreshToken);
 

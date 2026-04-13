@@ -1,10 +1,11 @@
 import jwt from "jsonwebtoken";
 import { ITokenService, TokenPayload } from "@/application/interfaces/ITokenService";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 
 export class JwtTokenService implements ITokenService {
     constructor(private readonly config: { jwtAccessSecret: string; jwtRefreshSecret: string }) {}
 
-    generateAccessToken(userId: string, role: string, email?: string): string {
+    generateAccessToken(userId: string, role: UserRole, email?: string): string {
         return jwt.sign(
             { id: userId, role, email },
             this.config.jwtAccessSecret,
@@ -12,7 +13,7 @@ export class JwtTokenService implements ITokenService {
         );
     }
 
-    generateRefreshToken(userId: string, role: string, email?: string): string {
+    generateRefreshToken(userId: string, role: UserRole, email?: string): string {
         return jwt.sign(
             { id: userId, role, email },
             this.config.jwtRefreshSecret,

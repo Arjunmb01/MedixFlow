@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import Sidebar from "../components/dashboard/Sidebar";
 import TopNav from "../components/dashboard/TopNav";
 import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile";
 import { getPatientAppointments } from "@/infrastructure/api/patient.api";
+import { pdf, PDFDownloadLink } from '@react-pdf/renderer';
+import PrescriptionPDF from "../components/prescription/PrescriptionPDF";
+import { toast } from "sonner";
 import {
     ArrowLeft,
     Loader2,
@@ -15,6 +18,28 @@ import {
     ClipboardList,
     CalendarCheck,
 } from "lucide-react";
+
+// Standard HEX colors to satisfy html2canvas parser (doesn't support oklch)
+const COLORS = {
+    blue600: "#2563eb",
+    blue700: "#1d4ed8",
+    blue100: "#dbeafe",
+    blue200: "#bfdbfe",
+    gray50: "#f9fafb",
+    gray100: "#f3f4f6",
+    gray200: "#e5e7eb",
+    gray400: "#9ca3af",
+    gray500: "#6b7280",
+    gray600: "#4b5563",
+    gray700: "#374151",
+    gray900: "#111827",
+    red500: "#ef4444",
+    amber500: "#f59e0b",
+    orange500: "#f97316",
+    teal500: "#14b8a6",
+    purple500: "#a855f7",
+    green500: "#22c55e",
+};
 
 interface Medicine {
     id: string;
@@ -56,6 +81,7 @@ interface PrescriptionData {
 export default function PrescriptionDetail() {
     const { appointmentId } = useParams<{ appointmentId: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { profile } = usePatientProfile();
     const printRef = useRef<HTMLDivElement>(null);
 
@@ -65,6 +91,40 @@ export default function PrescriptionDetail() {
     useEffect(() => {
         fetchData();
     }, [appointmentId]);
+
+    useEffect(() => {
+        if (!loading && data && searchParams.get("download") === "true") {
+            const triggerAutoDownload = async () => {
+                try {
+                    setIsDownloading(true);
+                    const rx = data.consultation.prescription!;
+                    const prescriptionId = `RX-${new Date(data.appointmentDate).getFullYear()}-${rx.id.slice(0, 4).toUpperCase()}`;
+                    
+                    const blob = await pdf(
+                        <PrescriptionPDF 
+                            data={data} 
+                            profile={profile} 
+                            prescriptionId={prescriptionId} 
+                        />
+                    ).toBlob();
+                    
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `Prescription-${prescriptionId}.pdf`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    toast.success("Prescription downloaded successfully");
+                } catch (error) {
+                    console.error("Auto-download failed:", error);
+                } finally {
+                    setIsDownloading(false);
+                }
+            };
+            
+            triggerAutoDownload();
+        }
+    }, [loading, data, searchParams]);
 
     const fetchData = async () => {
         try {
@@ -91,9 +151,37 @@ export default function PrescriptionDetail() {
         window.print();
     };
 
-    const handleDownloadPDF = () => {
-        // Use browser print dialog with "Save as PDF"
-        window.print();
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const handleDownloadPDF = async () => {
+        if (!data || !data.consultation.prescription) return;
+        
+        try {
+            setIsDownloading(true);
+            const rx = data.consultation.prescription!;
+            const prescriptionId = `RX-${new Date(data.appointmentDate).getFullYear()}-${rx.id.slice(0, 4).toUpperCase()}`;
+            
+            const blob = await pdf(
+                <PrescriptionPDF 
+                    data={data} 
+                    profile={profile} 
+                    prescriptionId={prescriptionId} 
+                />
+            ).toBlob();
+            
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Prescription-${prescriptionId}.pdf`;
+            link.click();
+            URL.revokeObjectURL(url);
+            toast.success("Prescription downloaded successfully");
+        } catch (error) {
+            console.error("PDF generation failed:", error);
+            toast.error("Failed to generate PDF. Please try printing instead.");
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     if (loading) {
@@ -156,9 +244,13 @@ export default function PrescriptionDetail() {
                                 <Printer className="w-4 h-4" />
                                 Print Prescription
                             </button>
-                            <button onClick={handleDownloadPDF} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
-                                <Download className="w-4 h-4" />
-                                Download PDF
+                             <button 
+                                onClick={handleDownloadPDF} 
+                                disabled={isDownloading}
+                                className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200 disabled:opacity-50"
+                             >
+                                {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                {isDownloading ? "Generating..." : "Download PDF"}
                             </button>
                         </div>
                     </div>
@@ -167,39 +259,42 @@ export default function PrescriptionDetail() {
                     <div ref={printRef} className="bg-white rounded-[2rem] border border-gray-200 shadow-sm overflow-hidden print:rounded-none print:border-0 print:shadow-none">
 
                         {/* Header */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-10 py-8 text-white print:bg-white print:text-black print:border-b-2 print:border-blue-600">
+                        <div 
+                            style={{ backgroundColor: COLORS.blue600 }}
+                            className="bg-gradient-to-r from-blue-600 to-blue-700 px-10 py-8 text-white print:bg-white print:text-black print:border-b-2 print:border-blue-600"
+                        >
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <h1 className="text-2xl font-black tracking-tight print:text-blue-700">MedixFlow Clinics</h1>
-                                    <p className="text-blue-100 text-sm font-medium mt-1 print:text-gray-600">Central Health Hospital, Block B</p>
-                                    <p className="text-blue-200 text-xs mt-0.5 print:text-gray-500">123 Medical Square, Silicon Valley, CA 94043</p>
-                                    <p className="text-blue-200 text-xs print:text-gray-500">Contact: +1 (555) 001-2026</p>
+                                    <h1 style={{ color: "white" }} className="text-2xl font-black tracking-tight print:text-blue-700">MedixFlow Clinics</h1>
+                                    <p style={{ color: COLORS.blue100 }} className="text-blue-100 text-sm font-medium mt-1 print:text-gray-600">Central Health Hospital, Block B</p>
+                                    <p style={{ color: COLORS.blue200 }} className="text-blue-200 text-xs mt-0.5 print:text-gray-500">123 Medical Square, Silicon Valley, CA 94043</p>
+                                    <p style={{ color: COLORS.blue200 }} className="text-blue-200 text-xs print:text-gray-500">Contact: +1 (555) 001-2026</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-lg font-black print:text-gray-900">Dr. {data.doctor.firstName} {data.doctor.lastName}</p>
-                                    <p className="text-blue-100 text-sm font-medium print:text-gray-600">{data.doctor.specialization?.name}</p>
+                                    <p style={{ color: "white" }} className="text-lg font-black print:text-gray-900">Dr. {data.doctor.firstName} {data.doctor.lastName}</p>
+                                    <p style={{ color: COLORS.blue100 }} className="text-blue-100 text-sm font-medium print:text-gray-600">{data.doctor.specialization?.name}</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Patient Info Bar */}
-                        <div className="px-10 py-5 border-b border-gray-100 bg-gray-50/50">
+                        <div style={{ backgroundColor: COLORS.gray50, borderColor: COLORS.gray100 }} className="px-10 py-5 border-b border-gray-100 bg-gray-50/50">
                             <div className="grid grid-cols-4 gap-6">
                                 <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Patient Name</p>
-                                    <p className="text-sm font-black text-gray-900 mt-0.5">{profile?.name || "—"}</p>
+                                    <p style={{ color: COLORS.gray400 }} className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Patient Name</p>
+                                    <p style={{ color: COLORS.gray900 }} className="text-sm font-black text-gray-900 mt-0.5">{profile?.name || "—"}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Age / Gender</p>
-                                    <p className="text-sm font-black text-gray-900 mt-0.5">{profile?.gender || "—"}</p>
+                                    <p style={{ color: COLORS.gray400 }} className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Age / Gender</p>
+                                    <p style={{ color: COLORS.gray900 }} className="text-sm font-black text-gray-900 mt-0.5">{profile?.gender || "—"}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</p>
-                                    <p className="text-sm font-black text-gray-900 mt-0.5">{formatDate(data.appointmentDate)}</p>
+                                    <p style={{ color: COLORS.gray400 }} className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</p>
+                                    <p style={{ color: COLORS.gray900 }} className="text-sm font-black text-gray-900 mt-0.5">{formatDate(data.appointmentDate)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Prescription ID</p>
-                                    <p className="text-sm font-black text-blue-600 mt-0.5">#{prescriptionId}</p>
+                                    <p style={{ color: COLORS.gray400 }} className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Prescription ID</p>
+                                    <p style={{ color: COLORS.blue600 }} className="text-sm font-black text-blue-600 mt-0.5">#{prescriptionId}</p>
                                 </div>
                             </div>
                         </div>
@@ -209,33 +304,33 @@ export default function PrescriptionDetail() {
                             {/* Vitals */}
                             {vitals && (
                                 <section>
-                                    <h2 className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-4">
-                                        <Heart className="w-4 h-4 text-red-500" />
+                                    <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-4">
+                                        <Heart style={{ color: COLORS.red500 }} className="w-4 h-4 text-red-500" />
                                         Vitals
                                     </h2>
                                     <div className="grid grid-cols-4 gap-4">
                                         {vitals.temperature && (
-                                            <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 text-center">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Temp</p>
-                                                <p className="text-xl font-black text-gray-900 mt-1">{vitals.temperature} °F</p>
+                                            <div style={{ backgroundColor: COLORS.gray50, borderColor: COLORS.gray100 }} className="bg-gray-50 rounded-xl border border-gray-100 p-4 text-center">
+                                                <p style={{ color: COLORS.gray400 }} className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Temp</p>
+                                                <p style={{ color: COLORS.gray900 }} className="text-xl font-black text-gray-900 mt-1">{vitals.temperature} °F</p>
                                             </div>
                                         )}
                                         {vitals.bloodPressure && (
-                                            <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 text-center">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">BP</p>
-                                                <p className="text-xl font-black text-gray-900 mt-1">{vitals.bloodPressure}</p>
+                                            <div style={{ backgroundColor: COLORS.gray50, borderColor: COLORS.gray100 }} className="bg-gray-50 rounded-xl border border-gray-100 p-4 text-center">
+                                                <p style={{ color: COLORS.gray400 }} className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">BP</p>
+                                                <p style={{ color: COLORS.gray900 }} className="text-xl font-black text-gray-900 mt-1">{vitals.bloodPressure}</p>
                                             </div>
                                         )}
                                         {vitals.heartRate && (
-                                            <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 text-center">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Heart Rate</p>
-                                                <p className="text-xl font-black text-gray-900 mt-1">{vitals.heartRate} bpm</p>
+                                            <div style={{ backgroundColor: COLORS.gray50, borderColor: COLORS.gray100 }} className="bg-gray-50 rounded-xl border border-gray-100 p-4 text-center">
+                                                <p style={{ color: COLORS.gray400 }} className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Heart Rate</p>
+                                                <p style={{ color: COLORS.gray900 }} className="text-xl font-black text-gray-900 mt-1">{vitals.heartRate} bpm</p>
                                             </div>
                                         )}
                                         {vitals.weight && (
-                                            <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 text-center">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Weight</p>
-                                                <p className="text-xl font-black text-gray-900 mt-1">{vitals.weight} kg</p>
+                                            <div style={{ backgroundColor: COLORS.gray50, borderColor: COLORS.gray100 }} className="bg-gray-50 rounded-xl border border-gray-100 p-4 text-center">
+                                                <p style={{ color: COLORS.gray400 }} className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Weight</p>
+                                                <p style={{ color: COLORS.gray900 }} className="text-xl font-black text-gray-900 mt-1">{vitals.weight} kg</p>
                                             </div>
                                         )}
                                     </div>
@@ -247,18 +342,18 @@ export default function PrescriptionDetail() {
                                 <section>
                                     <div className="grid grid-cols-2 gap-8">
                                         <div>
-                                            <h2 className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
-                                                <Stethoscope className="w-4 h-4 text-amber-500" />
+                                            <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
+                                                <Stethoscope style={{ color: COLORS.amber500 }} className="w-4 h-4 text-amber-500" />
                                                 Initial Symptoms
                                             </h2>
-                                            <p className="text-sm text-gray-700 leading-relaxed">{record.symptoms}</p>
+                                            <p style={{ color: COLORS.gray700 }} className="text-sm text-gray-700 leading-relaxed">{record.symptoms}</p>
                                         </div>
                                         <div>
-                                            <h2 className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
-                                                <Stethoscope className="w-4 h-4 text-orange-500" />
+                                            <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
+                                                <Stethoscope style={{ color: COLORS.orange500 }} className="w-4 h-4 text-orange-500" />
                                                 Diagnosis
                                             </h2>
-                                            <p className="text-sm font-bold text-gray-900">{record.diagnosis}</p>
+                                            <p style={{ color: COLORS.gray900 }} className="text-sm font-bold text-gray-900">{record.diagnosis}</p>
                                         </div>
                                     </div>
                                 </section>
@@ -266,29 +361,29 @@ export default function PrescriptionDetail() {
 
                             {/* Treatment / Medications Table */}
                             <section>
-                                <h2 className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-4">
-                                    <Pill className="w-4 h-4 text-teal-500" />
+                                <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-4">
+                                    <Pill style={{ color: COLORS.teal500 }} className="w-4 h-4 text-teal-500" />
                                     Treatment / Medications
                                 </h2>
-                                <div className="border border-gray-100 rounded-2xl overflow-hidden">
+                                <div style={{ borderColor: COLORS.gray100 }} className="border border-gray-100 rounded-2xl overflow-hidden">
                                     <table className="w-full text-sm">
                                         <thead>
-                                            <tr className="bg-gray-50 border-b border-gray-100">
-                                                <th className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Medicine Name</th>
-                                                <th className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Dosage</th>
-                                                <th className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Frequency</th>
-                                                <th className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Duration</th>
+                                            <tr style={{ backgroundColor: COLORS.gray50, borderBottomColor: COLORS.gray100 }} className="bg-gray-50 border-b border-gray-100">
+                                                <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Medicine Name</th>
+                                                <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Dosage</th>
+                                                <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Frequency</th>
+                                                <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Duration</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {rx.medicines.map((med, idx) => (
-                                                <tr key={med.id} className={`${idx < rx.medicines.length - 1 ? "border-b border-gray-50" : ""} hover:bg-blue-50/30`}>
+                                                <tr key={med.id || idx} style={{ borderBottomColor: COLORS.gray50 }} className={`${idx < rx.medicines.length - 1 ? "border-b border-gray-50" : ""} hover:bg-blue-50/30`}>
                                                     <td className="px-6 py-4">
-                                                        <p className="font-black text-blue-700">{med.name}</p>
+                                                        <p style={{ color: COLORS.blue700 }} className="font-black text-blue-700">{med.name}</p>
                                                     </td>
-                                                    <td className="px-6 py-4 text-gray-700 font-medium">{med.dosage}</td>
-                                                    <td className="px-6 py-4 text-gray-700 font-medium">{med.frequency}</td>
-                                                    <td className="px-6 py-4 text-gray-700 font-medium">{med.duration}</td>
+                                                    <td style={{ color: COLORS.gray700 }} className="px-6 py-4 text-gray-700 font-medium">{med.dosage}</td>
+                                                    <td style={{ color: COLORS.gray700 }} className="px-6 py-4 text-gray-700 font-medium">{med.frequency}</td>
+                                                    <td style={{ color: COLORS.gray700 }} className="px-6 py-4 text-gray-700 font-medium">{med.duration}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -301,18 +396,18 @@ export default function PrescriptionDetail() {
                                 <section>
                                     <div className="grid grid-cols-2 gap-8">
                                         <div>
-                                            <h2 className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
-                                                <ClipboardList className="w-4 h-4 text-purple-500" />
+                                            <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
+                                                <ClipboardList style={{ color: COLORS.purple500 }} className="w-4 h-4 text-purple-500" />
                                                 Plan for Management
                                             </h2>
-                                            <p className="text-sm text-gray-700 leading-relaxed">{record.notes}</p>
+                                            <p style={{ color: COLORS.gray700 }} className="text-sm text-gray-700 leading-relaxed">{record.notes}</p>
                                         </div>
                                         <div>
-                                            <h2 className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
-                                                <CalendarCheck className="w-4 h-4 text-green-500" />
+                                            <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
+                                                <CalendarCheck style={{ color: COLORS.green500 }} className="w-4 h-4 text-green-500" />
                                                 Follow-Up
                                             </h2>
-                                            <p className="text-sm text-gray-700">
+                                            <p style={{ color: COLORS.gray700 }} className="text-sm text-gray-700">
                                                 {rx.instructions || "No specific follow-up instructions."}
                                             </p>
                                         </div>
@@ -323,27 +418,27 @@ export default function PrescriptionDetail() {
                             {/* Pharmacy Instructions */}
                             {rx.instructions && !record?.notes && (
                                 <section>
-                                    <h2 className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
-                                        <ClipboardList className="w-4 h-4 text-purple-500" />
+                                    <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
+                                        <ClipboardList style={{ color: COLORS.purple500 }} className="w-4 h-4 text-purple-500" />
                                         Pharmacy Instructions
                                     </h2>
-                                    <p className="text-sm text-gray-700 leading-relaxed">{rx.instructions}</p>
+                                    <p style={{ color: COLORS.gray700 }} className="text-sm text-gray-700 leading-relaxed">{rx.instructions}</p>
                                 </section>
                             )}
 
                             {/* Doctor Signature */}
-                            <div className="border-t border-gray-100 pt-6 mt-4 text-right">
+                            <div style={{ borderTopColor: COLORS.gray100 }} className="border-t border-gray-100 pt-6 mt-4 text-right">
                                 <div className="inline-block text-center">
-                                    <div className="w-48 border-b border-gray-300 mb-2"></div>
-                                    <p className="text-sm font-black text-gray-900">Dr. {data.doctor.firstName} {data.doctor.lastName}</p>
-                                    <p className="text-xs text-gray-500 font-medium">{data.doctor.specialization?.name}</p>
+                                    <div style={{ borderBottomColor: COLORS.gray200 }} className="w-48 border-b border-gray-300 mb-2"></div>
+                                    <p style={{ color: COLORS.gray900 }} className="text-sm font-black text-gray-900">Dr. {data.doctor.firstName} {data.doctor.lastName}</p>
+                                    <p style={{ color: COLORS.gray500 }} className="text-xs text-gray-500 font-medium">{data.doctor.specialization?.name}</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="bg-gray-50 px-10 py-4 text-center border-t border-gray-100">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                        <div style={{ backgroundColor: COLORS.gray50, borderTopColor: COLORS.gray100 }} className="bg-gray-50 px-10 py-4 text-center border-t border-gray-100">
+                            <p style={{ color: COLORS.gray400 }} className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
                                 This is a computer-generated prescription issued via MedixFlow Clinical Platform. No physical signature required.
                             </p>
                         </div>
@@ -354,7 +449,7 @@ export default function PrescriptionDetail() {
             {/* Print Styles */}
             <style>{`
                 @media print {
-                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: white !important; }
                     .print\\:hidden { display: none !important; }
                     .print\\:ml-0 { margin-left: 0 !important; }
                     .print\\:pt-0 { padding-top: 0 !important; }
@@ -363,8 +458,8 @@ export default function PrescriptionDetail() {
                     .print\\:rounded-none { border-radius: 0 !important; }
                     .print\\:border-0 { border: 0 !important; }
                     .print\\:shadow-none { box-shadow: none !important; }
-                    .print\\:bg-white { background-color: white !important; }
-                    .print\\:text-black { color: black !important; }
+                    .print\\:bg-white { background-color: #ffffff !important; }
+                    .print\\:text-black { color: #000000 !important; }
                     .print\\:text-blue-700 { color: #1d4ed8 !important; }
                     .print\\:text-gray-600 { color: #4b5563 !important; }
                     .print\\:text-gray-500 { color: #6b7280 !important; }

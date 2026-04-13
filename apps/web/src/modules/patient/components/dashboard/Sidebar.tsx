@@ -14,6 +14,7 @@ import {
 import { useAppDispatch } from "@/core/store/hooks"
 import { logout } from "@/modules/store/authSlice"
 import { logout as apiLogout } from "@/infrastructure/api/auth.api"
+import { UserRole } from "@/domain/auth/types/auth.types"
 import { toast } from "sonner"
 
 const menuItems = [
@@ -22,7 +23,6 @@ const menuItems = [
     { label: "My Appointments", icon: CalendarDays, path: "/patient/appointments" },
     { label: "Wallet", icon: Wallet, path: "/patient/wallet" },
     { label: "Medical Records", icon: FileText, path: "/patient/records" },
-    { label: "Prescriptions", icon: Pill, path: "/patient/prescriptions" },
     { label: "Billing", icon: CreditCard, path: "/patient/billing" },
     { label: "Message", icon: MessageSquare, path: "/patient/messages" },
     { label: "Profile & Settings", icon: Settings, path: "/patient/profile" },
@@ -39,7 +39,7 @@ export default function Sidebar() {
         } catch (e) {
             console.error("Logout failed", e)
         }
-        dispatch(logout({ role: "PATIENT" }))
+        dispatch(logout({ role: UserRole.PATIENT }))
         toast.info("Logged out successfully")
         navigate("/patient/login")
     }
@@ -47,10 +47,8 @@ export default function Sidebar() {
     return (
         <div className="w-64 bg-white border-r border-gray-100 flex flex-col h-screen fixed left-0 top-0 z-50">
             <div className="p-6 flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold italic">M</span>
-                </div>
-                <h1 className="text-xl font-bold text-gray-900 tracking-tight">MedixFlow</h1>
+                <img src="/logo.png" alt="MedixFlow Logo" className="h-9 w-auto object-contain" />
+                <span className="text-xl font-black text-gray-900 tracking-tight font-outfit">MedixFlow</span>
             </div>
 
             <nav className="flex-1 px-4 space-y-1 mt-4">
@@ -62,11 +60,11 @@ export default function Sidebar() {
                             onClick={() => navigate(item.path)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                                 isActive 
-                                ? "bg-blue-50 text-blue-600 font-semibold" 
-                                : "text-gray-500 hover:bg-gray-50 font-medium"
+                                ? "bg-primary-50 text-primary-600 font-black" 
+                                : "text-gray-500 hover:bg-gray-50 font-bold"
                             }`}
                         >
-                            <item.icon className={`w-5 h-5 ${isActive ? "text-blue-600" : "text-gray-400"}`} />
+                            <item.icon className={`w-5 h-5 ${isActive ? "text-primary-600" : "text-gray-400"}`} />
                             <span className="text-[14px]">{item.label}</span>
                         </button>
                     )

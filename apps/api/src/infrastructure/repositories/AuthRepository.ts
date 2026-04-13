@@ -1,7 +1,9 @@
-import { PrismaClient, Role, UserStatus } from "@prisma/client";
+import { PrismaClient, Role, UserStatus as PrismaStatus } from "@prisma/client";
 import { IAuthRepository, DomainPasswordResetToken, DomainPatientProfile, DomainDoctorProfile, UserWithProfile } from "@/domain/repositories/IAuthRepository";
 import { User } from "@/domain/entities/User";
 import { PatientIdGenerator } from "../services/PatientIdGenerator";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
+import { UserStatus } from "@/domain/value-objects/enums/UserStatus";
 
 export class AuthRepository implements IAuthRepository {
   constructor(
@@ -10,7 +12,21 @@ export class AuthRepository implements IAuthRepository {
   ) { }
 
   private toUser(raw: { id: string; email: string; role: string; status: string; passwordHash: string; createdAt: Date }): User {
-    return new User(raw.id, raw.email, raw.role, raw.status, raw.passwordHash, raw.createdAt);
+    const roleMap: Record<string, UserRole> = {
+      ADMIN: UserRole.ADMIN,
+      DOCTOR: UserRole.DOCTOR,
+      PATIENT: UserRole.PATIENT
+    };
+    const statusMap: Record<string, UserStatus> = {
+      ACTIVE: UserStatus.ACTIVE,
+      INACTIVE: UserStatus.INACTIVE,
+      SUSPENDED: UserStatus.SUSPENDED
+    };
+
+    const role = roleMap[raw.role] || UserRole.PATIENT;
+    const status = statusMap[raw.status] || UserStatus.INACTIVE;
+
+    return new User(raw.id, raw.email, role, status, raw.passwordHash, raw.createdAt);
   }
 
   async findUserByEmail(email: string): Promise<UserWithProfile | null> {

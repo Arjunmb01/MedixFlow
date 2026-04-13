@@ -3,6 +3,7 @@ import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { ITokenService } from "@/application/interfaces/ITokenService";
 import { ISessionService } from "@/application/interfaces/IAuthServices";
 import { IPasswordHasher } from "@/application/interfaces/IPasswordHasher";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 
 export interface loginAdminData {
   email: string;
@@ -24,13 +25,13 @@ export class LoginAdminUseCase {
 
     const { user } = result;
 
-    if (user.role !== "ADMIN") throw new Error(MESSAGES.INVALID_ROLE_ADMIN);
+    if (user.role !== UserRole.ADMIN) throw new Error(MESSAGES.INVALID_ROLE_ADMIN);
 
     const valid = await this.passwordHasher.compare(data.password, user.passwordHash);
     if (!valid) throw new Error(MESSAGES.LOGIN_FAILED);
 
-    const accessToken = this.tokenService.generateAccessToken(user.id, user.role as string, user.email);
-    const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as string, user.email);
+    const accessToken = this.tokenService.generateAccessToken(user.id, user.role as UserRole, user.email);
+    const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as UserRole, user.email);
     await this.sessionService.saveSession(user.id, refreshToken);
 
     return { accessToken, refreshToken };

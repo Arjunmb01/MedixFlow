@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { StatusCode, MESSAGES } from "@/shared/constants";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 import { LoginAdminUseCase } from "@/application/use-cases/auth/loginAdmin.usecase";
 import { RefreshTokenUseCase } from "@/application/use-cases/auth/refreshToken.usecase";
 import { LogoutUseCase } from "@/application/use-cases/auth/logout.usecase";
@@ -35,7 +36,7 @@ export class AdminAuthController {
     refreshToken = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const refreshToken = req.cookies.admin_refreshToken;
-            const result = await this.refreshTokenUseCase.execute(refreshToken, "ADMIN");
+            const result = await this.refreshTokenUseCase.execute(refreshToken, UserRole.ADMIN);
             res.json(result);
         } catch (error) {
             res.status(StatusCode.UNAUTHORIZED).json({ message: error instanceof Error ? error.message : "An unexpected error occurred" });

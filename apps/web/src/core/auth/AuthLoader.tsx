@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setAccessToken, logout } from "@/modules/store/authSlice";
+import { UserRole } from "@/domain/auth/types/auth.types";
 import axios from "axios";
 
 
@@ -23,8 +24,8 @@ export const AuthLoader = ({ children }: AuthLoaderProps) => {
             try {
                 // Determine refresh URL based on role
                 let refreshUrl = "http://localhost:5000/api/auth/refresh-token";
-                if (persistedRole === "ADMIN") refreshUrl = "http://localhost:5000/api/admin/auth/refresh-token";
-                if (persistedRole === "DOCTOR") refreshUrl = "http://localhost:5000/api/doctor/auth/refresh-token";
+                if (persistedRole === UserRole.ADMIN) refreshUrl = "http://localhost:5000/api/admin/auth/refresh-token";
+                if (persistedRole === UserRole.DOCTOR) refreshUrl = "http://localhost:5000/api/doctor/auth/refresh-token";
 
                 const response = await axios.post(
                     refreshUrl,
