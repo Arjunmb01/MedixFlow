@@ -3,21 +3,21 @@ import { MESSAGES } from "@/shared/constants";
 
 export const signupSchema = z.object({
   firstName: z.string()
-    .min(1, "First name is required")
+    .min(1, "First name is required").max(15, "First name cannot exceed 15 characters")
     .regex(/^[A-Za-z]+$/, "First name must contain only letters"),
 
   lastName: z.string()
-    .min(1, "Last name is required")
+    .min(1, "Last name is required").max(15, "Last name cannot exceed 15 characters")
     .regex(/^[A-Za-z]+$/, "Last name must contain only letters"),
 
   email: z.string()
-    .email("Invalid email address"),
+    .email("Invalid email address").max(30, "Email cannot exceed 30 characters"),
 
   phone: z.string()
-    .regex(/^[0-9]{10}$/, "Phone must be exactly 10 digits"),
+    .regex(/^[0-9]{10}$/, "Phone must be exactly 10 digits").max(15, "Phone cannot exceed 15 characters"),
 
   password: z.string()
-    .min(8, "Password must be at least 8 characters")
+    .min(8, "Password must be at least 8 characters").max(35, "Password cannot exceed 35 characters")
     .regex(
       /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&]).+$/,
       "Password must contain letters, numbers and symbols"

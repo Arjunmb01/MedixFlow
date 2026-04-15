@@ -61,7 +61,11 @@ export default function UpcomingCareCard({ appointment }: Props) {
                 <h3 className="text-[20px] font-black tracking-tight text-gray-900 leading-tight">No Active Schedules</h3>
                 <p className="text-[13px] mt-2 font-bold uppercase tracking-widest">Book a consultation to begin</p>
                 <button
+<<<<<<< HEAD
                     onClick={() => window.location.href = '/find-doctors'}
+=======
+                    onClick={() => window.location.href = '/patient/find-doctors'}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                     className="mt-8 bg-primary-600 text-white px-10 py-4 rounded-2xl font-black text-[14px] flex items-center gap-2 hover:bg-primary-700 transition-all shadow-xl shadow-primary-100"
                 >
                     Book Appointment

@@ -7,11 +7,11 @@ import { patientRegister } from "@/infrastructure/api/auth.api"
 import type { RegisterPayload } from "../types/auth.types"
 
 const signupSchema = z.object({
-  firstName: z.string().min(1, "First name is required").regex(/^[A-Za-z]+$/, "First name must contain only letters"),
-  lastName: z.string().min(1, "Last name is required").regex(/^[A-Za-z]+$/, "Last name must contain only letters"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().regex(/^[0-9]{10}$/, "Phone must be exactly 10 digits"),
-  password: z.string().min(8, "Password must be at least 8 characters").regex(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&]).+$/, "Password must contain letters, numbers and symbols"),
+  firstName: z.string().min(1, "First name is required").max(15, "First name cannot exceed 15 characters").regex(/^[A-Za-z]+$/, "First name must contain only letters"),
+  lastName: z.string().min(1, "Last name is required").max(15, "Last name cannot exceed 15 characters").regex(/^[A-Za-z]+$/, "Last name must contain only letters"),
+  email: z.string().email("Invalid email address").max(30, "Email cannot exceed 30 characters"),
+  phone: z.string().regex(/^[0-9]{10}$/, "Phone must be exactly 10 digits").max(15, "Phone cannot exceed 15 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(35, "Password cannot exceed 35 characters").regex(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&]).+$/, "Password must contain letters, numbers and symbols"),
   acceptedTerms: z.literal(true).refine((val) => val === true, {
     message: "You must accept the terms"
   }),
@@ -116,6 +116,10 @@ export default function Register() {
               value={form.firstName}
               onChange={handleChange}
               placeholder="John"
+<<<<<<< HEAD
+=======
+              maxLength={30}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
               className={`w-full bg-gray-50/50 border-2 rounded-2xl px-4 py-4 text-sm transition-all outline-none font-bold placeholder:text-gray-300 placeholder:font-medium ${
                 errors.firstName 
                     ? 'border-red-100 focus:border-red-400 focus:ring-8 focus:ring-red-50/30 text-red-600' 
@@ -134,6 +138,10 @@ export default function Register() {
               value={form.lastName}
               onChange={handleChange}
               placeholder="Doe"
+<<<<<<< HEAD
+=======
+              maxLength={30}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
               className={`w-full bg-gray-50/50 border-2 rounded-2xl px-4 py-4 text-sm transition-all outline-none font-bold placeholder:text-gray-300 placeholder:font-medium ${
                 errors.lastName 
                     ? 'border-red-100 focus:border-red-400 focus:ring-8 focus:ring-red-50/30 text-red-600' 
@@ -155,6 +163,10 @@ export default function Register() {
             value={form.email}
             onChange={handleChange}
             placeholder="john@example.com"
+<<<<<<< HEAD
+=======
+            maxLength={30}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
             className={`w-full bg-gray-50/50 border-2 rounded-2xl px-5 py-4 text-sm transition-all outline-none font-bold placeholder:text-gray-300 placeholder:font-medium ${
               errors.email 
                   ? 'border-red-100 focus:border-red-400 focus:ring-8 focus:ring-red-50/30 text-red-600' 
@@ -174,6 +186,10 @@ export default function Register() {
             value={form.phone}
             onChange={handleChange}
             placeholder="1234567890"
+<<<<<<< HEAD
+=======
+            maxLength={15}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
             className={`w-full bg-gray-50/50 border-2 rounded-2xl px-5 py-4 text-sm transition-all outline-none font-bold placeholder:text-gray-300 placeholder:font-medium ${
               errors.phone 
                   ? 'border-red-100 focus:border-red-400 focus:ring-8 focus:ring-red-50/30 text-red-600' 
@@ -195,6 +211,10 @@ export default function Register() {
               value={form.password}
               onChange={handleChange}
               placeholder="••••••••"
+<<<<<<< HEAD
+=======
+              maxLength={35}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
               className={`w-full bg-gray-50/50 border-2 rounded-2xl pl-5 pr-14 py-4 text-sm transition-all outline-none font-black tracking-widest placeholder:tracking-normal placeholder:font-medium placeholder:text-gray-300 ${
                 errors.password 
                     ? 'border-red-100 focus:border-red-400 focus:ring-8 focus:ring-red-50/30 text-red-600' 

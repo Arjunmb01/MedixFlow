@@ -32,7 +32,7 @@ export default function FindDoctors() {
         limit: 9
     })
 
-    const specialties = ["All", ...SPECIALTY_OPTIONS]
+    const specialties = ["SPECIALTY", ...SPECIALTY_OPTIONS]
     const limit = 9
     const totalPages = Math.ceil(totalDoctors / limit)
 

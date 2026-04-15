@@ -11,8 +11,8 @@ import { toast } from "sonner"
 import { User, Lock, ArrowRight, Eye, EyeOff, AlertCircle } from "lucide-react"
 
 const doctorLoginSchema = z.object({
-  email: z.string().min(1, "Employee ID or email is required"),
-  password: z.string().min(1, "Password is required")
+  email: z.string().min(1, "Employee ID or email is required").max(30, "Employee ID or email cannot exceed 30 characters"),
+  password: z.string().min(1, "Password is required").max(35, "Password cannot exceed 35 characters")
 })
 
 type DoctorLoginFormValues = z.infer<typeof doctorLoginSchema>
@@ -100,6 +100,10 @@ export default function DoctorLogin() {
                                     {...register("email")}
                                     type="text"
                                     placeholder="doctor@medixflow.com"
+<<<<<<< HEAD
+=======
+                                    maxLength={30}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                                     className={`w-full pl-12 pr-4 py-4.5 bg-white border-2 rounded-2xl text-sm transition-all font-bold placeholder:text-gray-300 placeholder:font-medium outline-none ${
                                         errors.email 
                                             ? 'border-red-100 focus:border-red-400 focus:ring-8 focus:ring-red-50/30 text-red-600' 
@@ -127,6 +131,10 @@ export default function DoctorLogin() {
                                     {...register("password")}
                                     type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
+<<<<<<< HEAD
+=======
+                                    maxLength={35}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                                     className={`w-full pl-12 pr-12 py-4.5 bg-white border-2 rounded-2xl text-sm transition-all font-black tracking-widest placeholder:tracking-normal placeholder:font-medium placeholder:text-gray-300 outline-none ${
                                         errors.password 
                                             ? 'border-red-100 focus:border-red-400 focus:ring-8 focus:ring-red-50/30 text-red-600' 

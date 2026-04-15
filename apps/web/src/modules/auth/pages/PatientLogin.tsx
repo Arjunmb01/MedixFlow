@@ -15,8 +15,8 @@ import { toast } from "sonner"
 import { Eye, EyeOff, Lock, Mail, AlertCircle } from "lucide-react"
 
 const loginSchema = z.object({
-  email: z.string().min(1, "Email address is required").email("Please enter a valid email address"),
-  password: z.string().min(1, "Password is required")
+  email: z.string().min(1, "Email address is required").email("Please enter a valid email address").max(30, "Email cannot exceed 30 characters"),
+  password: z.string().min(1, "Password is required").max(35, "Password cannot exceed 35 characters")
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
@@ -198,6 +198,10 @@ export default function PatientLogin() {
                             {...register("email")}
                             type="email"
                             placeholder="name@example.com"
+<<<<<<< HEAD
+=======
+                            maxLength={30}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                             className={`w-full bg-gray-50/50 border-2 rounded-2xl pl-12 pr-4 py-4 text-sm transition-all outline-none font-bold placeholder:text-gray-300 placeholder:font-medium ${
                                 errors.email 
                                     ? 'border-red-100 focus:border-red-400 focus:ring-4 focus:ring-red-50/50 text-red-600' 
@@ -229,6 +233,10 @@ export default function PatientLogin() {
                             {...register("password")}
                             type={showPassword ? "text" : "password"}
                             placeholder="••••••••"
+<<<<<<< HEAD
+=======
+                            maxLength={35}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                             className={`w-full bg-gray-50/50 border-2 rounded-2xl pl-12 pr-12 py-4 text-sm transition-all outline-none font-black tracking-widest placeholder:tracking-normal placeholder:font-medium placeholder:text-gray-300 ${
                                 errors.password 
                                     ? 'border-red-100 focus:border-red-400 focus:ring-4 focus:ring-red-50/50 text-red-600' 

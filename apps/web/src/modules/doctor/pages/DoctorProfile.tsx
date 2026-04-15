@@ -196,6 +196,7 @@ export default function DoctorProfile() {
                                             <input 
                                                 value={personalInfo.firstName}
                                                 onChange={e => setPersonalInfo({...personalInfo, firstName: e.target.value})}
+                                                maxLength={30}
                                                 className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-bold focus:ring-2 focus:ring-teal-500/10 transition-all"
                                             />
                                         </div>
@@ -204,6 +205,7 @@ export default function DoctorProfile() {
                                             <input 
                                                 value={personalInfo.lastName}
                                                 onChange={e => setPersonalInfo({...personalInfo, lastName: e.target.value})}
+                                                maxLength={30}
                                                 className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-bold focus:ring-2 focus:ring-teal-500/10 transition-all"
                                             />
                                         </div>
@@ -212,6 +214,7 @@ export default function DoctorProfile() {
                                             <input 
                                                 value={personalInfo.specialty}
                                                 onChange={e => setPersonalInfo({...personalInfo, specialty: e.target.value})}
+                                                maxLength={20}
                                                 className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-bold focus:ring-2 focus:ring-teal-500/10 transition-all"
                                             />
                                         </div>
@@ -220,6 +223,7 @@ export default function DoctorProfile() {
                                             <input 
                                                 value={personalInfo.licenseNumber}
                                                 onChange={e => setPersonalInfo({...personalInfo, licenseNumber: e.target.value})}
+                                                maxLength={20}
                                                 className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-bold focus:ring-2 focus:ring-teal-500/10 transition-all"
                                             />
                                         </div>
@@ -237,6 +241,7 @@ export default function DoctorProfile() {
                                             <input 
                                                 value={personalInfo.phone}
                                                 onChange={e => setPersonalInfo({...personalInfo, phone: e.target.value})}
+                                                maxLength={15}
                                                 className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-bold focus:ring-2 focus:ring-teal-500/10 transition-all"
                                             />
                                         </div>
@@ -248,6 +253,7 @@ export default function DoctorProfile() {
                                             rows={4}
                                             value={personalInfo.bio}
                                             onChange={e => setPersonalInfo({...personalInfo, bio: e.target.value})}
+                                            maxLength={1000}
                                             className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 text-sm font-medium focus:ring-2 focus:ring-teal-500/10 transition-all resize-none"
                                             placeholder="Board-certified specialist with a decade of experience..."
                                         />
@@ -282,6 +288,7 @@ export default function DoctorProfile() {
                                                     type={showPasswords.current ? "text" : "password"}
                                                     value={passwordData.currentPassword}
                                                     onChange={e => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                                                    maxLength={35}
                                                     className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 pr-12 text-sm font-black tracking-widest focus:ring-2 focus:ring-teal-500/10 transition-all placeholder:tracking-normal placeholder:font-medium text-gray-900"
                                                     placeholder="••••••••"
                                                     required
@@ -302,6 +309,7 @@ export default function DoctorProfile() {
                                                     type={showPasswords.new ? "text" : "password"}
                                                     value={passwordData.newPassword}
                                                     onChange={e => setPasswordData({...passwordData, newPassword: e.target.value})}
+                                                    maxLength={35}
                                                     className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 pr-12 text-sm font-black tracking-widest focus:ring-2 focus:ring-teal-500/10 transition-all placeholder:tracking-normal placeholder:font-medium text-gray-900"
                                                     placeholder="At least 8 characters"
                                                     required
@@ -322,6 +330,7 @@ export default function DoctorProfile() {
                                                     type={showPasswords.confirm ? "text" : "password"}
                                                     value={passwordData.confirmPassword}
                                                     onChange={e => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                                                    maxLength={35}
                                                     className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 pr-12 text-sm font-black tracking-widest focus:ring-2 focus:ring-teal-500/10 transition-all placeholder:tracking-normal placeholder:font-medium text-gray-900"
                                                     placeholder="Re-enter new password"
                                                     required

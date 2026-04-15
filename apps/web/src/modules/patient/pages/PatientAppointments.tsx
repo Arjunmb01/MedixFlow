@@ -35,6 +35,10 @@ export default function PatientAppointments() {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("UPCOMING");
     const [currentPage, setCurrentPage] = useState(1);
+<<<<<<< HEAD
+=======
+    const itemsPerPage = 5;
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
     
     // Modal states
     const [selectedApt, setSelectedApt] = useState<any | null>(null);
@@ -99,11 +103,19 @@ export default function PatientAppointments() {
         });
     }, [appointments, searchTerm, statusFilter]);
 
+<<<<<<< HEAD
     const totalPages = Math.max(1, Math.ceil(filteredAppointments.length / ITEMS_PER_PAGE));
     const paginatedAppointments = filteredAppointments.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
         currentPage * ITEMS_PER_PAGE
     );
+=======
+    const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
+    const paginatedAppointments = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredAppointments.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredAppointments, currentPage]);
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
 
     const getStatusVariant = (status: string): "success" | "warning" | "error" | "info" => {
         switch (status.toUpperCase()) {
@@ -144,7 +156,10 @@ export default function PatientAppointments() {
                                     type="text"
                                     placeholder="Search by doctor name..."
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
                                     className="pl-12 pr-6 py-3.5 bg-white border border-[#E2E8F0] rounded-2xl text-sm font-medium focus:outline-none focus:border-[#3B82F6] focus:ring-4 focus:ring-blue-50 transition-all w-full md:w-[280px]"
                                 />
                             </div>
@@ -163,7 +178,14 @@ export default function PatientAppointments() {
                             return (
                                 <button
                                     key={tab.id}
+<<<<<<< HEAD
                                     onClick={() => setStatusFilter(tab.id)}
+=======
+                                    onClick={() => {
+                                        setStatusFilter(tab.id);
+                                        setCurrentPage(1);
+                                    }}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                                     className={`px-6 py-2.5 rounded-2xl text-[13px] font-black uppercase tracking-wider transition-all duration-300 ${
                                         isActive 
                                         ? "bg-white text-[#0F172A] shadow-sm scale-[1.02]" 
@@ -182,6 +204,7 @@ export default function PatientAppointments() {
                              <p className="text-[#64748B] font-bold">Synchronizing your appointments...</p>
                         </div>
                     ) : (
+<<<<<<< HEAD
                         <div>
                             <div className="grid grid-cols-1 gap-4">
                                 {paginatedAppointments.length > 0 ? (
@@ -193,6 +216,24 @@ export default function PatientAppointments() {
                                             <div className="flex items-center gap-6">
                                                 <div className="w-16 h-16 bg-[#F8FAFC] rounded-[1.5rem] flex items-center justify-center border border-[#F1F5F9] group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors">
                                                     <User className="w-8 h-8 text-[#94A3B8] group-hover:text-[#3B82F6] transition-colors" />
+=======
+                        <>
+                            <div className="grid grid-cols-1 gap-4">
+                            {paginatedAppointments.length > 0 ? (
+                                paginatedAppointments.map((apt) => (
+                                    <div 
+                                        key={apt.id}
+                                        className="bg-white p-6 rounded-[2rem] border border-[#E2E8F0] hover:border-[#3B82F6] hover:shadow-xl hover:shadow-blue-50/50 transition-all group flex flex-col md:flex-row md:items-center justify-between gap-6"
+                                    >
+                                        <div className="flex items-center gap-6">
+                                            <div className="w-16 h-16 bg-[#F8FAFC] rounded-[1.5rem] flex items-center justify-center border border-[#F1F5F9] group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors">
+                                                <User className="w-8 h-8 text-[#94A3B8] group-hover:text-[#3B82F6] transition-colors" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-3">
+                                                    <h3 className="text-lg font-black text-[#0F172A]">Dr. {apt.doctor.firstName} {apt.doctor.lastName}</h3>
+                                                    <Badge variant={getStatusVariant(apt.status)}>{apt.status}</Badge>
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center gap-3">
@@ -215,6 +256,7 @@ export default function PatientAppointments() {
                                                 </div>
                                             </div>
 
+<<<<<<< HEAD
                                             <div className="flex items-center gap-3 md:flex-col md:items-end">
                                                 <button 
                                                     onClick={() => setSelectedApt(apt)}
@@ -246,6 +288,38 @@ export default function PatientAppointments() {
                                                     Download Invoice
                                                 </button>
                                             </div>
+=======
+                                        <div className="flex items-center gap-3 md:flex-col md:items-end">
+                                            <button 
+                                                onClick={() => setSelectedApt(apt)}
+                                                className="flex-1 md:flex-none px-6 py-3 bg-[#F8FAFC] text-[#475569] border border-[#E2E8F0] rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-[#F1F5F9] transition-all"
+                                            >
+                                                View Details
+                                            </button>
+                                            
+                                            {apt.status === "COMPLETED" && apt.consultation?.prescription && (
+                                                <>
+                                                    <button 
+                                                        onClick={() => navigate(`/patient/prescriptions/${apt.id}`)}
+                                                        className="flex-1 md:flex-none px-6 py-3 bg-teal-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
+                                                    >
+                                                        <Pill className="w-4 h-4" />
+                                                        View Prescription
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => navigate(`/patient/prescriptions/${apt.id}?download=true`)}
+                                                        className="flex-1 md:flex-none px-6 py-3 bg-blue-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm"
+                                                    >
+                                                        <Download className="w-4 h-4" />
+                                                        Download PDF
+                                                    </button>
+                                                </>
+                                            )}
+
+                                            <button className="flex-1 md:flex-none px-6 py-3 bg-white text-[#3B82F6] border border-[#3B82F6] rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-blue-50 transition-all">
+                                                Download Invoice
+                                            </button>
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                                         </div>
                                     ))
                                 ) : (
@@ -302,9 +376,58 @@ export default function PatientAppointments() {
                                             <ChevronRight className="w-5 h-5" />
                                         </button>
                                     </div>
+<<<<<<< HEAD
+=======
+                                    <h3 className="text-xl font-black text-[#0F172A] mb-2">No appointments found</h3>
+                                    <p className="text-[#64748B] font-medium max-w-xs text-center">We couldn't find any appointments matching your filters or search criteria.</p>
+                                    <button 
+                                        onClick={() => {setSearchTerm(""); setStatusFilter("UPCOMING"); setCurrentPage(1);}}
+                                        className="mt-8 text-[#3B82F6] font-black text-sm uppercase tracking-widest hover:underline"
+                                    >
+                                        Reset all filters
+                                    </button>
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                                 </div>
                             )}
                         </div>
+
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                            <div className="mt-12 flex items-center justify-center gap-2">
+                                <button 
+                                    disabled={currentPage === 1}
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    className="p-3 bg-white border border-[#E2E8F0] rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#3B82F6] transition-all text-[#64748B]"
+                                >
+                                    <ChevronLeft className="w-5 h-5" />
+                                </button>
+                                
+                                <div className="flex items-center gap-2 px-4">
+                                    {[...Array(totalPages)].map((_, i) => (
+                                        <button
+                                            key={i + 1}
+                                            onClick={() => setCurrentPage(i + 1)}
+                                            className={`w-10 h-10 rounded-xl text-sm font-black transition-all ${
+                                                currentPage === i + 1 
+                                                ? 'bg-[#3B82F6] text-white shadow-lg shadow-blue-100' 
+                                                : 'bg-white text-[#64748B] border border-[#E2E8F0] hover:border-[#3B82F6]'
+                                            }`}
+                                        >
+                                            {i + 1}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <button 
+                                    disabled={currentPage === totalPages}
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    className="p-3 bg-white border border-[#E2E8F0] rounded-xl disabled:opacity-40 disabled:cursor-not-allowed hover:border-[#3B82F6] transition-all text-[#64748B]"
+                                >
+                                    <ChevronRight className="w-5 h-5" />
+                                </button>
+                            </div>
+                        )}
+                        </>
                     )}
                 </main>
             </div>

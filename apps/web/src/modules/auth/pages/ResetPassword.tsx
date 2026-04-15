@@ -97,6 +97,7 @@ export default function ResetPassword() {
                                         className="w-full pl-14 pr-14 py-5 bg-gray-50/50 border-2 border-gray-50 rounded-[24px] text-[15px] focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/50 outline-none transition-all font-bold placeholder:text-gray-300"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
+                                        maxLength={35}
                                         required
                                     />
                                     <button
@@ -121,6 +122,7 @@ export default function ResetPassword() {
                                         className="w-full pl-14 pr-14 py-5 bg-gray-50/50 border-2 border-gray-50 rounded-[24px] text-[15px] focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/50 outline-none transition-all font-bold placeholder:text-gray-300"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
+                                        maxLength={35}
                                         required
                                     />
                                 </div>

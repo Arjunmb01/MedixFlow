@@ -326,6 +326,7 @@ export default function ConsultationWorkspace() {
                             <input 
                                 type="text" placeholder="e.g. 120/80"
                                 value={vitals.bloodPressure} onChange={(e) => setVitals({...vitals, bloodPressure: e.target.value})}
+                                maxLength={20}
                                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                             />
                         </div>
@@ -463,6 +464,7 @@ export default function ConsultationWorkspace() {
                                 <textarea 
                                     rows={3} placeholder="Patient complains of..."
                                     value={medicalRecord.symptoms} onChange={(e) => setMedicalRecord({...medicalRecord, symptoms: e.target.value})}
+                                    maxLength={2000}
                                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
                                 />
                             </div>
@@ -471,6 +473,7 @@ export default function ConsultationWorkspace() {
                                 <input 
                                     type="text" placeholder="e.g. Acute Viral Pharyngitis"
                                     value={medicalRecord.diagnosis} onChange={(e) => setMedicalRecord({...medicalRecord, diagnosis: e.target.value})}
+                                    maxLength={255}
                                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium text-gray-900"
                                 />
                             </div>
@@ -479,6 +482,7 @@ export default function ConsultationWorkspace() {
                                 <textarea 
                                     rows={2} placeholder="Additional observations, recommended tests or diet modifications..."
                                     value={medicalRecord.notes} onChange={(e) => setMedicalRecord({...medicalRecord, notes: e.target.value})}
+                                    maxLength={2000}
                                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
                                 />
                             </div>
@@ -499,6 +503,7 @@ export default function ConsultationWorkspace() {
                                 <input 
                                     type="text" placeholder="e.g. Amoxicillin"
                                     value={customMedicine.name} onChange={(e) => setCustomMedicine({...customMedicine, name: e.target.value})}
+                                    maxLength={100}
                                     className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 transition-all font-medium text-gray-900"
                                 />
                             </div>
@@ -507,6 +512,7 @@ export default function ConsultationWorkspace() {
                                 <input 
                                     type="text" placeholder="500mg"
                                     value={customMedicine.dosage} onChange={(e) => setCustomMedicine({...customMedicine, dosage: e.target.value})}
+                                    maxLength={50}
                                     className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 transition-all"
                                 />
                             </div>
@@ -515,6 +521,7 @@ export default function ConsultationWorkspace() {
                                 <input 
                                     type="text" placeholder="1-1-1"
                                     value={customMedicine.frequency} onChange={(e) => setCustomMedicine({...customMedicine, frequency: e.target.value})}
+                                    maxLength={50}
                                     className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 transition-all"
                                 />
                             </div>
@@ -523,6 +530,7 @@ export default function ConsultationWorkspace() {
                                 <input 
                                     type="text" placeholder="5 Days"
                                     value={customMedicine.duration} onChange={(e) => setCustomMedicine({...customMedicine, duration: e.target.value})}
+                                    maxLength={50}
                                     className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 transition-all"
                                 />
                             </div>
@@ -571,6 +579,7 @@ export default function ConsultationWorkspace() {
                             <input 
                                 type="text" placeholder="E.g. Take medicines after food..."
                                 value={prescription.instructions} onChange={(e) => setPrescription({...prescription, instructions: e.target.value})}
+                                maxLength={255}
                                 className="w-full bg-white border-b-2 border-dashed border-gray-200 py-2 outline-none focus:border-teal-500 transition-all text-gray-700 text-sm"
                             />
                         </div>

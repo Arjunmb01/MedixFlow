@@ -18,14 +18,15 @@ import { UserRole } from "@/domain/auth/types/auth.types"
 import { toast } from "sonner"
 
 const menuItems = [
-    { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-    { label: "Find Doctors", icon: UserSearch, path: "/find-doctors" },
-    { label: "My Appointments", icon: CalendarDays, path: "/appointments" },
-    { label: "Wallet", icon: Wallet, path: "/wallet" },
-    { label: "Medical Records", icon: FileText, path: "/records" },
-    { label: "Billing", icon: CreditCard, path: "/billing" },
-    { label: "Message", icon: MessageSquare, path: "/messages" },
-    { label: "Profile & Settings", icon: Settings, path: "/profile" },
+    { label: "Dashboard", icon: LayoutDashboard, path: "/patient/dashboard" },
+    { label: "Find Doctors", icon: UserSearch, path: "/patient/find-doctors" },
+    { label: "My Appointments", icon: CalendarDays, path: "/patient/appointments" },
+    { label: "Wallet", icon: Wallet, path: "/patient/wallet" },
+    { label: "Medical Records", icon: FileText, path: "/patient/records" },
+    { label: "Prescriptions", icon: Pill, path: "/patient/prescriptions" },
+    { label: "Billing", icon: CreditCard, path: "/patient/billing" },
+    { label: "Message", icon: MessageSquare, path: "/patient/messages" },
+    { label: "Profile & Settings", icon: Settings, path: "/patient/profile" },
 ]
 
 export default function Sidebar() {

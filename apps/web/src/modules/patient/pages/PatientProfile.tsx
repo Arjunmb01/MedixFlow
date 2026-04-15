@@ -64,6 +64,7 @@ export default function PatientProfile() {
                                                 type="text"
                                                 value={personalInfo.name}
                                                 onChange={(e) => setPersonalInfo({ ...personalInfo, name: e.target.value })}
+                                                maxLength={30}
                                                 className="w-full bg-gray-50 border-none rounded-2xl py-3 px-5 text-[15px] font-medium text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                                 placeholder="Arjun Sharma"
                                             />
@@ -84,6 +85,7 @@ export default function PatientProfile() {
                                                 type="text"
                                                 value={personalInfo.mobile}
                                                 onChange={(e) => setPersonalInfo({ ...personalInfo, mobile: e.target.value })}
+                                                maxLength={15}
                                                 className="w-full bg-gray-50 border-none rounded-2xl py-3 px-5 text-[15px] font-medium text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                                 placeholder="9876543210"
                                             />
@@ -143,6 +145,7 @@ export default function PatientProfile() {
                                                 type="password"
                                                 value={passwords.currentPassword}
                                                 onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
+                                                maxLength={35}
                                                 className="w-full bg-gray-50 border-none rounded-2xl py-3 px-5 text-[15px] font-medium text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                                 placeholder="••••••••"
                                             />
@@ -154,6 +157,7 @@ export default function PatientProfile() {
                                                 type="password"
                                                 value={passwords.newPassword}
                                                 onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
+                                                maxLength={35}
                                                 className="w-full bg-gray-50 border-none rounded-2xl py-3 px-5 text-[15px] font-medium text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                                 placeholder="••••••••"
                                             />
@@ -164,6 +168,7 @@ export default function PatientProfile() {
                                                 type="password"
                                                 value={passwords.confirmPassword}
                                                 onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                                                maxLength={35}
                                                 className="w-full bg-gray-50 border-none rounded-2xl py-3 px-5 text-[15px] font-medium text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                                 placeholder="••••••••"
                                             />
@@ -199,6 +204,7 @@ export default function PatientProfile() {
                                                         newContacts[index].name = e.target.value
                                                         setEmergencyContacts(newContacts)
                                                     }}
+                                                    maxLength={30}
                                                     className="w-full bg-gray-50 border-none rounded-2xl py-3 px-5 text-[15px] font-medium text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                                     placeholder="Arjun Sharma"
                                                 />
@@ -213,6 +219,7 @@ export default function PatientProfile() {
                                                         newContacts[index].mobile = e.target.value
                                                         setEmergencyContacts(newContacts)
                                                     }}
+                                                    maxLength={15}
                                                     className="w-full bg-gray-50 border-none rounded-2xl py-3 px-5 text-[15px] font-medium text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                                     placeholder="9876543210"
                                                 />

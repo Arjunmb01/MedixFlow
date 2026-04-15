@@ -25,6 +25,10 @@ export default function BrandingSettings() {
                                 <input 
                                     type="text" 
                                     defaultValue="#0D9488"
+<<<<<<< HEAD
+=======
+                                    maxLength={20}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                                     className="w-full pl-6 pr-4 py-4 bg-gray-50/50 border-2 border-gray-50 rounded-2xl focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/30 transition-all outline-none font-black text-gray-900 text-sm uppercase tracking-widest"
                                 />
                                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase tracking-widest group-focus-within:text-primary-600 transition-colors">HEX/RGB</span>
@@ -40,6 +44,10 @@ export default function BrandingSettings() {
                                 <input 
                                     type="text" 
                                     defaultValue="#6366F1"
+<<<<<<< HEAD
+=======
+                                    maxLength={20}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                                     className="w-full pl-6 pr-4 py-4 bg-gray-50/50 border-2 border-gray-50 rounded-2xl focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/30 transition-all outline-none font-black text-gray-900 text-sm uppercase tracking-widest"
                                 />
                                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase tracking-widest group-focus-within:text-primary-600 transition-colors">HEX/RGB</span>
@@ -81,6 +89,10 @@ export default function BrandingSettings() {
                     <textarea 
                         rows={2}
                         defaultValue="Your health, our priority — accessible anywhere."
+<<<<<<< HEAD
+=======
+                        maxLength={255}
+>>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                         className="w-full px-6 py-5 bg-gray-50/50 border-2 border-gray-50 rounded-2xl focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/30 transition-all outline-none font-bold text-gray-900 text-sm resize-none"
                         placeholder="Enter a welcoming tagline for your patients..."
                     />
