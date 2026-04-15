@@ -1,9 +1,10 @@
 import { Navigate } from "react-router-dom";
 import { useAppSelector } from "@/core/store/hooks";
+import { UserRole } from "@/domain/auth/types/auth.types";
 
 interface GuestRouteProps {
     children: React.ReactNode
-    forRole?: "ADMIN" | "PATIENT" | "DOCTOR"
+    forRole?: UserRole
 }
 
 export default function GuestRoute({ children, forRole }: GuestRouteProps) {
@@ -12,18 +13,18 @@ export default function GuestRoute({ children, forRole }: GuestRouteProps) {
     // If a specific role is target, only redirect if THAT role is already logged in
     if (forRole) {
         if (authState[forRole].isAuthenticated) {
-            let dashboardPath = "/patient/dashboard";
-            if (forRole === "ADMIN") dashboardPath = "/admin/dashboard";
-            if (forRole === "DOCTOR") dashboardPath = "/doctor/dashboard";
-            return <Navigate to={dashboardPath} replace />
+            let dashboardPath = "/dashboard";
+            if (forRole === UserRole.ADMIN) dashboardPath = "/admin/dashboard";
+            if (forRole === UserRole.DOCTOR) dashboardPath = "/doctor/dashboard";
+            return <Navigate to={dashboardPath} replace />;
         }
         return <>{children}</>
     }
 
     // Generic check for landing page / general auth pages
-    if (authState.ADMIN.isAuthenticated) return <Navigate to="/admin/dashboard" replace />
-    if (authState.PATIENT.isAuthenticated) return <Navigate to="/patient/dashboard" replace />
-    if (authState.DOCTOR.isAuthenticated) return <Navigate to="/doctor/dashboard" replace />
+    if (authState[UserRole.ADMIN].isAuthenticated) return <Navigate to="/admin/dashboard" replace />
+    if (authState[UserRole.PATIENT].isAuthenticated) return <Navigate to="/dashboard" replace />
+    if (authState[UserRole.DOCTOR].isAuthenticated) return <Navigate to="/doctor/dashboard" replace />
 
     return <>{children}</>
 }

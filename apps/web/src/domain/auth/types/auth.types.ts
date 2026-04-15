@@ -1,4 +1,10 @@
-export type Role = "ADMIN" | "PATIENT" | "DOCTOR";
+export enum UserRole {
+    ADMIN = "ADMIN",
+    PATIENT = "PATIENT",
+    DOCTOR = "DOCTOR"
+}
+
+export type Role = UserRole;
 
 export interface User {
     id: string;
@@ -51,10 +57,9 @@ export interface RoleState {
 }
 
 export interface AuthState {
-    ADMIN: RoleState;
-    PATIENT: RoleState;
-    DOCTOR: RoleState;
+    [UserRole.ADMIN]: RoleState;
+    [UserRole.PATIENT]: RoleState;
+    [UserRole.DOCTOR]: RoleState;
     loading: boolean;
     persistedRole: Role | null;
 }
-

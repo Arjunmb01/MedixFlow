@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { MESSAGES } from "@/shared/constants/index";
 import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { IEmailService } from "@/application/interfaces/IEmailService";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 
 export interface ForgotPasswordPayload {
   email: string;
@@ -27,10 +28,10 @@ export class ForgotPasswordUseCase {
     await this.authRepository.createPasswordResetToken(user.id, token, expiresAt);
 
     let userName = "User";
-    if (user.role === "PATIENT") {
+    if (user.role === UserRole.PATIENT) {
       const patient = await this.authRepository.findPatientProfileByUserId(user.id);
       if (patient) userName = `${patient.firstName} ${patient.lastName}`;
-    } else if (user.role === "DOCTOR") {
+    } else if (user.role === UserRole.DOCTOR) {
       const doctor = await this.authRepository.findDoctorProfileByUserId(user.id);
       if (doctor) userName = `Dr. ${doctor.lastName}`;
     }

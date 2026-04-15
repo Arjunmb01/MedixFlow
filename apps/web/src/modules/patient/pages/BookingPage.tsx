@@ -149,9 +149,9 @@ export default function BookingPage() {
                 <main className="pt-28 pb-12 px-8 max-w-5xl mx-auto">
                     {/* Breadcrumbs */}
                     <nav className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#94A3B8] mb-8">
-                        <Link to="/patient/dashboard" className="hover:text-[#3B82F6] transition-colors">Dashboard</Link>
+                        <Link to="/dashboard" className="hover:text-[#3B82F6] transition-colors">Dashboard</Link>
                         <ChevronRight className="w-3 h-3" />
-                        <Link to="/patient/find-doctors" className="hover:text-[#3B82F6] transition-colors">Find Doctors</Link>
+                        <Link to="/find-doctors" className="hover:text-[#3B82F6] transition-colors">Find Doctors</Link>
                         <ChevronRight className="w-3 h-3" />
                         <span className="text-[#0F172A]">Book Appointment</span>
                     </nav>
@@ -201,7 +201,7 @@ export default function BookingPage() {
                                 </p>
                                 <div className="flex flex-col md:flex-row gap-4 mt-8">
                                     <button 
-                                        onClick={() => window.location.href = '/patient/dashboard'}
+                                        onClick={() => window.location.href = '/dashboard'}
                                         className="px-10 py-4 bg-[#3B82F6] text-white rounded-2xl font-black uppercase tracking-wider shadow-lg shadow-blue-200 hover:bg-[#2563EB] transition-all"
                                     >
                                         Return to Dashboard

@@ -1,5 +1,6 @@
 import { UserStatus } from "../value-objects/enums/UserStatus";
 import { Gender } from "../value-objects/enums/Gender";
+import { UserRole } from "../value-objects/enums/UserRole";
 
 export class Patient {
   constructor(
@@ -13,7 +14,7 @@ export class Patient {
     public bloodGroup?: string,
     public gender?: Gender,
     public passwordHash?: string,
-    public role: string = "PATIENT",
+    public role: UserRole = UserRole.PATIENT,
     public emergencyContacts: { id?: string; name: string; mobile: string; }[] = []
   ) {}
 

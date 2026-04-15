@@ -3,6 +3,7 @@ import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { ITokenService } from "@/application/interfaces/ITokenService";
 import { ISessionService } from "@/application/interfaces/IAuthServices";
 import { IPasswordHasher } from "@/application/interfaces/IPasswordHasher";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 
 export interface LoginData {
   email: string;
@@ -25,15 +26,15 @@ export class LoginPatientUseCase {
     const { user, patientId } = result;
 
     // Role mismatch: verify password before giving a helpful hint
-    if (user.role !== "PATIENT") {
+    if (user.role !== UserRole.PATIENT) {
       const valid = await this.passwordHasher.compare(data.password, user.passwordHash);
       if (valid) {
-        if (user.role === "DOCTOR") {
+        if (user.role === UserRole.DOCTOR) {
           throw new Error(
             "It looks like you have a Doctor account. Please login through the Doctor Portal."
           );
         }
-        if (user.role === "ADMIN") {
+        if (user.role === UserRole.ADMIN) {
           throw new Error(
             "This is an Admin account. Please login through the Admin Portal."
           );
@@ -53,8 +54,8 @@ export class LoginPatientUseCase {
     const valid = await this.passwordHasher.compare(data.password, user.passwordHash);
     if (!valid) throw new Error(MESSAGES.LOGIN_FAILED);
 
-    const accessToken = this.tokenService.generateAccessToken(user.id, user.role as string, user.email);
-    const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as string, user.email);
+    const accessToken = this.tokenService.generateAccessToken(user.id, user.role as UserRole, user.email);
+    const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as UserRole, user.email);
 
     await this.sessionService.saveSession(user.id, refreshToken);
     return { accessToken, refreshToken, patientId };

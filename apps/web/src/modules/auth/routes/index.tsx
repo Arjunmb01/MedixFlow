@@ -1,5 +1,6 @@
 import { Route } from "react-router-dom"
 import GuestRoute from "@/core/routes/GuestRoute"
+import { UserRole } from "../types/auth.types"
 import Register from "../pages/Register"
 import VerifyOtp from "../pages/VerifyOtp"
 import PatientLogin from "../pages/PatientLogin"
@@ -21,27 +22,27 @@ export const AuthRoutes = (
         <Route path="/doctor/reset-password" element={<ResetPassword />} />
 
         <Route path="/auth/register" element={
-            <GuestRoute forRole="PATIENT">
+            <GuestRoute forRole={UserRole.PATIENT}>
                 <Register />
             </GuestRoute>
         } />
         <Route path="/auth/verify-otp" element={
-            <GuestRoute forRole="PATIENT">
+            <GuestRoute forRole={UserRole.PATIENT}>
                 <VerifyOtp />
             </GuestRoute>
         } />
         <Route path="/patient/login" element={
-            <GuestRoute forRole="PATIENT">
+            <GuestRoute forRole={UserRole.PATIENT}>
                 <PatientLogin />
             </GuestRoute>
         } />
         <Route path="/admin/login" element={
-            <GuestRoute forRole="ADMIN">
+            <GuestRoute forRole={UserRole.ADMIN}>
                 <AdminLogin />
             </GuestRoute>
         } />
         <Route path="/doctor/login" element={
-            <GuestRoute forRole="DOCTOR">
+            <GuestRoute forRole={UserRole.DOCTOR}>
                 <DoctorLogin />
             </GuestRoute>
         } />

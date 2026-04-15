@@ -11,6 +11,7 @@ import {
     UpdateDoctorInput,
     StaffDoctorListItem
 } from "@/domain/value-objects/types/staff.repository.types";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 
 export class StaffRepository implements IStaffRepository {
     constructor(
@@ -103,7 +104,7 @@ export class StaffRepository implements IStaffRepository {
                 data: {
                     email: data.email,
                     passwordHash,
-                    role: "DOCTOR",
+                    role: UserRole.DOCTOR,
                     status: temporaryPassword ? "ACTIVE" : "INACTIVE",
                     doctorProfile: {
                         create: {

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useSearchParams, useNavigate, useLocation } from "react-router-dom"
+import { useSearchParams, useNavigate, useLocation, Link } from "react-router-dom"
 import { patientResetPassword, doctorResetPassword } from "@/infrastructure/api/auth.api"
 import { toast } from "sonner"
 import { Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react"
@@ -49,15 +49,15 @@ export default function ResetPassword() {
 
     if (success) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6 font-outfit">
-                <div className="w-full max-w-md bg-white rounded-3xl p-10 shadow-xl shadow-green-100 text-center space-y-6">
-                    <div className="mx-auto w-16 h-16 bg-green-50 rounded-full flex items-center justify-center">
-                        <CheckCircle2 className="w-8 h-8 text-green-600" />
+            <div className="min-h-screen bg-gray-50/50 flex items-center justify-center p-6 font-outfit">
+                <div className="w-full max-w-md bg-white rounded-[40px] p-10 md:p-12 shadow-[0_20px_60px_rgba(0,0,0,0.03)] border border-gray-100 text-center space-y-8">
+                    <div className="mx-auto w-20 h-20 bg-primary-50 rounded-[28px] flex items-center justify-center shadow-sm">
+                        <CheckCircle2 className="w-10 h-10 text-primary-600" />
                     </div>
-                    <div className="space-y-2">
-                        <h1 className="text-2xl font-black text-gray-900">Success!</h1>
-                        <p className="text-gray-500 font-medium">
-                            Your password has been reset successfully. Redirecting to login...
+                    <div className="space-y-4">
+                        <h1 className="text-[28px] font-black text-gray-900 tracking-tight leading-tight">Success!</h1>
+                        <p className="text-gray-400 font-bold leading-relaxed px-2">
+                            Your password has been reset successfully. Redirecting to your workspace...
                         </p>
                     </div>
                 </div>
@@ -66,30 +66,35 @@ export default function ResetPassword() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6 font-outfit">
-            <div className="w-full max-w-md bg-white rounded-3xl p-10 shadow-xl shadow-blue-100 space-y-8">
-                <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-black text-gray-900">Reset Password</h1>
-                    <p className="text-gray-500 font-medium">Secure your account with a new password.</p>
+        <div className="min-h-screen bg-gray-50/50 flex items-center justify-center p-6 font-outfit">
+            <div className="w-full max-w-md bg-white rounded-[40px] p-10 md:p-12 shadow-[0_20px_60px_rgba(0,0,0,0.03)] border border-gray-100 space-y-10">
+                <div className="flex justify-center mb-10">
+                    <Link to="/">
+                        <img src="/logo.png" alt="MedixFlow Logo" className="h-16 w-auto object-contain" />
+                    </Link>
+                </div>
+                <div className="text-center space-y-3">
+                    <h1 className="text-[32px] font-black text-gray-900 tracking-tight leading-tight">New Password</h1>
+                    <p className="text-gray-400 font-bold uppercase tracking-widest text-[11px]">Secure your workspace with a strong key.</p>
                 </div>
 
                 {!token ? (
-                    <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-bold text-center">
-                        Invalid Link. Please request a new one.
+                    <div className="p-5 bg-red-50/50 border-2 border-red-50 rounded-[24px] text-red-600 text-sm font-black text-center uppercase tracking-widest">
+                        Invalid Link Protocol
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">New Password</label>
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        <div className="space-y-6">
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">New Password</label>
                                 <div className="relative group">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors">
+                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-primary-600 transition-colors">
                                         <Lock className="w-5 h-5" />
                                     </div>
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         placeholder="••••••••"
-                                        className="w-full pl-12 pr-12 py-4 bg-gray-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-blue-500/20 transition-all font-medium placeholder:text-gray-300"
+                                        className="w-full pl-14 pr-14 py-5 bg-gray-50/50 border-2 border-gray-50 rounded-[24px] text-[15px] focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/50 outline-none transition-all font-bold placeholder:text-gray-300"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
@@ -97,23 +102,23 @@ export default function ResetPassword() {
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600"
+                                        className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-primary-600"
                                     >
                                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Confirm New Password</label>
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirm Access Key</label>
                                 <div className="relative group">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors">
+                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-primary-600 transition-colors">
                                         <Lock className="w-5 h-5" />
                                     </div>
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         placeholder="••••••••"
-                                        className="w-full pl-12 pr-12 py-4 bg-gray-50 border-none rounded-2xl text-sm focus:ring-2 focus:ring-blue-500/20 transition-all font-medium placeholder:text-gray-300"
+                                        className="w-full pl-14 pr-14 py-5 bg-gray-50/50 border-2 border-gray-50 rounded-[24px] text-[15px] focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/50 outline-none transition-all font-bold placeholder:text-gray-300"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         required
@@ -125,9 +130,9 @@ export default function ResetPassword() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-blue-200 active:scale-95 disabled:opacity-50"
+                            className="w-full bg-primary-600 hover:bg-primary-700 text-white font-black h-16 rounded-[24px] transition-all shadow-xl shadow-primary-100 hover:shadow-primary-200 active:scale-95 disabled:opacity-50 text-[16px]"
                         >
-                            {loading ? "Updating..." : "Update Password"}
+                            {loading ? "Updating Security..." : "Protocol Change"}
                         </button>
                     </form>
                 )}

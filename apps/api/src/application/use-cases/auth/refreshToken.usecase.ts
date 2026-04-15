@@ -3,6 +3,7 @@ import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { ITokenService } from "@/application/interfaces/ITokenService";
 import { ISessionService } from "@/application/interfaces/IAuthServices";
 
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 import { TokenPayload } from "@/application/interfaces/ITokenService";
 
 export class RefreshTokenUseCase {
@@ -12,7 +13,7 @@ export class RefreshTokenUseCase {
     private tokenService: ITokenService
   ) {}
 
-  async execute(refreshToken: string, expectedRole: string) {
+  async execute(refreshToken: string, expectedRole: UserRole) {
     if (!refreshToken) {
       throw new Error(MESSAGES.REFRESH_TOKEN_REQUIRED);
     }
@@ -43,7 +44,7 @@ export class RefreshTokenUseCase {
       throw new Error(MESSAGES.ACCOUNT_BLOCKED);
     }
 
-    const accessToken = this.tokenService.generateAccessToken(userId, role, user.email);
+    const accessToken = this.tokenService.generateAccessToken(userId, role as UserRole, user.email);
 
     return { accessToken, patientId };
 

@@ -1,12 +1,14 @@
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
+
 export interface TokenPayload {
   id: string;
-  role: string;
+  role: UserRole;
   email?: string;
 }
 
 export interface ITokenService {
-  generateAccessToken(userId: string, role: string, email?: string): string;
-  generateRefreshToken(userId: string, role: string, email?: string): string;
+  generateAccessToken(userId: string, role: UserRole, email?: string): string;
+  generateRefreshToken(userId: string, role: UserRole, email?: string): string;
   verifyAccessToken(token: string): TokenPayload;
   verifyRefreshToken(token: string): TokenPayload;
 }

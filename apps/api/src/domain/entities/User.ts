@@ -1,5 +1,5 @@
 import { UserStatus } from "../value-objects/enums/UserStatus";
-import { Role } from "../value-objects/enums/Role";
+import { UserRole } from "../value-objects/enums/UserRole";
 
 /**
  * Domain User entity — pure TypeScript, zero infrastructure dependencies.
@@ -9,8 +9,8 @@ export class User {
   constructor(
     public readonly id: string,
     public readonly email: string,
-    public readonly role: Role | string,
-    public readonly status: UserStatus | string,
+    public readonly role: UserRole,
+    public readonly status: UserStatus,
     public readonly passwordHash: string,
     public readonly createdAt?: Date
   ) {}

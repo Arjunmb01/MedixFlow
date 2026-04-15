@@ -142,7 +142,7 @@ export default function Prescriptions() {
                                     </div>
 
                                     <button
-                                        onClick={() => navigate(`/patient/prescriptions/${rx.appointmentId}`)}
+                                        onClick={() => navigate(`/prescriptions/${rx.appointmentId}`)}
                                         className="px-6 py-3 bg-teal-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-teal-700 transition-all flex items-center gap-2"
                                     >
                                         <FileText className="w-4 h-4" />

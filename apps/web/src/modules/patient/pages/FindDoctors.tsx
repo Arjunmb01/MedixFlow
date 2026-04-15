@@ -207,7 +207,7 @@ export default function FindDoctors() {
                                                 <span className="text-xl font-black text-gray-900">₹{doctor.consultationFee}</span>
                                             </div>
                                             <button 
-                                                onClick={() => navigate(`/patient/doctor/${doctor.id}`)}
+                                                onClick={() => navigate(`/find-doctors/${doctor.id}`)}
                                                 className="px-6 py-3 bg-gray-900 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-xl shadow-gray-200 hover:bg-black active:scale-95 transition-all"
                                             >
                                                 View Profile

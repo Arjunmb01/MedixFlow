@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 
 import { useAppDispatch } from "@/core/store/hooks"
+import { UserRole } from "../types/auth.types"
 import { setAuth } from "../../store/authSlice"
 
 import { patientLogin, googleLogin } from "@/infrastructure/api/auth.api"
@@ -49,12 +50,12 @@ export default function PatientLogin() {
             const { accessToken } = response
             dispatch(
                 setAuth({
-                    role: "PATIENT",
+                    role: UserRole.PATIENT,
                     accessToken
                 })
             )
             toast.success("Login successful!")
-            navigate("/patient/dashboard")
+            navigate("/dashboard")
         } catch (error: any) {
             console.error("Login failed:", error)
             const msg = error.response?.data?.message || "Login failed. Please check your credentials."
@@ -97,12 +98,12 @@ export default function PatientLogin() {
             const { accessToken } = response
             dispatch(
                 setAuth({
-                    role: "PATIENT",
+                    role: UserRole.PATIENT,
                     accessToken
                 })
             )
             toast.success("Login successful!")
-            navigate("/patient/dashboard")
+            navigate("/dashboard")
         } catch (error: any) {
             console.error("Google login failed:", error)
             const msg = error.response?.data?.message || "Google login failed. Please try again."
@@ -135,113 +136,115 @@ export default function PatientLogin() {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-200 font-outfit">
+        <div className="flex items-center justify-center min-h-screen bg-gray-50/50 font-outfit px-4">
             <form
                 onSubmit={handleSubmit(onFormSubmit)}
                 noValidate
-                className="bg-white px-10 py-10 rounded-xl shadow-sm w-[440px]"
+                className="bg-white px-8 py-10 md:px-10 rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.03)] border border-gray-100 w-full max-w-[460px]"
             >
                 {/* Logo */}
-                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg bg-[#0066cc] mb-6 shadow-md shadow-blue-100">
-                   <span className="text-white font-bold text-lg">M</span>
+                <div className="flex justify-center mb-10">
+                    <Link to="/">
+                        <img src="/logo.png" alt="MedixFlow Logo" className="h-20 w-auto object-contain" />
+                    </Link>
                 </div>
 
-                <h2 className="text-[22px] font-bold text-center text-gray-900 tracking-tight">
+                <h2 className="text-[26px] font-black text-center text-gray-900 tracking-tight leading-tight">
                     Welcome back
                 </h2>
 
-                <p className="text-[14px] text-gray-500 text-center mt-2 mb-8 font-medium">
-                    Sign in to your patient portal
+                <p className="text-[14px] text-gray-400 text-center mt-2 mb-10 font-bold uppercase tracking-widest">
+                    Patient Portal
                 </p>
 
                 {errorMessage && (
-                    <div className="mb-6 p-4 bg-red-50 text-red-600 text-[13px] rounded-xl border border-red-100 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                        <span className="font-semibold">{errorMessage}</span>
+                    <div className="mb-8 p-4 bg-red-50 text-red-600 text-[13px] rounded-2xl border border-red-100/50 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                        <span className="font-bold">{errorMessage}</span>
                     </div>
                 )}
 
                 {/* Google Login */}
-                <div className="mb-6 flex justify-center">
+                <div className="mb-8 flex justify-center">
                     <GoogleLogin
                         onSuccess={handleGoogleSuccess}
                         onError={handleGoogleError}
-                        width="360"
+                        width="380"
                         text="continue_with"
-                        shape="rectangular"
+                        shape="pill"
                         logo_alignment="left"
                     />
                 </div>
 
                 {/* OR EMAIL Divider */}
-                <div className="relative flex items-center justify-center mb-8">
+                <div className="relative flex items-center justify-center mb-10">
                     <div className="absolute inset-0 flex items-center">
                         <div className="w-full border-t border-gray-100"></div>
                     </div>
-                    <div className="relative bg-white px-3 text-[10px] font-bold text-gray-400 tracking-[0.1em] uppercase">
-                        OR EMAIL
+                    <div className="relative bg-white px-4 text-[11px] font-black text-gray-300 tracking-[0.2em] uppercase">
+                        Secure login
                     </div>
                 </div>
 
-                <div className="mb-5">
-                    <label className="block text-[12px] font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">
+                <div className="mb-6">
+                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em] mb-2.5 ml-1">
                         Email Address
                     </label>
                     <div className="relative group">
-                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${errors.email ? 'text-red-400' : 'text-gray-400 group-focus-within:text-[#0066cc]'}`}>
-                            <Mail className="w-4.5 h-4.5" />
+                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${errors.email ? 'text-red-400' : 'text-gray-300 group-focus-within:text-primary-600'}`}>
+                            <Mail className="w-5 h-5" />
                         </div>
                         <input
                             {...register("email")}
                             type="email"
                             placeholder="name@example.com"
-                            className={`w-full bg-gray-50 border-2 rounded-xl pl-12 pr-4 py-3.5 text-sm transition-all outline-none font-medium placeholder:text-gray-300 ${
+                            className={`w-full bg-gray-50/50 border-2 rounded-2xl pl-12 pr-4 py-4 text-sm transition-all outline-none font-bold placeholder:text-gray-300 placeholder:font-medium ${
                                 errors.email 
-                                    ? 'border-red-100 focus:border-red-200 focus:ring-4 focus:ring-red-50/50 text-red-600' 
-                                    : 'border-transparent focus:bg-white focus:border-[#0066cc]/20 focus:ring-4 focus:ring-blue-50/50'
+                                    ? 'border-red-100 focus:border-red-400 focus:ring-4 focus:ring-red-50/50 text-red-600' 
+                                    : 'border-gray-50 focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/30'
                             }`}
                         />
                     </div>
                     {errors.email && (
-                        <p className="mt-1.5 ml-1 text-[12px] font-bold text-red-500 animate-in fade-in slide-in-from-top-1">
+                        <p className="mt-2 ml-1 text-[12px] font-bold text-red-500 animate-in fade-in slide-in-from-top-1">
                             {errors.email.message}
                         </p>
                     )}
                 </div>
 
-                <div className="mb-8">
-                    <div className="flex justify-between items-center mb-2 ml-1">
-                        <label className="block text-[12px] font-bold text-gray-400 uppercase tracking-wider">
+                <div className="mb-10">
+                    <div className="flex justify-between items-center mb-2.5 ml-1">
+                        <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.15em]">
                             Password
                         </label>
-                        <Link to="/forgot-password" title="Reset your password" className="text-[12px] text-[#0066cc] font-bold hover:underline uppercase tracking-wider">
+                        <Link to="/forgot-password" title="Reset your password" className="text-[11px] text-primary-600 font-black hover:text-primary-700 transition-colors uppercase tracking-[0.1em]">
                             Forgot?
                         </Link>
                     </div>
                     <div className="relative group">
-                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${errors.password ? 'text-red-400' : 'text-gray-400 group-focus-within:text-[#0066cc]'}`}>
-                            <Lock className="w-4.5 h-4.5" />
+                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${errors.password ? 'text-red-400' : 'text-gray-300 group-focus-within:text-primary-600'}`}>
+                            <Lock className="w-5 h-5" />
                         </div>
                         <input
                             {...register("password")}
                             type={showPassword ? "text" : "password"}
                             placeholder="••••••••"
-                            className={`w-full bg-gray-50 border-2 rounded-xl pl-12 pr-12 py-3.5 text-sm transition-all outline-none font-bold tracking-widest placeholder:tracking-normal placeholder:font-medium placeholder:text-gray-300 ${
+                            className={`w-full bg-gray-50/50 border-2 rounded-2xl pl-12 pr-12 py-4 text-sm transition-all outline-none font-black tracking-widest placeholder:tracking-normal placeholder:font-medium placeholder:text-gray-300 ${
                                 errors.password 
-                                    ? 'border-red-100 focus:border-red-200 focus:ring-4 focus:ring-red-50/50 text-red-600' 
-                                    : 'border-transparent focus:bg-white focus:border-[#0066cc]/20 focus:ring-4 focus:ring-blue-50/50'
+                                    ? 'border-red-100 focus:border-red-400 focus:ring-4 focus:ring-red-50/50 text-red-600' 
+                                    : 'border-gray-50 focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/30'
                             }`}
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-600 transition-colors"
                         >
-                            {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </button>
                     </div>
                     {errors.password && (
-                        <p className="mt-1.5 ml-1 text-[12px] font-bold text-red-500 animate-in fade-in slide-in-from-top-1">
+                        <p className="mt-2 ml-1 text-[12px] font-bold text-red-500 animate-in fade-in slide-in-from-top-1">
                             {errors.password.message}
                         </p>
                     )}
@@ -250,15 +253,18 @@ export default function PatientLogin() {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-[#0066cc] hover:bg-blue-700 text-white font-black py-4 text-[15px] rounded-xl transition-all shadow-lg shadow-blue-100 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-black py-4.5 text-[16px] rounded-2xl transition-all shadow-xl shadow-primary-100 hover:shadow-primary-200 active:scale-[0.98] active:shadow-inner disabled:opacity-70 disabled:cursor-not-allowed group"
                 >
-                    {loading ? "Verifying..." : "Sign in to Dashboard"}
+                    <span className="flex items-center justify-center gap-2">
+                        {loading ? "Verifying workspace..." : "Sign in to Dashboard"}
+                        {!loading && <span className="group-hover:translate-x-1 transition-transform">→</span>}
+                    </span>
                 </button>
 
-                <div className="text-center text-[13px] text-gray-400 mt-8 font-bold">
-                    Don't have an account?{" "}
-                    <Link to="/auth/register" className="text-[#0066cc] hover:underline ml-1">
-                        Create one
+                <div className="text-center text-[14px] text-gray-400 mt-10 font-bold">
+                    New to MedixFlow?{" "}
+                    <Link to="/auth/register" className="text-primary-600 hover:text-primary-700 font-black ml-1 transition-colors">
+                        Create account
                     </Link>
                 </div>
 

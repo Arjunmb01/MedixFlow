@@ -37,7 +37,7 @@ export default function DoctorDetailsPage() {
         return (
             <div className="flex h-screen items-center justify-center bg-gray-50 flex-col font-outfit">
                 <p className="text-red-500 font-bold">{error || "Doctor not found"}</p>
-                <Link to="/patient/find-doctors" className="mt-4 text-blue-600 font-bold hover:underline flex items-center gap-2">
+                <Link to="/find-doctors" className="mt-4 text-blue-600 font-bold hover:underline flex items-center gap-2">
                     <ChevronLeft className="w-4 h-4" /> Back to Search
                 </Link>
             </div>
@@ -57,9 +57,9 @@ export default function DoctorDetailsPage() {
                 <main className="pt-28 pb-12 px-8 max-w-6xl mx-auto">
                     {/* Breadcrumbs */}
                     <nav className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 mb-8 px-2">
-                        <Link to="/patient/dashboard" className="hover:text-blue-600 transition-colors">Dashboard</Link>
+                        <Link to="/dashboard" className="hover:text-blue-600 transition-colors">Dashboard</Link>
                         <ChevronLeft className="w-3 h-3 rotate-180" />
-                        <Link to="/patient/find-doctors" className="hover:text-blue-600 transition-colors">Find Doctors</Link>
+                        <Link to="/find-doctors" className="hover:text-blue-600 transition-colors">Find Doctors</Link>
                         <ChevronLeft className="w-3 h-3 rotate-180" />
                         <span className="text-gray-900">Dr. {doctor.firstName} {doctor.lastName}</span>
                     </nav>
@@ -140,7 +140,7 @@ export default function DoctorDetailsPage() {
                                             Chat with {doctor.firstName}
                                         </button>
                                         <Link 
-                                            to={`/patient/book-appointment/${doctor.id}`}
+                                            to={`/book-appointment/${doctor.id}`}
                                             className="px-10 py-4 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all text-center"
                                         >
                                             Book Appointment

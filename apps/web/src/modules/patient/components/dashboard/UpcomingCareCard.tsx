@@ -54,15 +54,17 @@ export default function UpcomingCareCard({ appointment }: Props) {
 
     if (!appointment) {
         return (
-            <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-[2.5rem] p-8 text-gray-500 relative overflow-hidden shadow-sm border border-gray-200 h-full flex flex-col justify-center items-center text-center">
-                <Calendar className="w-12 h-12 mb-4 opacity-20" />
-                <h3 className="text-xl font-bold">No Upcoming Appointments</h3>
-                <p className="text-sm mt-2">Book a consultation to see it here.</p>
+            <div className="bg-gray-50/80 rounded-[40px] p-8 text-gray-400 relative overflow-hidden border border-gray-100 h-full flex flex-col justify-center items-center text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-6">
+                    <Calendar className="w-8 h-8 opacity-20" />
+                </div>
+                <h3 className="text-[20px] font-black tracking-tight text-gray-900 leading-tight">No Active Schedules</h3>
+                <p className="text-[13px] mt-2 font-bold uppercase tracking-widest">Book a consultation to begin</p>
                 <button
-                    onClick={() => window.location.href = '/patient/find-doctors'}
-                    className="mt-6 bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all"
+                    onClick={() => window.location.href = '/find-doctors'}
+                    className="mt-8 bg-primary-600 text-white px-10 py-4 rounded-2xl font-black text-[14px] flex items-center gap-2 hover:bg-primary-700 transition-all shadow-xl shadow-primary-100"
                 >
-                    Book Now
+                    Book Appointment
                 </button>
             </div>
         );
@@ -94,60 +96,63 @@ export default function UpcomingCareCard({ appointment }: Props) {
 
     return (
         <>
-            <div className="bg-gradient-to-br from-[#0066cc] to-[#004d99] rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-blue-200 h-full flex flex-col justify-between">
-                <div className="absolute top-[-10%] right-[-10%] w-60 h-60 bg-white/10 rounded-full blur-3xl"></div>
-                <div className="absolute bottom-[-10%] left-[-10%] w-40 h-40 bg-blue-400/20 rounded-full blur-2xl"></div>
+            <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-[40px] p-10 text-white relative overflow-hidden shadow-[0_30px_60px_rgba(13,148,136,0.15)] h-full flex flex-col justify-between">
+                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/5 rounded-full blur-[100px] -mr-48 -mt-48"></div>
+                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-primary-400/10 rounded-full blur-[80px] -ml-24 -mb-24"></div>
 
                 <div className="relative z-10">
-                    <div className="flex justify-between items-center">
-                        <span className="text-[12px] font-bold tracking-[0.2em] opacity-80 uppercase">Upcoming Care</span>
-                        <div className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-[11px] font-bold border border-white/20 flex items-center gap-1.5">
-                            <Clock className="w-3 h-3" />
+                    <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                            <span className="text-[11px] font-black tracking-[0.3em] opacity-60 uppercase">Primary Workspace</span>
+                            <h2 className="text-[28px] font-black tracking-tight leading-tight">Upcoming Care</h2>
+                        </div>
+                        <div className="bg-white/10 backdrop-blur-xl px-5 py-2.5 rounded-[20px] text-[13px] font-black border border-white/20 flex items-center gap-2 shadow-lg">
+                            <Clock className="w-4 h-4" />
                             {isToday(appointment.date) ? "Today" : dateFormatted}, {appointment.slotStart}
                         </div>
                     </div>
 
-                    <div className="mt-8 flex items-center gap-6">
-                        <div className="w-20 h-20 bg-white rounded-[1.5rem] flex items-center justify-center text-[#0066cc] text-2xl font-bold shadow-xl">
+                    <div className="mt-12 flex items-center gap-6">
+                        <div className="w-20 h-20 bg-white/10 backdrop-blur-xl rounded-[24px] border border-white/20 flex items-center justify-center text-white text-3xl font-black shadow-2xl">
                             {appointment.doctorName.split(' ').map(n => n[0]).join('').replace('Dr', '')}
                         </div>
                         <div>
-                            <h3 className="text-[26px] font-bold tracking-tight">{appointment.doctorName}</h3>
-                            <div className="flex items-center gap-2 mt-1.5 opacity-80 text-[14px] font-medium">
+                            <h3 className="text-[32px] font-black tracking-tighter leading-none">{appointment.doctorName}</h3>
+                            <div className="flex items-center gap-2 mt-2.5 opacity-60 text-[14px] font-black uppercase tracking-widest">
                                 <MapPin className="w-4 h-4" />
-                                <span>In-Clinic Consultation</span>
+                                <span>Physical Clinic</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="mt-10 flex flex-wrap gap-4">
+                    <div className="mt-12 flex flex-wrap gap-4">
                         {canCheckIn(appointment.date, appointment.slotStart) && !hasCheckedIn && (
                             <button
                                 onClick={handleCheckIn}
                                 disabled={isCheckingIn}
-                                className="bg-green-500 text-white px-6 py-3 rounded-2xl font-bold text-[14px] flex items-center gap-2 hover:bg-green-600 transition-all shadow-lg shadow-green-900/20 disabled:opacity-70"
+                                className="bg-white text-primary-600 px-8 py-4.5 rounded-2xl font-black text-[15px] flex items-center gap-3 hover:bg-gray-50 transition-all shadow-2xl shadow-black/10 disabled:opacity-70 group"
                             >
-                                {isCheckingIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-                                Check-In at Clinic
+                                {isCheckingIn ? <Loader2 className="w-5 h-5 animate-spin" /> : <MapPin className="w-5 h-5 group-hover:scale-110 transition-transform" />}
+                                Check-In Now
                             </button>
                         )}
                         {canCheckIn(appointment.date, appointment.slotStart) && hasCheckedIn && (
-                            <div className="bg-green-100 text-green-700 px-6 py-3 rounded-2xl font-bold text-[14px] flex items-center gap-2 border border-green-200">
-                                <CheckCircle className="w-4 h-4" />
-                                Checked In
+                            <div className="bg-white/10 backdrop-blur-xl text-white px-8 py-4.5 rounded-2xl font-black text-[15px] flex items-center gap-3 border border-white/20">
+                                <CheckCircle className="w-5 h-5 text-green-400" />
+                                Verified At Clinic
                             </div>
                         )}
                         {!canCheckIn(appointment.date, appointment.slotStart) && (
-                            <button className="bg-white text-[#0066cc] px-6 py-3 rounded-2xl font-bold text-[14px] flex items-center gap-2 hover:bg-blue-50 transition-all shadow-lg shadow-blue-900/20">
-                                <Calendar className="w-4 h-4" />
-                                View Details
+                            <button className="bg-white/10 backdrop-blur-xl border border-white/20 text-white px-8 py-4.5 rounded-2xl font-black text-[15px] flex items-center gap-3 hover:bg-white/20 transition-all shadow-xl group">
+                                <Calendar className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                                Appointment Details
                             </button>
                         )}
                         <button
                             onClick={() => setShowModal(true)}
-                            className="bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-2xl font-bold text-[14px] hover:bg-white/20 transition-all text-white hover:text-red-100 hover:bg-red-500/20 hover:border-red-400"
+                            className="bg-transparent px-8 py-4.5 rounded-2xl font-black text-[15px] transition-all text-white/50 hover:text-white"
                         >
-                            Cancel Booking
+                            Cancel Access
                         </button>
                     </div>
                 </div>
@@ -155,27 +160,30 @@ export default function UpcomingCareCard({ appointment }: Props) {
 
             {/* Cancellation Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-gray-900">Cancel Appointment</h3>
-                            <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-900 transition-colors">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-50 flex items-center justify-center p-6">
+                    <div className="bg-white rounded-[40px] p-10 max-w-lg w-full shadow-[0_40px_100px_rgba(0,0,0,0.3)] animate-in zoom-in-95 duration-300">
+                        <div className="flex justify-between items-center mb-8">
+                            <div>
+                                <h3 className="text-[26px] font-black text-gray-900 tracking-tight">Cancel Scheduling</h3>
+                                <p className="text-[13px] text-gray-400 font-bold uppercase tracking-widest mt-1">This action cannot be undone</p>
+                            </div>
+                            <button onClick={() => setShowModal(false)} className="w-12 h-12 flex items-center justify-center rounded-2xl bg-gray-50 text-gray-400 hover:text-gray-900 transition-colors">
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
 
-                        <p className="text-sm text-gray-500 mb-6 font-medium">
-                            Are you sure you want to cancel your appointment with <strong className="text-gray-900">{appointment.doctorName}</strong> on {canCheckIn(appointment.date, appointment.slotStart) ? "Today" : dateFormatted} at {appointment.slotStart}?
+                        <p className="text-[15px] text-gray-500 mb-8 font-bold leading-relaxed">
+                            Confirm removal of your consultation with <strong className="text-gray-900 font-black">{appointment.doctorName}</strong> on {isToday(appointment.date) ? "Today" : dateFormatted} at {appointment.slotStart}.
                         </p>
 
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             <div>
-                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Reason for Cancellation</label>
+                                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Reason for Cancellation</label>
                                 <textarea
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
-                                    placeholder="Please briefly explain why you are cancelling..."
-                                    className="w-full h-32 px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 text-sm outline-none resize-none transition-all"
+                                    placeholder="Explain the requirement for cancellation..."
+                                    className="w-full h-32 px-5 py-4 rounded-3xl bg-gray-50 border-2 border-gray-50 focus:bg-white focus:border-red-500/20 focus:ring-8 focus:ring-red-50/30 text-[14px] font-bold text-gray-900 outline-none resize-none transition-all placeholder:text-gray-300"
                                 />
                             </div>
 
@@ -183,14 +191,14 @@ export default function UpcomingCareCard({ appointment }: Props) {
                                 <button
                                     onClick={() => setShowModal(false)}
                                     disabled={isCancelling}
-                                    className="flex-1 py-3 px-4 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                                    className="flex-1 py-4.5 px-6 rounded-2xl font-black text-[15px] text-gray-400 bg-gray-50 hover:bg-gray-100 transition-colors"
                                 >
-                                    Keep Appointment
+                                    Dismiss
                                 </button>
                                 <button
                                     onClick={handleCancel}
                                     disabled={isCancelling || !reason.trim()}
-                                    className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+                                    className="flex-1 py-4.5 px-6 rounded-2xl font-black text-[15px] text-white bg-red-600 hover:bg-red-700 transition-all shadow-xl shadow-red-100 flex justify-center items-center gap-3 active:scale-[0.98]"
                                 >
                                     {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirm Cancel"}
                                 </button>

@@ -1,13 +1,14 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useAppDispatch } from "@/core/store/hooks"
+import { UserRole } from "../types/auth.types"
 import { setAuth } from "../../store/authSlice"
 import { adminLogin } from "@/infrastructure/api/auth.api"
 import { toast } from "sonner"
-import { Eye, EyeOff, ShieldCheck, AlertCircle } from "lucide-react"
+import { Eye, EyeOff, AlertCircle } from "lucide-react"
 
 const adminLoginSchema = z.object({
   email: z.string().min(1, "Admin email is required").email("Invalid admin email format"),
@@ -45,7 +46,7 @@ export default function AdminLogin() {
             const { accessToken } = response
             dispatch(
                 setAuth({
-                    role: "ADMIN",
+                    role: UserRole.ADMIN,
                     accessToken
                 })
             )
@@ -61,63 +62,65 @@ export default function AdminLogin() {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-[#121212] font-outfit">
-             {/* Cyberpunk grid background effect */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_-100px,#10b98115,transparent)]"></div>
-
+        <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a] font-outfit px-4">
+            {/* Ambient background glows */}
+            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary-900/10 rounded-full blur-[120px] -mr-48 -mt-48 -z-10"></div>
+            <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary-600/5 rounded-full blur-[120px] -ml-48 -mb-48 -z-10"></div>
+            
             <form
                 onSubmit={handleSubmit(onFormSubmit)}
                 noValidate
-                className="bg-[#1a1a1a] p-10 rounded-2xl border border-white/5 w-[420px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative z-10 overflow-hidden"
+                className="bg-[#111] p-10 rounded-[40px] border border-white/5 w-full max-w-[440px] shadow-[0_40px_100px_rgba(0,0,0,0.8)] relative z-10 overflow-hidden"
             >
                 {/* Security line at top */}
-                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#10b981] to-transparent"></div>
+                <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-primary-500 to-transparent"></div>
 
                 {/* Logo Section */}
-                <div className="text-center mb-8">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#10b981] to-[#059669] mb-5 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
-                       <ShieldCheck className="text-white w-8 h-8" />
+                <div className="text-center mb-10">
+                    <div className="flex justify-center mb-8">
+                        <Link to="/">
+                            <img src="/logo.png" alt="MedixFlow Logo" className="h-20 w-auto object-contain brightness-110" />
+                        </Link>
                     </div>
-                    <h2 className="text-2xl font-black text-white tracking-tight uppercase">
-                        Core Terminal
+                    <h2 className="text-[28px] font-black text-white tracking-tight uppercase leading-tight">
+                        Admin Portal
                     </h2>
-                    <p className="text-[11px] font-bold text-gray-500 mt-1 uppercase tracking-[0.3em]">
-                        Administrative Security Layer
+                    <p className="text-[11px] font-black text-gray-500 mt-2 uppercase tracking-[0.4em]">
+                        Internal Security Layer
                     </p>
                 </div>
 
                 {errorMessage && (
-                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold rounded-xl flex items-center gap-3 animate-in fade-in zoom-in-95">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 text-red-500 text-[13px] font-bold rounded-2xl flex items-center gap-3 animate-in fade-in zoom-in-95">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
                         <span>{errorMessage}</span>
                     </div>
                 )}
 
-                <div className="space-y-5">
-                    <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
+                <div className="space-y-6">
+                    <div className="space-y-3">
+                        <label className="block text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
                             Auth Identifier
                         </label>
                         <input
                             {...register("email")}
                             type="email"
                             placeholder="SYSTEM_ROOT_ADMIN"
-                            className={`w-full bg-[#222222] text-white border-2 rounded-xl px-4 py-3.5 text-sm transition-all outline-none font-medium placeholder:text-gray-700 ${
+                            className={`w-full bg-[#1a1a1a] text-white border-2 rounded-[18px] px-5 py-4.5 text-sm transition-all outline-none font-bold placeholder:text-gray-700 ${
                                 errors.email 
                                     ? 'border-red-500/50 focus:border-red-500' 
-                                    : 'border-white/5 focus:border-[#10b981]/50 focus:bg-[#282828]'
+                                    : 'border-white/5 focus:border-primary-500/50 focus:bg-[#222]'
                             }`}
                         />
                         {errors.email && (
-                            <p className="text-[10px] font-black text-red-500 uppercase tracking-widest ml-1 mt-1.5">
+                            <p className="text-[11px] font-black text-red-500 uppercase tracking-widest ml-1 mt-2">
                                 [ACCESS_DENIED]: {errors.email.message}
                             </p>
                         )}
                     </div>
 
-                    <div className="space-y-2">
-                         <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
+                    <div className="space-y-3">
+                         <label className="block text-[11px] font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
                             Encryption Key
                         </label>
                         <div className="relative group">
@@ -125,22 +128,22 @@ export default function AdminLogin() {
                                 {...register("password")}
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
-                                className={`w-full bg-[#222222] text-white border-2 rounded-xl pl-4 pr-12 py-3.5 text-sm transition-all outline-none font-bold tracking-widest placeholder:tracking-normal placeholder:font-medium placeholder:text-gray-700 ${
+                                className={`w-full bg-[#1a1a1a] text-white border-2 rounded-[18px] pl-5 pr-14 py-4.5 text-sm transition-all outline-none font-black tracking-widest placeholder:tracking-normal placeholder:font-medium placeholder:text-gray-700 ${
                                     errors.password 
                                         ? 'border-red-500/50 focus:border-red-500' 
-                                        : 'border-white/5 focus:border-[#10b981]/50 focus:bg-[#282828]'
+                                        : 'border-white/5 focus:border-primary-500/50 focus:bg-[#222]'
                                 }`}
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-[#10b981] transition-colors"
+                                className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-700 hover:text-primary-500 transition-colors"
                             >
-                                {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
+                                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
                         </div>
                         {errors.password && (
-                            <p className="text-[10px] font-black text-red-500 uppercase tracking-widest ml-1 mt-1.5">
+                            <p className="text-[11px] font-black text-red-500 uppercase tracking-widest ml-1 mt-2">
                                 [KEY_REQUIRED]: {errors.password.message}
                             </p>
                         )}
@@ -150,13 +153,13 @@ export default function AdminLogin() {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full mt-10 bg-[#10b981] hover:bg-[#12d192] text-[#0a0a0a] font-black py-4 text-xs uppercase tracking-[0.2em] rounded-xl transition-all shadow-[0_10px_30px_rgba(16,185,129,0.2)] active:scale-[0.98] disabled:opacity-50"
+                    className="w-full mt-10 bg-primary-500 hover:bg-primary-400 text-[#0a0a0a] font-black py-4.5 text-[14px] uppercase tracking-[0.2em] rounded-[18px] transition-all shadow-[0_20px_40px_rgba(13,148,136,0.15)] active:scale-[0.98] disabled:opacity-50"
                 >
-                    {loading ? "Decrypting..." : "Initialize Workspace"}
+                    {loading ? "Decrypting access..." : "Initialize Workspace"}
                 </button>
 
-                <div className="text-center mt-10 opacity-30 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
-                    <p className="text-[9px] font-black text-white uppercase tracking-[0.5em]">
+                <div className="text-center mt-12 opacity-20 hover:opacity-100 transition-all duration-700">
+                    <p className="text-[10px] font-black text-white uppercase tracking-[0.6em]">
                         MedixFlow Protocol v2.4.0
                     </p>
                 </div>

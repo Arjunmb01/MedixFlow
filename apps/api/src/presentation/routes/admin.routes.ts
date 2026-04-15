@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { authorize } from "@/presentation/controllers/middleware/authorize.middleware";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 import { container } from "@/infrastructure/services/container/CompositionRoot";
 
 const router = Router();
 const adminController = container.adminPatientController;
 const authMiddleware = container.authMiddleware;
 
-router.use(authMiddleware, authorize(["ADMIN"]));
+router.use(authMiddleware, authorize([UserRole.ADMIN]));
 
 router.get("/patients", adminController.getAllPatients);
 router.get("/patients/:id", adminController.getPatientById);

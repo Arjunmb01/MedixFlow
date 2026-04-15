@@ -15,12 +15,17 @@ import {
     AlertCircle,
     MapPin,
     FileText,
-    Pill
+    Pill,
+    Download,
+    ChevronLeft,
+    ChevronRight
 } from "lucide-react";
 import { getPatientAppointments, cancelAppointment } from "@/infrastructure/api/patient.api";
 import Badge from "../components/ui/Badge";
 import { toast } from "sonner";
 import type { Appointment } from "@/domain/appointment/types";
+
+const ITEMS_PER_PAGE = 5;
 
 export default function PatientAppointments() {
     const { profile } = usePatientProfile();
@@ -28,7 +33,8 @@ export default function PatientAppointments() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [statusFilter, setStatusFilter] = useState("UPCOMING");
+    const [currentPage, setCurrentPage] = useState(1);
     
     // Modal states
     const [selectedApt, setSelectedApt] = useState<any | null>(null);
@@ -75,13 +81,29 @@ export default function PatientAppointments() {
     };
 
     const filteredAppointments = useMemo(() => {
+        setCurrentPage(1); // reset page whenever filters change
         return appointments.filter(apt => {
             const drName = `${apt.doctor.firstName} ${apt.doctor.lastName}`.toLowerCase();
             const matchesSearch = drName.includes(searchTerm.toLowerCase());
-            const matchesStatus = statusFilter === "ALL" || apt.status === statusFilter;
+            
+            let matchesStatus = false;
+            if (statusFilter === "ALL") {
+                matchesStatus = true;
+            } else if (statusFilter === "UPCOMING") {
+                matchesStatus = apt.status === "PENDING" || apt.status === "CONFIRMED";
+            } else {
+                matchesStatus = apt.status === statusFilter;
+            }
+            
             return matchesSearch && matchesStatus;
         });
     }, [appointments, searchTerm, statusFilter]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredAppointments.length / ITEMS_PER_PAGE));
+    const paginatedAppointments = filteredAppointments.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
     const getStatusVariant = (status: string): "success" | "warning" | "error" | "info" => {
         switch (status.toUpperCase()) {
@@ -126,23 +148,33 @@ export default function PatientAppointments() {
                                     className="pl-12 pr-6 py-3.5 bg-white border border-[#E2E8F0] rounded-2xl text-sm font-medium focus:outline-none focus:border-[#3B82F6] focus:ring-4 focus:ring-blue-50 transition-all w-full md:w-[280px]"
                                 />
                             </div>
-                            
-                            <div className="relative group">
-                                <Filter className="w-5 h-5 text-[#94A3B8] absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-[#3B82F6] transition-colors" />
-                                <select 
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="pl-12 pr-10 py-3.5 bg-white border border-[#E2E8F0] rounded-2xl text-sm font-bold text-[#475569] focus:outline-none focus:border-[#3B82F6] transition-all appearance-none cursor-pointer"
-                                >
-                                    <option value="ALL">All Status</option>
-                                    <option value="PENDING">Pending</option>
-                                    <option value="CONFIRMED">Confirmed</option>
-                                    <option value="COMPLETED">Completed</option>
-                                    <option value="CANCELLED">Cancelled</option>
-                                </select>
-                            </div>
                         </div>
                     </header>
+
+                    {/* Tabbed Filtering Interface */}
+                    <div className="flex items-center gap-1 bg-[#F1F5F9] p-1.5 rounded-[1.5rem] w-fit mb-8 border border-[#E2E8F0]">
+                        {[
+                            { id: "UPCOMING", label: "Upcoming", color: "blue" },
+                            { id: "COMPLETED", label: "Completed", color: "emerald" },
+                            { id: "CANCELLED", label: "Cancelled", color: "rose" },
+                            { id: "ALL", label: "All Appointments", color: "slate" }
+                        ].map((tab) => {
+                            const isActive = statusFilter === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setStatusFilter(tab.id)}
+                                    className={`px-6 py-2.5 rounded-2xl text-[13px] font-black uppercase tracking-wider transition-all duration-300 ${
+                                        isActive 
+                                        ? "bg-white text-[#0F172A] shadow-sm scale-[1.02]" 
+                                        : "text-[#64748B] hover:text-[#0F172A] hover:bg-white/50"
+                                    }`}
+                                >
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
+                    </div>
 
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[2.5rem] border border-[#E2E8F0]">
@@ -150,73 +182,126 @@ export default function PatientAppointments() {
                              <p className="text-[#64748B] font-bold">Synchronizing your appointments...</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 gap-4">
-                            {filteredAppointments.length > 0 ? (
-                                filteredAppointments.map((apt) => (
-                                    <div 
-                                        key={apt.id}
-                                        className="bg-white p-6 rounded-[2rem] border border-[#E2E8F0] hover:border-[#3B82F6] hover:shadow-xl hover:shadow-blue-50/50 transition-all group flex flex-col md:flex-row md:items-center justify-between gap-6"
-                                    >
-                                        <div className="flex items-center gap-6">
-                                            <div className="w-16 h-16 bg-[#F8FAFC] rounded-[1.5rem] flex items-center justify-center border border-[#F1F5F9] group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors">
-                                                <User className="w-8 h-8 text-[#94A3B8] group-hover:text-[#3B82F6] transition-colors" />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-3">
-                                                    <h3 className="text-lg font-black text-[#0F172A]">Dr. {apt.doctor.firstName} {apt.doctor.lastName}</h3>
-                                                    <Badge variant={getStatusVariant(apt.status)}>{apt.status}</Badge>
+                        <div>
+                            <div className="grid grid-cols-1 gap-4">
+                                {paginatedAppointments.length > 0 ? (
+                                    paginatedAppointments.map((apt) => (
+                                        <div 
+                                            key={apt.id}
+                                            className="bg-white p-6 rounded-[2rem] border border-[#E2E8F0] hover:border-[#3B82F6] hover:shadow-xl hover:shadow-blue-50/50 transition-all group flex flex-col md:flex-row md:items-center justify-between gap-6"
+                                        >
+                                            <div className="flex items-center gap-6">
+                                                <div className="w-16 h-16 bg-[#F8FAFC] rounded-[1.5rem] flex items-center justify-center border border-[#F1F5F9] group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors">
+                                                    <User className="w-8 h-8 text-[#94A3B8] group-hover:text-[#3B82F6] transition-colors" />
                                                 </div>
-                                                <p className="text-[#64748B] font-bold text-sm mt-1">{apt.doctor.specialization?.name} • Specialist</p>
-
-                                                
-                                                <div className="flex items-center gap-6 mt-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <Calendar className="w-4 h-4 text-[#3B82F6]" />
-                                                        <span className="text-sm font-black text-[#475569]">{formatDate(apt.appointmentDate)}</span>
+                                                <div>
+                                                    <div className="flex items-center gap-3">
+                                                        <h3 className="text-lg font-black text-[#0F172A]">Dr. {apt.doctor.firstName} {apt.doctor.lastName}</h3>
+                                                        <Badge variant={getStatusVariant(apt.status)}>{apt.status}</Badge>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <Clock className="w-4 h-4 text-[#3B82F6]" />
-                                                        <span className="text-sm font-black text-[#475569]">{apt.slotStart} – {apt.slotEnd}</span>
+                                                    <p className="text-[#64748B] font-bold text-sm mt-1">{apt.doctor.specialization?.name} • Specialist</p>
+
+                                                    
+                                                    <div className="flex items-center gap-6 mt-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <Calendar className="w-4 h-4 text-[#3B82F6]" />
+                                                            <span className="text-sm font-black text-[#475569]">{formatDate(apt.appointmentDate)}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <Clock className="w-4 h-4 text-[#3B82F6]" />
+                                                            <span className="text-sm font-black text-[#475569]">{apt.slotStart} – {apt.slotEnd}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <div className="flex items-center gap-3 md:flex-col md:items-end">
-                                            <button 
-                                                onClick={() => setSelectedApt(apt)}
-                                                className="flex-1 md:flex-none px-6 py-3 bg-[#F8FAFC] text-[#475569] border border-[#E2E8F0] rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-[#F1F5F9] transition-all"
-                                            >
-                                                View Details
-                                            </button>
-                                            {apt.status === "COMPLETED" && apt.consultation?.prescription?.medicines?.length > 0 && (
+                                            <div className="flex items-center gap-3 md:flex-col md:items-end">
                                                 <button 
-                                                    onClick={() => navigate(`/patient/prescriptions/${apt.id}`)}
-                                                    className="flex-1 md:flex-none px-6 py-3 bg-teal-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-teal-700 transition-all flex items-center gap-2"
+                                                    onClick={() => setSelectedApt(apt)}
+                                                    className="flex-1 md:flex-none px-6 py-3 bg-[#F8FAFC] text-[#475569] border border-[#E2E8F0] rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-[#F1F5F9] transition-all"
                                                 >
-                                                    <Pill className="w-4 h-4" />
-                                                    View Prescription
+                                                    View Details
                                                 </button>
-                                            )}
-                                            <button className="flex-1 md:flex-none px-6 py-3 bg-white text-[#3B82F6] border border-[#3B82F6] rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-blue-50 transition-all">
-                                                Download Invoice
-                                            </button>
+                                                
+                                                {apt.status === "COMPLETED" && apt.consultation?.prescription && (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => navigate(`/prescriptions/${apt.id}`)}
+                                                            className="flex-1 md:flex-none px-6 py-3 bg-teal-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
+                                                        >
+                                                            <Pill className="w-4 h-4" />
+                                                            View Prescription
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => navigate(`/prescriptions/${apt.id}?download=true`)}
+                                                            className="flex-1 md:flex-none px-6 py-3 bg-blue-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm"
+                                                        >
+                                                            <Download className="w-4 h-4" />
+                                                            Download PDF
+                                                        </button>
+                                                    </>
+                                                )}
+
+                                                <button className="flex-1 md:flex-none px-6 py-3 bg-white text-[#3B82F6] border border-[#3B82F6] rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-blue-50 transition-all">
+                                                    Download Invoice
+                                                </button>
+                                            </div>
                                         </div>
+                                    ))
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[2.5rem] border border-dashed border-[#E2E8F0]">
+                                        <div className="w-20 h-20 bg-[#F8FAFC] rounded-full flex items-center justify-center mb-6">
+                                            <CalendarDays className="w-10 h-10 text-[#CBD5E1]" />
+                                        </div>
+                                        <h3 className="text-xl font-black text-[#0F172A] mb-2">No appointments found</h3>
+                                        <p className="text-[#64748B] font-medium max-w-xs text-center">We couldn't find any appointments matching your filters or search criteria.</p>
+                                        <button 
+                                            onClick={() => {setSearchTerm(""); setStatusFilter("UPCOMING")}}
+                                            className="mt-8 text-[#3B82F6] font-black text-sm uppercase tracking-widest hover:underline"
+                                        >
+                                            Reset all filters
+                                        </button>
                                     </div>
-                                ))
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[2.5rem] border border-dashed border-[#E2E8F0]">
-                                    <div className="w-20 h-20 bg-[#F8FAFC] rounded-full flex items-center justify-center mb-6">
-                                        <CalendarDays className="w-10 h-10 text-[#CBD5E1]" />
+                                )}
+                            </div>
+
+                            {/* Pagination Controls */}
+                            {filteredAppointments.length > ITEMS_PER_PAGE && (
+                                <div className="flex items-center justify-between mt-8 px-2">
+                                    <p className="text-sm font-bold text-[#64748B]">
+                                        Showing <span className="text-[#0F172A]">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span>–<span className="text-[#0F172A]">{Math.min(currentPage * ITEMS_PER_PAGE, filteredAppointments.length)}</span> of <span className="text-[#0F172A]">{filteredAppointments.length}</span> appointments
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                            disabled={currentPage === 1}
+                                            className="w-10 h-10 flex items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0] disabled:hover:text-[#475569] disabled:hover:bg-white"
+                                        >
+                                            <ChevronLeft className="w-5 h-5" />
+                                        </button>
+
+                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                            <button
+                                                key={page}
+                                                onClick={() => setCurrentPage(page)}
+                                                className={`w-10 h-10 flex items-center justify-center rounded-xl text-[13px] font-black transition-all ${
+                                                    currentPage === page
+                                                        ? "bg-[#3B82F6] text-white shadow-md shadow-blue-200"
+                                                        : "border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50"
+                                                }`}
+                                            >
+                                                {page}
+                                            </button>
+                                        ))}
+
+                                        <button
+                                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                            disabled={currentPage === totalPages}
+                                            className="w-10 h-10 flex items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0] disabled:hover:text-[#475569] disabled:hover:bg-white"
+                                        >
+                                            <ChevronRight className="w-5 h-5" />
+                                        </button>
                                     </div>
-                                    <h3 className="text-xl font-black text-[#0F172A] mb-2">No appointments found</h3>
-                                    <p className="text-[#64748B] font-medium max-w-xs text-center">We couldn't find any appointments matching your filters or search criteria.</p>
-                                    <button 
-                                        onClick={() => {setSearchTerm(""); setStatusFilter("ALL")}}
-                                        className="mt-8 text-[#3B82F6] font-black text-sm uppercase tracking-widest hover:underline"
-                                    >
-                                        Reset all filters
-                                    </button>
                                 </div>
                             )}
                         </div>

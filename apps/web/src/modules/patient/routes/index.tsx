@@ -1,5 +1,6 @@
 import { Route } from "react-router-dom"
 import ProtectedRoute from "@/core/routes/ProtectedRoute"
+import { UserRole } from "@/domain/auth/types/auth.types"
 import PatientDashboard from "../pages/PatientDashboard"
 import PatientAppointments from "../pages/PatientAppointments"
 import PatientProfile from "../pages/PatientProfile"
@@ -12,72 +13,72 @@ import PrescriptionDetail from "../pages/PrescriptionDetail"
 export const PatientRoutes = (
     <>
         <Route
-            path="/patient/dashboard"
+            path="/dashboard"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <PatientDashboard />
                 </ProtectedRoute>
             }
         />
 
         <Route
-            path="/patient/appointments"
+            path="/appointments"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <PatientAppointments />
                 </ProtectedRoute>
             }
         />
 
         <Route
-            path="/patient/profile"
+            path="/profile"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <PatientProfile />
                 </ProtectedRoute>
             }
         />
 
         <Route
-            path="/patient/find-doctors"
+            path="/find-doctors"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <FindDoctors />
                 </ProtectedRoute>
             }
         />
 
         <Route
-            path="/patient/doctor/:id"
+            path="/find-doctors/:id"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <DoctorDetailsPage />
                 </ProtectedRoute>
             }
         />
 
         <Route
-            path="/patient/book-appointment/:id"
+            path="/book-appointment/:id"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <BookingPage />
                 </ProtectedRoute>
             }
         />
 
         <Route
-            path="/patient/prescriptions"
+            path="/prescriptions"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <Prescriptions />
                 </ProtectedRoute>
             }
         />
 
         <Route
-            path="/patient/prescriptions/:appointmentId"
+            path="/prescriptions/:appointmentId"
             element={
-                <ProtectedRoute role="PATIENT">
+                <ProtectedRoute role={UserRole.PATIENT}>
                     <PrescriptionDetail />
                 </ProtectedRoute>
             }

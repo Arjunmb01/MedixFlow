@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authorize } from "@/presentation/controllers/middleware/authorize.middleware";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 import { container } from "@/infrastructure/services/container/CompositionRoot";
 
 const router = Router();
@@ -11,7 +12,7 @@ router.post("/setup-password", controller.setupPassword);
 
 // Protected routes
 router.use(authMiddleware);
-router.use(authorize(["ADMIN"]));
+router.use(authorize([UserRole.ADMIN]));
 
 router.get("/doctors", controller.getDoctors);
 router.post("/doctors", controller.createDoctor);

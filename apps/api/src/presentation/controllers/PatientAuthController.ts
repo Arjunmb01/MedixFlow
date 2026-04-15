@@ -1,4 +1,5 @@
 import { StatusCode, MESSAGES } from "@/shared/constants";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 import { Request, Response, NextFunction } from "express";
 import { SignUpUseCase } from "@/application/use-cases/auth/signup.usecase";
 import { VerifyOtpUseCase } from "@/application/use-cases/auth/verifyOtp.usecase";
@@ -72,7 +73,7 @@ export class PatientAuthController {
     refreshToken = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const refreshToken = req.cookies.patient_refreshToken;
-            const result = await this.refreshTokenUseCase.execute(refreshToken, "PATIENT");
+            const result = await this.refreshTokenUseCase.execute(refreshToken, UserRole.PATIENT);
             res.json(result);
         } catch (error) {
             res.status(StatusCode.UNAUTHORIZED).json({ message: error instanceof Error ? error.message : "An unexpected error occurred" });
