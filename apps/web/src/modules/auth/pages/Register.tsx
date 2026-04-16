@@ -116,10 +116,7 @@ export default function Register() {
               value={form.firstName}
               onChange={handleChange}
               placeholder="John"
-<<<<<<< HEAD
-=======
               maxLength={30}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
               className={`w-full bg-gray-50/50 border-2 rounded-2xl px-4 py-4 text-sm transition-all outline-none font-bold placeholder:text-gray-300 placeholder:font-medium ${
                 errors.firstName 
                     ? 'border-red-100 focus:border-red-400 focus:ring-8 focus:ring-red-50/30 text-red-600' 
@@ -138,10 +135,7 @@ export default function Register() {
               value={form.lastName}
               onChange={handleChange}
               placeholder="Doe"
-<<<<<<< HEAD
-=======
               maxLength={30}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
               className={`w-full bg-gray-50/50 border-2 rounded-2xl px-4 py-4 text-sm transition-all outline-none font-bold placeholder:text-gray-300 placeholder:font-medium ${
                 errors.lastName 
                     ? 'border-red-100 focus:border-red-400 focus:ring-8 focus:ring-red-50/30 text-red-600' 
@@ -163,10 +157,7 @@ export default function Register() {
             value={form.email}
             onChange={handleChange}
             placeholder="john@example.com"
-<<<<<<< HEAD
-=======
             maxLength={30}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
             className={`w-full bg-gray-50/50 border-2 rounded-2xl px-5 py-4 text-sm transition-all outline-none font-bold placeholder:text-gray-300 placeholder:font-medium ${
               errors.email 
                   ? 'border-red-100 focus:border-red-400 focus:ring-8 focus:ring-red-50/30 text-red-600' 
@@ -186,10 +177,7 @@ export default function Register() {
             value={form.phone}
             onChange={handleChange}
             placeholder="1234567890"
-<<<<<<< HEAD
-=======
             maxLength={15}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
             className={`w-full bg-gray-50/50 border-2 rounded-2xl px-5 py-4 text-sm transition-all outline-none font-bold placeholder:text-gray-300 placeholder:font-medium ${
               errors.phone 
                   ? 'border-red-100 focus:border-red-400 focus:ring-8 focus:ring-red-50/30 text-red-600' 
@@ -211,10 +199,7 @@ export default function Register() {
               value={form.password}
               onChange={handleChange}
               placeholder="••••••••"
-<<<<<<< HEAD
-=======
               maxLength={35}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
               className={`w-full bg-gray-50/50 border-2 rounded-2xl pl-5 pr-14 py-4 text-sm transition-all outline-none font-black tracking-widest placeholder:tracking-normal placeholder:font-medium placeholder:text-gray-300 ${
                 errors.password 
                     ? 'border-red-100 focus:border-red-400 focus:ring-8 focus:ring-red-50/30 text-red-600' 

@@ -93,3 +93,12 @@ export const cancelAppointment = async (id: string, reason: string) => {
     return response.data;
 };
 
+export const rescheduleAppointment = async (
+    id: string,
+    newDate: string,
+    slotStart: string,
+    slotEnd: string
+) => {
+    const response = await axiosInstance.patch(`/patient/appointments/${id}/reschedule`, { newDate, slotStart, slotEnd });
+    return response.data;
+};

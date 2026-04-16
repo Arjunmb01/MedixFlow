@@ -17,6 +17,7 @@ import { AuthRepository } from "../../repositories/AuthRepository";
 import { ConsultationRepository } from "../../repositories/ConsultationRepository";
 import { SlotRepository } from "../../repositories/SlotRepository";
 import { AppointmentRepository } from "../../repositories/AppointmentRepository";
+import { DoctorLeaveRepository } from "../../repositories/DoctorLeaveRepository";
 
 // Infrastructure Services
 import { BcryptPasswordHasher } from "../BcryptPasswordHasher";
@@ -49,6 +50,7 @@ import { ToggleBlockPatientUseCase, DeletePatientUseCase, GetPatientStatsUseCase
 import { BookAppointmentUseCase } from "@/application/use-cases/appointment/bookAppointment.usecase";
 import { CancelAppointmentUseCase } from "@/application/use-cases/appointment/cancelAppointment.usecase";
 import { GetAllAppointmentsUseCase } from "@/application/use-cases/appointment/getAllAppointments.usecase";
+import { RescheduleAppointmentUseCase } from "@/application/use-cases/appointment/rescheduleAppointment.usecase";
 
 // Use Cases - Consultation
 import { CheckinPatientUseCase } from "@/application/use-cases/consultation/checkinPatient.usecase";
@@ -96,6 +98,13 @@ import { GetDoctorsUseCase } from "@/application/use-cases/staff/GetDoctorsUseCa
 import { SetupPasswordUseCase } from "@/application/use-cases/staff/SetupPasswordUseCase";
 import { UpdateStaffDoctorUseCase } from "@/application/use-cases/staff/UpdateStaffDoctorUseCase";
 
+// Use Cases - Leave
+import { ApplyLeaveUseCase } from "@/application/use-cases/leave/ApplyLeaveUseCase";
+import { GetMyLeavesUseCase } from "@/application/use-cases/leave/GetMyLeavesUseCase";
+import { CancelLeaveUseCase } from "@/application/use-cases/leave/CancelLeaveUseCase";
+import { GetAllLeavesUseCase } from "@/application/use-cases/leave/GetAllLeavesUseCase";
+import { ReviewLeaveUseCase } from "@/application/use-cases/leave/ReviewLeaveUseCase";
+
 // Controllers
 import { AdminAuthController } from "@/presentation/controllers/AdminAuthController";
 import { AppointmentController } from "@/presentation/controllers/AppointmentController";
@@ -112,6 +121,7 @@ import { AdminPatientController } from "@/presentation/controllers/AdminPatientC
 import { PublicDoctorController } from "@/presentation/controllers/PublicDoctorController";
 import { SlotController } from "@/presentation/controllers/SlotController";
 import { StaffController } from "@/presentation/controllers/StaffController";
+import { LeaveController } from "@/presentation/controllers/LeaveController";
 import { createAuthMiddleware } from "@/presentation/controllers/middleware/auth.middleware";
 
 export class CompositionRoot {
@@ -154,6 +164,7 @@ export class CompositionRoot {
         const slotRepository = new SlotRepository(prisma, slotMapper);
         const consultationRepository = new ConsultationRepository(prisma, consultationMapper, dateTimeService);
         const appointmentRepository = new AppointmentRepository(prisma, appointmentMapper, dateTimeService);
+        const leaveRepository = new DoctorLeaveRepository(prisma);
 
         // 5. App Logic
         const calculateProfileCompletionUseCase = new CalculateProfileCompletionUseCase();
@@ -181,6 +192,7 @@ export class CompositionRoot {
         const bookAppointmentUseCase = new BookAppointmentUseCase(appointmentRepository, schedulingPolicy, dateTimeService);
         const cancelAppointmentUseCase = new CancelAppointmentUseCase(appointmentRepository, consultationRepository);
         const getAllAppointmentsUseCase = new GetAllAppointmentsUseCase(appointmentRepository);
+        const rescheduleAppointmentUseCase = new RescheduleAppointmentUseCase(appointmentRepository, schedulingPolicy, dateTimeService);
 
         // Consultation
         const checkinPatientUseCase = new CheckinPatientUseCase(appointmentRepository, consultationRepository, dateTimeService);
@@ -227,6 +239,13 @@ export class CompositionRoot {
         const setupPasswordUseCase = new SetupPasswordUseCase(staffRepository);
         const updateStaffDoctorUseCase = new UpdateStaffDoctorUseCase(staffRepository);
 
+        // Leave
+        const applyLeaveUseCase = new ApplyLeaveUseCase(leaveRepository);
+        const getMyLeavesUseCase = new GetMyLeavesUseCase(leaveRepository);
+        const cancelLeaveUseCase = new CancelLeaveUseCase(leaveRepository);
+        const getAllLeavesUseCase = new GetAllLeavesUseCase(leaveRepository);
+        const reviewLeaveUseCase = new ReviewLeaveUseCase(leaveRepository);
+
         // Middlewares
         const authMiddleware = createAuthMiddleware(jwtTokenService, authRepository);
 
@@ -249,7 +268,7 @@ export class CompositionRoot {
         
         const doctorAppointmentController = new DoctorAppointmentController(
             getDoctorDashboardStatsUseCase, getDoctorAppointmentsUseCase, 
-            updateDoctorSchedulesUseCase, generateSlotsUseCase
+            updateDoctorSchedulesUseCase, generateSlotsUseCase, rescheduleAppointmentUseCase
         );
 
         const doctorClinicalController = new DoctorClinicalController(
@@ -270,12 +289,12 @@ export class CompositionRoot {
 
         const patientAppointmentController = new PatientAppointmentController(
             getUpcomingAppointmentsUseCase, getPatientDashboardStatsUseCase, getPatientAppointmentsUseCase, 
-            cancelAppointmentUseCase
+            cancelAppointmentUseCase, rescheduleAppointmentUseCase
         );
 
         const adminPatientController = new AdminPatientController(
             getAllPatientsUseCase, getPatientByIdUseCase, toggleBlockPatientUseCase, 
-            deletePatientUseCase, getPatientStatsUseCase, getAllAppointmentsUseCase
+            deletePatientUseCase, getPatientStatsUseCase, getAllAppointmentsUseCase, rescheduleAppointmentUseCase
         );
 
         const publicDoctorController = new PublicDoctorController(getAllDoctorsUseCase, getPublicDoctorDetailsUseCase);
@@ -285,6 +304,14 @@ export class CompositionRoot {
         const staffController = new StaffController(
             getDoctorsUseCase, createDoctorUseCase, updateStaffDoctorUseCase, 
             blockDoctorUseCase, deleteDoctorUseCase, setupPasswordUseCase
+        );
+
+        const leaveController = new LeaveController(
+            applyLeaveUseCase,
+            getMyLeavesUseCase,
+            cancelLeaveUseCase,
+            getAllLeavesUseCase,
+            reviewLeaveUseCase
         );
 
         return {
@@ -303,6 +330,7 @@ export class CompositionRoot {
             publicDoctorController,
             slotController,
             staffController,
+            leaveController,
             authMiddleware
         };
     }

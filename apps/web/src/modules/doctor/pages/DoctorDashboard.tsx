@@ -209,6 +209,7 @@ export default function DoctorDashboard() {
                                 </div>
                             </div>
 
+
                             <div className="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm">
                                 <div className="flex items-center justify-between mb-6 px-2">
                                     <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Follow-ups Due</h4>

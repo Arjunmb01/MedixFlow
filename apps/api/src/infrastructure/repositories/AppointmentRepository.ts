@@ -177,6 +177,24 @@ export class AppointmentRepository implements IAppointmentRepository {
     return this.mapper.toRecord(result);
   }
 
+  async rescheduleAppointment(
+    id: string,
+    appointmentDate: Date,
+    slotStart: string,
+    slotEnd: string
+  ): Promise<AppointmentRecord> {
+    const result = await this.prisma.appointment.update({
+      where: { id },
+      data: {
+        appointmentDate,
+        slotStart,
+        slotEnd,
+        status: "PENDING",
+      },
+    });
+    return this.mapper.toRecord(result);
+  }
+
   async getUpcomingByDoctorId(doctorId: string): Promise<AppointmentWithPatient[]> {
     const results = await this.prisma.appointment.findMany({
       where: {
@@ -307,6 +325,53 @@ export class AppointmentRepository implements IAppointmentRepository {
     });
     return this.mapper.toRecord(result);
   }
+
+  async markPastAppointmentsAsNotAttended(): Promise<void> {
+    const now = this.dateTimeService.now();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+
+    // 1. Mark appointments from previous days
+    await this.prisma.appointment.updateMany({
+      where: {
+        appointmentDate: {
+          lt: todayStart,
+        },
+        status: {
+          in: ["PENDING", "CONFIRMED"],
+        },
+      },
+      data: {
+        status: "NOT_ATTENDED",
+      },
+    });
+
+    // 2. Mark today's appointments that have already ended
+    const todaysUpcoming = await this.prisma.appointment.findMany({
+      where: {
+        appointmentDate: {
+          gte: todayStart,
+          lt: new Date(todayStart.getTime() + 24 * 60 * 60 * 1000),
+        },
+        status: {
+          in: ["PENDING", "CONFIRMED"],
+        },
+      },
+    });
+
+    for (const appt of todaysUpcoming) {
+      const slotEndTime = this.dateTimeService.toDateTime(appt.appointmentDate, appt.slotEnd);
+      if (slotEndTime < now) {
+        await this.prisma.appointment.update({
+          where: { id: appt.id },
+          data: {
+            status: "NOT_ATTENDED",
+          },
+        });
+      }
+    }
+  }
 }
+
 
 

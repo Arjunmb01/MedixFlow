@@ -22,6 +22,7 @@ router.put("/update-password", authorize([UserRole.PATIENT]), profileController.
 router.get("/appointments/upcoming", authorize([UserRole.PATIENT]), appointmentController.getUpcomingAppointments);
 router.get("/appointments", authorize([UserRole.PATIENT]), appointmentController.getPatientAppointments);
 router.patch("/appointments/:id/cancel", authorize([UserRole.PATIENT]), appointmentController.cancelAppointment);
+router.patch("/appointments/:id/reschedule", authorize([UserRole.PATIENT]), appointmentController.rescheduleAppointment);
 router.post("/appointments/:appointmentId/checkin", authorize([UserRole.PATIENT]), consultationController.checkin);
 router.get("/dashboard-stats", authorize([UserRole.PATIENT]), appointmentController.getPatientDashboardStats);
 

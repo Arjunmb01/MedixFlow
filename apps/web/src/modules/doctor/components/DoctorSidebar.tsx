@@ -12,7 +12,8 @@ import {
     Settings,
     LogOut,
     Clock,
-    UserCircle
+    UserCircle,
+    CalendarOff
 } from "lucide-react"
 
 const menuItems = [
@@ -20,6 +21,7 @@ const menuItems = [
     { icon: Clock, label: "Live Queue", path: "/doctor/queue" },
     { icon: Calendar, label: "Appointments", path: "/doctor/appointments" },
     { icon: FileText, label: "Prescriptions", path: "/doctor/prescriptions" },
+    { icon: CalendarOff, label: "Leave", path: "/doctor/leave" },
     { icon: UserCircle, label: "My Calendar", path: "/doctor/calendar" },
     { icon: MessageSquare, label: "Message", path: "/doctor/messages" },
     { icon: Settings, label: "Profile", path: "/doctor/profile" },

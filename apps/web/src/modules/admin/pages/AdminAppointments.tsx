@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react"
 import AdminSidebar from "../components/AdminSidebar"
 import AdminTopNav from "../components/AdminTopNav"
-import { Search, Calendar, User, Stethoscope, ChevronLeft, ChevronRight, Clock } from "lucide-react"
+import { Search, Calendar, User, Stethoscope, ChevronLeft, ChevronRight, Clock, CalendarClock } from "lucide-react"
 import { getAdminAppointments } from "@/infrastructure/api/admin.api"
 import type { Appointment } from "@/domain/appointment/types"
+import { RescheduleModal } from "@/modules/shared/components/RescheduleModal"
 
-const STATUS_OPTIONS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"] as const
+const STATUS_OPTIONS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED", "NOT_ATTENDED"] as const
 
 export default function AdminAppointments() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -13,6 +14,7 @@ export default function AdminAppointments() {
     const [search, setSearch] = useState("")
     const [status, setStatus] = useState("ALL")
     const [page, setPage] = useState(1)
+    const [rescheduleApt, setRescheduleApt] = useState<any | null>(null)
     const itemsPerPage = 10
 
     useEffect(() => {
@@ -53,13 +55,13 @@ export default function AdminAppointments() {
         })
     }
 
-
     const statusBadge = (s: string) => {
         const map: Record<string, string> = {
             CONFIRMED: 'bg-green-50 text-green-700 border-green-100',
             PENDING: 'bg-amber-50 text-amber-700 border-amber-100',
             COMPLETED: 'bg-blue-50 text-blue-700 border-blue-100',
             CANCELLED: 'bg-red-50 text-red-700 border-red-100',
+            NOT_ATTENDED: 'bg-slate-50 text-slate-500 border-slate-100',
         }
         return map[s] ?? 'bg-gray-50 text-gray-600 border-gray-100'
     }
@@ -96,7 +98,9 @@ export default function AdminAppointments() {
                             className="bg-white border border-gray-100 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-teal-500/20 transition-all shadow-sm outline-none"
                         >
                             {STATUS_OPTIONS.map(opt => (
-                                <option key={opt} value={opt}>{opt === "ALL" ? "All Statuses" : opt.charAt(0) + opt.slice(1).toLowerCase()}</option>
+                                <option key={opt} value={opt}>
+                                    {opt === "ALL" ? "All Statuses" : opt.replace(/_/g, ' ').toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                                </option>
                             ))}
                         </select>
                     </div>
@@ -112,13 +116,14 @@ export default function AdminAppointments() {
                                     <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Doctor</th>
                                     <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Time Slot</th>
                                     <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                                    <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
                                 {loading ? (
                                     Array(5).fill(0).map((_, i) => (
                                         <tr key={i} className="animate-pulse">
-                                            <td colSpan={5} className="px-8 py-6 h-20 bg-gray-50/30"></td>
+                                            <td colSpan={6} className="px-8 py-6 h-20 bg-gray-50/30"></td>
                                         </tr>
                                     ))
                                 ) : paginatedAppointments.length > 0 ? (
@@ -164,11 +169,24 @@ export default function AdminAppointments() {
                                                     {apt.status}
                                                 </span>
                                             </td>
+                                            <td className="px-8 py-6">
+                                                {(apt.status === "PENDING" || apt.status === "CONFIRMED") ? (
+                                                    <button
+                                                        onClick={() => setRescheduleApt(apt)}
+                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 text-violet-700 border border-violet-100 rounded-xl text-xs font-black hover:bg-violet-100 transition-all"
+                                                    >
+                                                        <CalendarClock className="w-3.5 h-3.5" />
+                                                        Reschedule
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-xs text-gray-300 font-bold uppercase tracking-widest">—</span>
+                                                )}
+                                            </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={5} className="px-8 py-20 text-center">
+                                        <td colSpan={6} className="px-8 py-20 text-center">
                                             <div className="flex flex-col items-center gap-3">
                                                 <div className="w-16 h-16 bg-gray-50 rounded-[2rem] flex items-center justify-center mb-2">
                                                     <Calendar className="w-8 h-8 text-gray-200" />
@@ -215,6 +233,17 @@ export default function AdminAppointments() {
                     )}
                 </div>
             </main>
+
+            {/* Reschedule Modal */}
+            {rescheduleApt && (
+                <RescheduleModal
+                    appointmentId={rescheduleApt.id}
+                    doctorId={rescheduleApt.doctor?.id ?? rescheduleApt.doctorId}
+                    role="admin"
+                    onSuccess={fetchData}
+                    onClose={() => setRescheduleApt(null)}
+                />
+            )}
         </div>
     )
 }

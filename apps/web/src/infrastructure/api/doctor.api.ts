@@ -68,3 +68,13 @@ export const updateDoctorPrescription = async (prescriptionId: string, data: any
     const response = await axiosInstance.patch(`/doctor/prescriptions/${prescriptionId}`, data);
     return response.data;
 };
+
+export const rescheduleAppointment = async (
+    id: string,
+    newDate: string,
+    slotStart: string,
+    slotEnd: string
+) => {
+    const response = await axiosInstance.patch(`/doctor/appointments/${id}/reschedule`, { newDate, slotStart, slotEnd });
+    return response.data;
+};

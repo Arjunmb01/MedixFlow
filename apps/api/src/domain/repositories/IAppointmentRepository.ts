@@ -141,8 +141,10 @@ export interface IAppointmentRepository {
   getAppointmentsByPatientId(patientId: string): Promise<AppointmentWithConsultation[]>;
   findById(id: string): Promise<AppointmentWithDoctorAndPatient | null>;
   cancelAppointment(id: string, reason: string): Promise<AppointmentRecord>;
+  rescheduleAppointment(id: string, appointmentDate: Date, slotStart: string, slotEnd: string): Promise<AppointmentRecord>;
   getAppointmentsByDoctorId(doctorId: string, filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentWithPatient[]; total: number }>;
   getAllAppointments(): Promise<AppointmentPreview[]>;
   updateStatus(id: string, status: AppointmentStatus | string): Promise<AppointmentRecord>;
   getUpcomingByDoctorId(doctorId : string): Promise<AppointmentWithPatient[]>;
+  markPastAppointmentsAsNotAttended(): Promise<void>;
 }

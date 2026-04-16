@@ -17,10 +17,12 @@ import {
     FileText,
     ChevronLeft,
     ChevronRight,
-    Pill
+    Pill,
+    CalendarClock
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import Badge from "../../patient/components/ui/Badge";
+import { RescheduleModal } from "@/modules/shared/components/RescheduleModal";
 
 export default function DoctorAppointments() {
     const { profile } = useDoctorDashboard();
@@ -31,6 +33,7 @@ export default function DoctorAppointments() {
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedApt, setSelectedApt] = useState<any | null>(null);
     const [selectedPrescription, setSelectedPrescription] = useState<any | null>(null);
+    const [rescheduleApt, setRescheduleApt] = useState<any | null>(null);
 
     const apiFilters = useMemo(() => ({
         status: statusFilter === "ALL" ? undefined : statusFilter,
@@ -40,7 +43,7 @@ export default function DoctorAppointments() {
         limit: 4
     }), [statusFilter, fromDate, toDate, currentPage]);
 
-    const { appointments, loading, meta } = useDoctorAppointments(apiFilters);
+    const { appointments, loading, meta, refreshAppointments } = useDoctorAppointments(apiFilters);
 
     const filteredAppointments = useMemo(() => {
         return appointments.filter(apt => {
@@ -51,12 +54,13 @@ export default function DoctorAppointments() {
         });
     }, [appointments, searchTerm, statusFilter]);
 
-    const getStatusVariant = (status: string): "success" | "warning" | "error" | "info" => {
+    const getStatusVariant = (status: string): "success" | "warning" | "error" | "info" | "gray" => {
         switch (status.toUpperCase()) {
             case 'COMPLETED': return 'success';
             case 'CANCELLED': return 'error';
             case 'PENDING': return 'warning';
             case 'CONFIRMED': return 'info';
+            case 'NOT_ATTENDED': return 'gray';
             default: return 'info';
         }
     };
@@ -84,7 +88,7 @@ export default function DoctorAppointments() {
                             <p className="text-gray-500 font-medium mt-1">View and manage your scheduled consultations.</p>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
                             <div className="relative group">
                                 <Search className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-teal-600 transition-colors" />
                                 <input 
@@ -92,7 +96,7 @@ export default function DoctorAppointments() {
                                     placeholder="Search patients..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-12 pr-6 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-50 transition-all w-full md:w-[280px]"
+                                    className="pl-12 pr-6 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-50 transition-all w-full md:w-[240px]"
                                 />
                             </div>
                             
@@ -101,13 +105,14 @@ export default function DoctorAppointments() {
                                 <select 
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="pl-12 pr-10 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 focus:outline-none focus:border-teal-600 transition-all appearance-none cursor-pointer"
+                                    className="pl-12 pr-10 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 focus:outline-none focus:border-teal-600 transition-all appearance-none cursor-pointer w-full md:w-[180px]"
                                 >
                                     <option value="ALL">All Status</option>
                                     <option value="PENDING">Pending</option>
                                     <option value="CONFIRMED">Confirmed</option>
                                     <option value="COMPLETED">Completed</option>
                                     <option value="CANCELLED">Cancelled</option>
+                                    <option value="NOT_ATTENDED">Not Attended</option>
                                 </select>
                             </div>
 
@@ -202,8 +207,11 @@ export default function DoctorAppointments() {
                                             )}
 
                                             {(apt.status === 'PENDING' || apt.status === 'CONFIRMED') && new Date(apt.appointmentDate) >= new Date(new Date().setHours(0,0,0,0)) && (
-                                                <button className="px-6 py-3 bg-teal-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-teal-700 transition-all shadow-lg shadow-teal-100 active:scale-95">
-                                                    Reschedule
+                                                <button
+                                                    onClick={() => setRescheduleApt(apt)}
+                                                    className="px-6 py-3 bg-teal-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-teal-700 transition-all shadow-lg shadow-teal-100 active:scale-95 flex items-center gap-2"
+                                                >
+                                                    <CalendarClock className="w-4 h-4" /> Reschedule
                                                 </button>
                                             )}
                                         </div>
@@ -321,9 +329,14 @@ export default function DoctorAppointments() {
                             )}
 
                             <div className="mt-10 flex gap-3">
-                                <button className="flex-1 py-4 bg-teal-600 text-white rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-teal-700 transition-all shadow-lg shadow-teal-100">
-                                    Reschedule
-                                </button>
+                                {(selectedApt.status === 'PENDING' || selectedApt.status === 'CONFIRMED') && (
+                                    <button
+                                        onClick={() => { setRescheduleApt(selectedApt); setSelectedApt(null); }}
+                                        className="flex-1 py-4 bg-teal-600 text-white rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-teal-700 transition-all shadow-lg shadow-teal-100 flex items-center justify-center gap-2"
+                                    >
+                                        <CalendarClock className="w-5 h-5" /> Reschedule
+                                    </button>
+                                )}
                                 <button 
                                     onClick={() => setSelectedApt(null)}
                                     className="flex-1 py-4 bg-white text-gray-600 border border-gray-200 rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all"
@@ -413,6 +426,16 @@ export default function DoctorAppointments() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {rescheduleApt && (
+                <RescheduleModal
+                    appointmentId={rescheduleApt.id}
+                    doctorId={rescheduleApt.doctorId ?? rescheduleApt.doctor?.id}
+                    role="doctor"
+                    onSuccess={refreshAppointments}
+                    onClose={() => setRescheduleApt(null)}
+                />
             )}
         </div>
     );

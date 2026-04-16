@@ -8,6 +8,7 @@ import DoctorQueue from "../pages/DoctorQueue"
 import ConsultationWorkspace from "../pages/ConsultationWorkspace"
 import DoctorPatients from "../pages/DoctorPatients"
 import DoctorPrescriptions from "../pages/DoctorPrescriptions"
+import DoctorLeave from "../pages/DoctorLeave"
 
 export const DoctorRoutes = (
     <>
@@ -41,6 +42,7 @@ export const DoctorRoutes = (
         
         <Route path="/doctor/patients" element={<ProtectedRoute role={UserRole.DOCTOR}><DoctorPatients /></ProtectedRoute>} />
         <Route path="/doctor/prescriptions" element={<ProtectedRoute role={UserRole.DOCTOR}><DoctorPrescriptions /></ProtectedRoute>} />
+        <Route path="/doctor/leave" element={<ProtectedRoute role={UserRole.DOCTOR}><DoctorLeave /></ProtectedRoute>} />
 
         {/* Placeholder routes for future implementation */}
         <Route path="/doctor/calendar" element={<ProtectedRoute role={UserRole.DOCTOR}><DoctorDashboard /></ProtectedRoute>} />

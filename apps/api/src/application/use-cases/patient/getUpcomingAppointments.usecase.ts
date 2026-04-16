@@ -8,6 +8,7 @@ export class GetUpcomingAppointmentsUseCase {
     ) {}
 
     async execute (patientId: string) {
+        await this.appointmentRepo.markPastAppointmentsAsNotAttended();
         const appointments = await this.appointmentRepo.getAppointmentsByPatientId(patientId);
         const now = this.dateTimeService.now();
 

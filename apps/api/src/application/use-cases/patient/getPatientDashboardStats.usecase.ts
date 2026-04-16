@@ -12,6 +12,8 @@ export class GetPatientDashboardStatsUseCase {
     ) {}
 
     async execute(userId: string) {
+        await this.appointmentRepo.markPastAppointmentsAsNotAttended();
+
         const [appointments, patient] = await Promise.all([
             this.appointmentRepo.getAppointmentsByPatientId(userId),
             this.patientRepo.findById(userId)

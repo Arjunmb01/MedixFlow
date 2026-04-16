@@ -7,6 +7,7 @@ import PatientDirectory from "../pages/PatientDirectory"
 import PatientDetailsPage from "../pages/PatientDetailsPage"
 import AdminAppointments from "../pages/AdminAppointments"
 import AdminSettings from "../pages/AdminSettings"
+import AdminLeaveManagement from "../pages/AdminLeaveManagement"
 
 export const AdminRoutes = (
     <>
@@ -47,6 +48,14 @@ export const AdminRoutes = (
             element={
                 <ProtectedRoute role={UserRole.ADMIN}>
                     <AdminAppointments />
+                </ProtectedRoute>
+            }
+        />
+        <Route
+            path="/admin/leaves"
+            element={
+                <ProtectedRoute role={UserRole.ADMIN}>
+                    <AdminLeaveManagement />
                 </ProtectedRoute>
             }
         />

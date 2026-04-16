@@ -21,6 +21,7 @@ router.put("/profile", profileController.updateDoctorProfile);
 router.put("/update-password", profileController.updateDoctorPassword);
 router.get("/dashboard-stats", appointmentController.getDoctorDashboardStats);
 router.get("/appointments", appointmentController.getDoctorAppointments);
+router.patch("/appointments/:id/reschedule", appointmentController.rescheduleAppointment);
 router.put("/schedules", appointmentController.updateDoctorSchedules);
 
 // Consultation routes (must be before /:doctorId wildcard)
