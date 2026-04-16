@@ -43,7 +43,15 @@ export class LoginDoctorUseCase {
 
     await this.sessionService.saveSession(user.id, refreshToken);
 
-    return { accessToken, refreshToken };
+    return { 
+      accessToken, 
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      }
+    };
   }
 
 }

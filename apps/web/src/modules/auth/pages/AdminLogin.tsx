@@ -43,11 +43,12 @@ export default function AdminLogin() {
 
         try {
             const response = await adminLogin(data)
-            const { accessToken } = response
+            const { accessToken, user } = response
             dispatch(
                 setAuth({
                     role: UserRole.ADMIN,
-                    accessToken
+                    accessToken,
+                    user
                 })
             )
             toast.success("Welcome back, Super Admin!")

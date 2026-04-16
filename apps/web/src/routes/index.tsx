@@ -7,6 +7,9 @@ import { PatientRoutes } from "@/modules/patient/routes"
 import { AdminRoutes } from "@/modules/admin/routes"
 import { DoctorRoutes } from "@/modules/doctor/routes"
 import NotFoundPage from "@/core/pages/NotFoundPage"
+import ProtectedRoute from "@/core/routes/ProtectedRoute"
+import { UserRole } from "@/domain/auth/types/auth.types"
+import NotificationsPage from "@/modules/shared/pages/NotificationsPage"
 
 export default function AppRoutes() {
     return (
@@ -21,6 +24,11 @@ export default function AppRoutes() {
                 {PatientRoutes}
                 {AdminRoutes}
                 {DoctorRoutes}
+                <Route path="/notifications" element={
+                    <ProtectedRoute role={[UserRole.PATIENT, UserRole.DOCTOR, UserRole.ADMIN]}>
+                        <NotificationsPage />
+                    </ProtectedRoute>
+                } />
                 <Route path="*" element={<NotFoundPage />} />
             </Routes>
         </BrowserRouter>

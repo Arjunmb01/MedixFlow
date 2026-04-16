@@ -47,11 +47,12 @@ export default function PatientLogin() {
 
         try {
             const response = await patientLogin(data)
-            const { accessToken } = response
+            const { accessToken, user } = response
             dispatch(
                 setAuth({
                     role: UserRole.PATIENT,
-                    accessToken
+                    accessToken,
+                    user
                 })
             )
             toast.success("Login successful!")
@@ -95,11 +96,12 @@ export default function PatientLogin() {
 
         try {
             const response = await googleLogin(credentialResponse.credential)
-            const { accessToken } = response
+            const { accessToken, user } = response
             dispatch(
                 setAuth({
                     role: UserRole.PATIENT,
-                    accessToken
+                    accessToken,
+                    user
                 })
             )
             toast.success("Login successful!")

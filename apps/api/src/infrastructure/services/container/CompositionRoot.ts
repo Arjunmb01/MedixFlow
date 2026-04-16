@@ -8,6 +8,7 @@ import { DoctorMapper } from "../../database/mappers/DoctorMapper";
 import { PatientMapper } from "../../database/mappers/PatientMapper";
 import { SlotMapper } from "../../database/mappers/SlotMapper";
 import { AppointmentMapper } from "../../database/mappers/AppointmentMapper";
+import { NotificationMapper } from "../../database/mappers/NotificationMapper";
 
 // Repositories
 import { PatientRepository } from "../../repositories/PatientRepository";
@@ -18,6 +19,7 @@ import { ConsultationRepository } from "../../repositories/ConsultationRepositor
 import { SlotRepository } from "../../repositories/SlotRepository";
 import { AppointmentRepository } from "../../repositories/AppointmentRepository";
 import { DoctorLeaveRepository } from "../../repositories/DoctorLeaveRepository";
+import { NotificationRepository } from "../../repositories/NotificationRepository";
 
 // Infrastructure Services
 import { BcryptPasswordHasher } from "../BcryptPasswordHasher";
@@ -28,6 +30,8 @@ import { GoogleAuthService } from "../GoogleAuthService";
 import { SmtpEmailService } from "../SmtpEmailService";
 import { PatientIdGenerator } from "../PatientIdGenerator";
 import { SystemDateTimeService } from "../SystemDateTimeService";
+import { NotificationCacheService } from "../NotificationCacheService";
+import { socketService } from "../SocketService";
 import redisClient from "../redisClient";
 
 // Use Cases - Auth
@@ -51,6 +55,13 @@ import { BookAppointmentUseCase } from "@/application/use-cases/appointment/book
 import { CancelAppointmentUseCase } from "@/application/use-cases/appointment/cancelAppointment.usecase";
 import { GetAllAppointmentsUseCase } from "@/application/use-cases/appointment/getAllAppointments.usecase";
 import { RescheduleAppointmentUseCase } from "@/application/use-cases/appointment/rescheduleAppointment.usecase";
+
+// Use Cases - Notification
+import { GetNotificationsUseCase } from "@/application/use-cases/notification/GetNotificationsUseCase";
+import { MarkNotificationAsReadUseCase } from "@/application/use-cases/notification/MarkNotificationAsReadUseCase";
+import { GetUnreadCountUseCase } from "@/application/use-cases/notification/GetUnreadCountUseCase";
+import { SendNotificationUseCase } from "@/application/use-cases/notification/SendNotificationUseCase";
+import { DeleteNotificationsUseCase } from "@/application/use-cases/notification/DeleteNotificationsUseCase";
 
 // Use Cases - Consultation
 import { CheckinPatientUseCase } from "@/application/use-cases/consultation/checkinPatient.usecase";
@@ -108,6 +119,7 @@ import { ReviewLeaveUseCase } from "@/application/use-cases/leave/ReviewLeaveUse
 // Controllers
 import { AdminAuthController } from "@/presentation/controllers/AdminAuthController";
 import { AppointmentController } from "@/presentation/controllers/AppointmentController";
+import { NotificationController } from "@/presentation/controllers/NotificationController";
 import { ConsultationController } from "@/presentation/controllers/ConsultationController";
 import { DoctorAuthController } from "@/presentation/controllers/DoctorAuthController";
 import { DoctorProfileController } from "@/presentation/controllers/DoctorProfileController";
@@ -144,6 +156,7 @@ export class CompositionRoot {
         const patientMapper = new PatientMapper();
         const slotMapper = new SlotMapper();
         const appointmentMapper = new AppointmentMapper();
+        const notificationMapper = new NotificationMapper();
 
         // 3. Infrastructure Services
         const passwordHasher = new BcryptPasswordHasher();
@@ -155,6 +168,7 @@ export class CompositionRoot {
         const jwtTokenService = new JwtTokenService(jwtConfig);
         const googleAuthService = new GoogleAuthService();
         const patientIdGenerator = new PatientIdGenerator(prisma);
+        const notificationCacheService = new NotificationCacheService(redisClient);
 
         // 4. Repositories
         const patientRepository = new PatientRepository(prisma, patientMapper, dateTimeService);
@@ -165,6 +179,7 @@ export class CompositionRoot {
         const consultationRepository = new ConsultationRepository(prisma, consultationMapper, dateTimeService);
         const appointmentRepository = new AppointmentRepository(prisma, appointmentMapper, dateTimeService);
         const leaveRepository = new DoctorLeaveRepository(prisma);
+        const notificationRepository = new NotificationRepository(prisma, notificationMapper);
 
         // 5. App Logic
         const calculateProfileCompletionUseCase = new CalculateProfileCompletionUseCase();
@@ -188,15 +203,24 @@ export class CompositionRoot {
         const deletePatientUseCase = new DeletePatientUseCase(patientRepository);
         const getPatientStatsUseCase = new GetPatientStatsUseCase(patientRepository, staffRepository);
 
+        // Notification
+        const sendNotificationUseCase = new SendNotificationUseCase(notificationRepository, notificationCacheService, socketService);
+        const getNotificationsUseCase = new GetNotificationsUseCase(notificationRepository, notificationCacheService);
+        const markNotificationAsReadUseCase = new MarkNotificationAsReadUseCase(notificationRepository, notificationCacheService, socketService);
+        const getUnreadCountUseCase = new GetUnreadCountUseCase(notificationRepository, notificationCacheService);
+        const deleteNotificationsUseCase = new DeleteNotificationsUseCase(notificationRepository, notificationCacheService, socketService);
+
         // Appointment
-        const bookAppointmentUseCase = new BookAppointmentUseCase(appointmentRepository, schedulingPolicy, dateTimeService);
-        const cancelAppointmentUseCase = new CancelAppointmentUseCase(appointmentRepository, consultationRepository);
+        const bookAppointmentUseCase = new BookAppointmentUseCase(appointmentRepository, schedulingPolicy, dateTimeService, sendNotificationUseCase);
+        const cancelAppointmentUseCase = new CancelAppointmentUseCase(appointmentRepository, consultationRepository, sendNotificationUseCase);
         const getAllAppointmentsUseCase = new GetAllAppointmentsUseCase(appointmentRepository);
-        const rescheduleAppointmentUseCase = new RescheduleAppointmentUseCase(appointmentRepository, schedulingPolicy, dateTimeService);
+        const rescheduleAppointmentUseCase = new RescheduleAppointmentUseCase(appointmentRepository, schedulingPolicy, dateTimeService, sendNotificationUseCase);
+
+
 
         // Consultation
         const checkinPatientUseCase = new CheckinPatientUseCase(appointmentRepository, consultationRepository, dateTimeService);
-        const completeConsultationUseCase = new CompleteConsultationUseCase(consultationRepository, appointmentRepository);
+        const completeConsultationUseCase = new CompleteConsultationUseCase(consultationRepository, appointmentRepository, sendNotificationUseCase);
         const getConsultationDetailsUseCase = new GetConsultationDetailsUseCase(consultationRepository);
         const getDoctorQueueUseCase = new GetDoctorQueueUseCase(consultationRepository);
         const getPatientHistoryUseCase = new GetPatientHistoryUseCase(consultationRepository);
@@ -252,6 +276,10 @@ export class CompositionRoot {
         // Controllers
         const adminAuthController = new AdminAuthController(loginAdminUseCase, refreshTokenUseCase, logoutUseCase);
         const appointmentController = new AppointmentController(getAvailableSlotCase, bookAppointmentUseCase);
+        const notificationController = new NotificationController(
+            getNotificationsUseCase, markNotificationAsReadUseCase, 
+            getUnreadCountUseCase, deleteNotificationsUseCase
+        );
         
         const consultationController = new ConsultationController(
             checkinPatientUseCase, getDoctorQueueUseCase, startConsultationUseCase, 
@@ -317,6 +345,7 @@ export class CompositionRoot {
         return {
             adminAuthController,
             appointmentController,
+            notificationController,
             consultationController,
             doctorAuthController,
             doctorProfileController,

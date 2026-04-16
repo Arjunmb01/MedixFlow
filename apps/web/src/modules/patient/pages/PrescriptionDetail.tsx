@@ -4,7 +4,7 @@ import Sidebar from "../components/dashboard/Sidebar";
 import TopNav from "../components/dashboard/TopNav";
 import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile";
 import { getPatientAppointments } from "@/infrastructure/api/patient.api";
-import { pdf, PDFDownloadLink } from '@react-pdf/renderer';
+import { pdf } from '@react-pdf/renderer';
 import PrescriptionPDF from "../components/prescription/PrescriptionPDF";
 import { toast } from "sonner";
 import {

@@ -31,7 +31,7 @@ export class DoctorAuthController {
                 maxAge: 7 * 24 * 60 * 60 * 1000
             });
 
-            res.json({ accessToken });
+            res.json({ accessToken, user: result.user });
         } catch (error) {
             const message = error instanceof Error ? error.message : "An unexpected error occurred";
             const isBlocked = message.toLowerCase().includes("blocked");

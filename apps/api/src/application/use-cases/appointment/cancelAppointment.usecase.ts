@@ -1,10 +1,13 @@
 import { IAppointmentRepository } from "@/domain/repositories/IAppointmentRepository";
 import { IConsultationRepository } from "@/domain/repositories/IConsultationRepository";
+import { SendNotificationUseCase } from "../notification/SendNotificationUseCase";
+import { NotificationType } from "@/domain/value-objects/types/notification.types";
 
 export class CancelAppointmentUseCase {
     constructor(
         private readonly appointmentRepo : IAppointmentRepository,
-        private readonly consultationRepo : IConsultationRepository
+        private readonly consultationRepo : IConsultationRepository,
+        private readonly sendNotificationUseCase: SendNotificationUseCase
     ) {}
 
     async execute (appointmentId : string, patientId : string, reason : string) {
@@ -23,7 +26,23 @@ export class CancelAppointmentUseCase {
 
         await this.consultationRepo.deleteByAppointmentId(appointmentId);
 
-        return updatedAppointment
+        // Notify Doctor
+        await this.sendNotificationUseCase.execute({
+            recipientId: appointment.doctorId,
+            title: "Appointment Cancelled",
+            message: `The appointment scheduled for ${appointment.appointmentDate.toLocaleDateString()} at ${appointment.slotStart} has been cancelled.`,
+            type: NotificationType.CANCELLED,
+        });
+
+        // Notify Patient
+        await this.sendNotificationUseCase.execute({
+            recipientId: appointment.patientId,
+            title: "Appointment Cancelled",
+            message: `Your appointment scheduled for ${appointment.appointmentDate.toLocaleDateString()} at ${appointment.slotStart} has been cancelled.`,
+            type: NotificationType.CANCELLED,
+        });
+
+        return updatedAppointment;
 
     }
 }
