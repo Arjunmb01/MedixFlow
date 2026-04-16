@@ -1,7 +1,7 @@
 import axiosInstance from "@/core/api/axios";
 
-export const getAdminAppointments = async () => {
-    const response = await axiosInstance.get("/admin/appointments");
+export const getAdminAppointments = async (params?: any) => {
+    const response = await axiosInstance.get("/admin/appointments", { params });
     return response.data;
 };
 

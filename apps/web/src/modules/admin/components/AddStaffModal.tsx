@@ -34,6 +34,9 @@ const schema = z.object({
         endTime: z.string(),
         fullDay: z.boolean()
     }))
+}).refine(data => (data.firstName.length + data.lastName.length) <= 20, {
+    message: "Total length of first and last name cannot exceed 20 characters",
+    path: ["firstName"]
 })
 
 interface Props {

@@ -136,14 +136,14 @@ export interface IAppointmentRepository {
   createWithTransaction(data: CreateAppointmentInput): Promise<AppointmentRecord>;
 
   countActiveBookings(doctorId: string, date: Date, slotStart: string): Promise<number>;
-  findActiveBookingByPatient(patientId: string, doctorId: string, date: Date, slotStart: string): Promise<AppointmentRecord | null>;
+  findActiveBookingByPatient(patientId: string, date: Date, doctorId?: string, slotStart?: string): Promise<AppointmentRecord | null>;
 
   getAppointmentsByPatientId(patientId: string): Promise<AppointmentWithConsultation[]>;
   findById(id: string): Promise<AppointmentWithDoctorAndPatient | null>;
   cancelAppointment(id: string, reason: string): Promise<AppointmentRecord>;
   rescheduleAppointment(id: string, appointmentDate: Date, slotStart: string, slotEnd: string): Promise<AppointmentRecord>;
   getAppointmentsByDoctorId(doctorId: string, filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentWithPatient[]; total: number }>;
-  getAllAppointments(): Promise<AppointmentPreview[]>;
+  getAllAppointments(filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentPreview[]; total: number }>;
   updateStatus(id: string, status: AppointmentStatus | string): Promise<AppointmentRecord>;
   getUpcomingByDoctorId(doctorId : string): Promise<AppointmentWithPatient[]>;
   markPastAppointmentsAsNotAttended(): Promise<void>;

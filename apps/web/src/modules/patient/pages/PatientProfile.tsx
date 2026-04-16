@@ -64,7 +64,7 @@ export default function PatientProfile() {
                                                 type="text"
                                                 value={personalInfo.name}
                                                 onChange={(e) => setPersonalInfo({ ...personalInfo, name: e.target.value })}
-                                                maxLength={30}
+                                                maxLength={20}
                                                 className="w-full bg-gray-50 border-none rounded-2xl py-3 px-5 text-[15px] font-medium text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                                 placeholder="Arjun Sharma"
                                             />

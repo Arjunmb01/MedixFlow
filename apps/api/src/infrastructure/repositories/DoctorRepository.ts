@@ -122,22 +122,23 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             todayAppointmentsCount: raw.todayAppointments.length,
             pendingToday: raw.todayAppointments.filter(a => ["PENDING", "CONFIRMED"].includes(a.status)).length,
             completedToday: raw.todayAppointments.filter(a => a.status === "COMPLETED").length,
-            totalEarnings: raw.totalEarnings
+            totalEarnings: raw.totalEarnings,
+            dashboardDate: raw.dashboardDate
         };
     }
 
     async getRawStats(userId: string, date: Date) {
-        const today = new Date(date);
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const todaySearch = new Date(date);
+        todaySearch.setHours(0, 0, 0, 0);
+        const tomorrowSearch = new Date(todaySearch);
+        tomorrowSearch.setDate(tomorrowSearch.getDate() + 1);
 
         const [
             totalAppointments, 
             completedAppointments, 
             pendingAppointments, 
             uniquePatientsCount,
-            todayAppointments,
+            todayAppointmentsResult,
             completedAptsForEarnings
         ] = await Promise.all([
             this._prisma.appointment.count({ where: { doctorId: userId } }),
@@ -151,7 +152,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             this._prisma.appointment.findMany({
                 where: {
                     doctorId: userId,
-                    appointmentDate: { gte: today, lt: tomorrow },
+                    appointmentDate: { gte: todaySearch, lt: tomorrowSearch },
                     status: { not: "CANCELLED" }
                 },
                 include: {
@@ -168,6 +169,34 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             })
         ]);
 
+        let finalTodayAppointments = todayAppointmentsResult;
+        let dashboardDate = todaySearch;
+
+        if (finalTodayAppointments.length === 0) {
+            const nextAppointments = await this._prisma.appointment.findMany({
+                where: {
+                    doctorId: userId,
+                    appointmentDate: { gte: tomorrowSearch },
+                    status: { in: ["PENDING", "CONFIRMED"] }
+                },
+                include: {
+                    patient: true,
+                    consultation: true
+                },
+                orderBy: [
+                    { appointmentDate: "asc" },
+                    { slotStart: "asc" }
+                ],
+                take: 10
+            });
+
+            if (nextAppointments.length > 0) {
+                finalTodayAppointments = nextAppointments;
+                dashboardDate = new Date(nextAppointments[0].appointmentDate);
+                dashboardDate.setHours(0, 0, 0, 0);
+            }
+        }
+
         const totalEarnings = completedAptsForEarnings.reduce((acc, apt) => acc + (apt.doctor.consultationFee || 0), 0);
 
         return {
@@ -175,8 +204,9 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             completedAppointments,
             pendingAppointments,
             uniquePatientsCount,
-            todayAppointments,
-            totalEarnings
+            todayAppointments: finalTodayAppointments,
+            totalEarnings,
+            dashboardDate
         };
     }
 

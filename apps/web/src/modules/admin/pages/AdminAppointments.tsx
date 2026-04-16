@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect,useMemo } from "react"
 import AdminSidebar from "../components/AdminSidebar"
 import AdminTopNav from "../components/AdminTopNav"
 import { Search, Calendar, User, Stethoscope, ChevronLeft, ChevronRight, Clock, CalendarClock } from "lucide-react"
@@ -6,26 +6,34 @@ import { getAdminAppointments } from "@/infrastructure/api/admin.api"
 import type { Appointment } from "@/domain/appointment/types"
 import { RescheduleModal } from "@/modules/shared/components/RescheduleModal"
 
-const STATUS_OPTIONS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED", "NOT_ATTENDED"] as const
+// const STATUS_OPTIONS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED", "NOT_ATTENDED"] as const
 
 export default function AdminAppointments() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState("")
-    const [status, setStatus] = useState("ALL")
+    const [statusFilter, setStatusFilter] = useState("ALL")
     const [page, setPage] = useState(1)
+    const [totalAppointments, setTotalAppointments] = useState(0)
     const [rescheduleApt, setRescheduleApt] = useState<any | null>(null)
-    const itemsPerPage = 10
+    const itemsPerPage = 8
 
     useEffect(() => {
         fetchData()
-    }, [])
+    }, [page, statusFilter])
 
     const fetchData = async () => {
         try {
             setLoading(true)
-            const data = await getAdminAppointments()
-            setAppointments(data)
+            const params = {
+                status: (statusFilter === "ALL" || statusFilter === "UPCOMING") ? undefined : statusFilter,
+                isUpcoming: statusFilter === "UPCOMING" ? true : undefined,
+                page,
+                limit: itemsPerPage
+            }
+            const data = await getAdminAppointments(params)
+            setAppointments(data.appointments)
+            setTotalAppointments(data.total)
         } catch (error) {
             console.error("Failed to fetch appointments:", error)
         } finally {
@@ -33,19 +41,17 @@ export default function AdminAppointments() {
         }
     }
 
-    const filteredAppointments = appointments.filter(apt => {
-        const matchesSearch = 
-            `${apt.patient.firstName} ${apt.patient.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
-            `${apt.doctor.firstName} ${apt.doctor.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
-            apt.id.toLowerCase().includes(search.toLowerCase())
-        
-        const matchesStatus = status === "ALL" || apt.status === status
-        
-        return matchesSearch && matchesStatus
-    })
+    const filteredAppointments = useMemo(() => {
+        return appointments.filter(apt => {
+            const matchesSearch = 
+                `${apt.patient.firstName} ${apt.patient.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
+                `${apt.doctor.firstName} ${apt.doctor.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
+                apt.id.toLowerCase().includes(search.toLowerCase())
+            return matchesSearch
+        })
+    }, [appointments, search])
 
-    const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage)
-    const paginatedAppointments = filteredAppointments.slice((page - 1) * itemsPerPage, page * itemsPerPage)
+    const totalPages = Math.ceil(totalAppointments / itemsPerPage)
 
     const formatDate = (date: string | Date) => {
         return new Date(date).toLocaleDateString('en-IN', {
@@ -67,43 +73,55 @@ export default function AdminAppointments() {
     }
 
     return (
-        <div className="flex min-h-screen bg-gray-50/50">
+        <div className="flex min-h-screen bg-gray-50/50 font-outfit">
             <AdminSidebar />
             
             <main className="flex-1 ml-64 p-8">
                 <AdminTopNav title="Appointments Directory" subtitle="Manage and monitor all clinic appointments." />
 
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-10">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900">All Appointments</h2>
-                        <p className="text-sm text-gray-500 mt-1">
-                            {loading ? "Loading..." : `Showing ${filteredAppointments.length} total appointments`}
+                        <h2 className="text-3xl font-black text-gray-900 tracking-tight">System Ledger</h2>
+                        <p className="text-sm text-gray-500 font-medium mt-1">
+                            {loading ? "Synchronizing..." : `Found ${totalAppointments} total records matching filters`}
                         </p>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <div className="relative group">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-teal-500 transition-colors" />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-teal-600 transition-colors" />
                             <input
                                 type="text"
-                                placeholder="Search patient, doctor or ID..."
+                                placeholder="Search records..."
                                 value={search}
-                                onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-                                className="pl-10 pr-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/20 w-72 transition-all font-medium shadow-sm"
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-12 pr-6 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-50 transition-all w-80 shadow-sm"
                             />
                         </div>
-                        <select
-                            value={status}
-                            onChange={(e) => { setStatus(e.target.value); setPage(1) }}
-                            className="bg-white border border-gray-100 rounded-xl px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-teal-500/20 transition-all shadow-sm outline-none"
-                        >
-                            {STATUS_OPTIONS.map(opt => (
-                                <option key={opt} value={opt}>
-                                    {opt === "ALL" ? "All Statuses" : opt.replace(/_/g, ' ').toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                                </option>
-                            ))}
-                        </select>
                     </div>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="flex bg-gray-100/50 p-1.5 rounded-[2rem] border border-gray-200/50 mb-10 w-fit overflow-x-auto no-scrollbar">
+                    {[
+                        { id: 'UPCOMING', label: 'Upcoming' },
+                        { id: 'COMPLETED', label: 'Completed' },
+                        { id: 'CANCELLED', label: 'Cancelled' },
+                        { id: 'NOT_ATTENDED', label: 'Not Attended' },
+                        { id: 'ALL', label: 'All Appointments' }
+                    ].map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => { setStatusFilter(tab.id); setPage(1); }}
+                            className={`px-8 py-3.5 rounded-full text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                                statusFilter === tab.id 
+                                ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50' 
+                                : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
 
                 <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
@@ -126,8 +144,8 @@ export default function AdminAppointments() {
                                             <td colSpan={6} className="px-8 py-6 h-20 bg-gray-50/30"></td>
                                         </tr>
                                     ))
-                                ) : paginatedAppointments.length > 0 ? (
-                                    paginatedAppointments.map((apt) => (
+                                ) : filteredAppointments.length > 0 ? (
+                                    filteredAppointments.map((apt) => (
                                         <tr key={apt.id} className="group hover:bg-teal-50/30 transition-all">
                                             <td className="px-8 py-6">
                                                 <p className="font-black text-gray-900 text-sm">#{apt.id.slice(-6).toUpperCase()}</p>
@@ -192,9 +210,9 @@ export default function AdminAppointments() {
                                                     <Calendar className="w-8 h-8 text-gray-200" />
                                                 </div>
                                                 <p className="text-gray-400 font-black text-sm uppercase tracking-widest">No appointments found</p>
-                                                {(search || status !== "ALL") && (
+                                                {(search || statusFilter !== "ALL") && (
                                                     <button 
-                                                        onClick={() => { setSearch(""); setStatus("ALL") }}
+                                                        onClick={() => { setSearch(""); setStatusFilter("ALL") }}
                                                         className="text-teal-600 font-black text-[10px] uppercase tracking-widest hover:underline mt-2"
                                                     >
                                                         Reset Filters

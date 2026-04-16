@@ -46,13 +46,17 @@ export class BookAppointmentUseCase {
 
         const existingPatientBooking = await this.appointmentRepo.findActiveBookingByPatient(
             data.patientId,
-            data.doctorId,
             data.appointmentDate,
+            data.doctorId,
             data.slotStart
         );
 
         if (existingPatientBooking) {
-            throw new Error("You already have an active appointment with this doctor at this time.");
+            if (existingPatientBooking.slotStart === data.slotStart) {
+                throw new Error("You already have an active appointment at this time.");
+            } else {
+                throw new Error("You already have an active appointment with this doctor today.");
+            }
         }
 
         const appointment = await this.appointmentRepo.createWithTransaction(data);
