@@ -106,10 +106,7 @@ export default function AdminLogin() {
                             {...register("email")}
                             type="email"
                             placeholder="SYSTEM_ROOT_ADMIN"
-<<<<<<< HEAD
-=======
                             maxLength={30}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                             className={`w-full bg-[#1a1a1a] text-white border-2 rounded-[18px] px-5 py-4.5 text-sm transition-all outline-none font-bold placeholder:text-gray-700 ${
                                 errors.email 
                                     ? 'border-red-500/50 focus:border-red-500' 
@@ -132,10 +129,7 @@ export default function AdminLogin() {
                                 {...register("password")}
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
-<<<<<<< HEAD
-=======
                                 maxLength={35}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                                 className={`w-full bg-[#1a1a1a] text-white border-2 rounded-[18px] pl-5 pr-14 py-4.5 text-sm transition-all outline-none font-black tracking-widest placeholder:tracking-normal placeholder:font-medium placeholder:text-gray-700 ${
                                     errors.password 
                                         ? 'border-red-500/50 focus:border-red-500' 

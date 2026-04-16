@@ -4,6 +4,7 @@ import { GetAllPatientsUseCase } from "@/application/use-cases/patient/getAllPat
 import { GetPatientByIdUseCase } from "@/application/use-cases/patient/getPatientById.usecase";
 import { ToggleBlockPatientUseCase, DeletePatientUseCase, GetPatientStatsUseCase } from "@/application/use-cases/admin/adminActions.usecase";
 import { GetAllAppointmentsUseCase } from "@/application/use-cases/appointment/getAllAppointments.usecase";
+import { RescheduleAppointmentUseCase } from "@/application/use-cases/appointment/rescheduleAppointment.usecase";
 import { 
     getPatientsQuerySchema, 
     blockPatientSchema 
@@ -17,7 +18,8 @@ export class AdminPatientController {
         private toggleBlockPatientUseCase: ToggleBlockPatientUseCase,
         private deletePatientUseCase: DeletePatientUseCase,
         private getPatientStatsUseCase: GetPatientStatsUseCase,
-        private getAllAppointmentsUseCase: GetAllAppointmentsUseCase
+        private getAllAppointmentsUseCase: GetAllAppointmentsUseCase,
+        private rescheduleAppointmentUseCase: RescheduleAppointmentUseCase
     ) {}
 
     getAllPatients = async (req: Request, res: Response, next: NextFunction) => {
@@ -77,6 +79,24 @@ export class AdminPatientController {
             const result = await this.getAllAppointmentsUseCase.execute();
             res.json(result);
         } catch (error) {
+            next(error);
+        }
+    }
+
+    rescheduleAppointment = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const id = req.params.id as string;
+            const { newDate, slotStart, slotEnd } = req.body;
+            const result = await this.rescheduleAppointmentUseCase.execute({
+                appointmentId: id,
+                callerId: "",
+                callerRole: "admin",
+                newDate: new Date(newDate),
+                slotStart,
+                slotEnd,
+            });
+            res.json({ message: "Appointment rescheduled successfully", data: result });
+        } catch (error: any) {
             next(error);
         }
     }

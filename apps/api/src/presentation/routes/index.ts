@@ -9,6 +9,7 @@ import sharedAdminRoutes from ".//admin.routes"
 import publicDoctorRoutes from ".//publicDoctor.routes"
 import uploadRoutes from ".//upload.routes"
 import appointmentRoutes from ".//appointment.routes"
+import { doctorLeaveRouter, adminLeaveRouter } from ".//leave.routes"
 
 const router = Router()
 router.use("/common", uploadRoutes)
@@ -21,5 +22,7 @@ router.use("/staff", staffRoutes)
 router.use("/doctor", doctorRoutes)
 router.use("/doctors", publicDoctorRoutes)
 router.use("/appointments",appointmentRoutes)
+router.use("/doctor/leaves", doctorLeaveRouter)
+router.use("/admin/leaves", adminLeaveRouter)
 
 export default router

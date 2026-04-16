@@ -39,10 +39,7 @@ export default function ClinicProfile() {
                         <input 
                             type="text" 
                             defaultValue="MedixFlow City Clinic"
-<<<<<<< HEAD
-=======
                             maxLength={30}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                             className="w-full px-5 py-4 bg-gray-50/50 border-2 border-gray-50 rounded-2xl focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/30 transition-all outline-none font-bold text-gray-900 text-sm"
                         />
                     </div>
@@ -51,10 +48,7 @@ export default function ClinicProfile() {
                         <input 
                             type="text" 
                             defaultValue="MED-2024-001892"
-<<<<<<< HEAD
-=======
                             maxLength={20}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                             className="w-full px-5 py-4 bg-gray-50/50 border-2 border-gray-50 rounded-2xl focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/30 transition-all outline-none font-bold text-gray-900 text-sm"
                         />
                     </div>
@@ -71,10 +65,7 @@ export default function ClinicProfile() {
                         <input 
                             type="text" 
                             defaultValue="+1 (555) 012-3456"
-<<<<<<< HEAD
-=======
                             maxLength={15}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                             className="w-full px-5 py-4 bg-gray-50/50 border-2 border-gray-50 rounded-2xl focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/30 transition-all outline-none font-bold text-gray-900 text-sm"
                         />
                     </div>
@@ -83,10 +74,7 @@ export default function ClinicProfile() {
                         <input 
                             type="email" 
                             defaultValue="admin@medixflow.clinic"
-<<<<<<< HEAD
-=======
                             maxLength={30}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                             className="w-full px-5 py-4 bg-gray-50/50 border-2 border-gray-50 rounded-2xl focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/30 transition-all outline-none font-bold text-gray-900 text-sm"
                         />
                     </div>
@@ -95,10 +83,7 @@ export default function ClinicProfile() {
                         <input 
                             type="text" 
                             defaultValue="https://medixflow.clinic"
-<<<<<<< HEAD
-=======
                             maxLength={255}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                             className="w-full px-5 py-4 bg-gray-50/50 border-2 border-gray-50 rounded-2xl focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/30 transition-all outline-none font-bold text-gray-900 text-sm"
                         />
                     </div>
@@ -107,10 +92,7 @@ export default function ClinicProfile() {
                         <textarea 
                             rows={3}
                             defaultValue="12 Healthcare Avenue, Medical District, New York, NY 10001, USA"
-<<<<<<< HEAD
-=======
                             maxLength={255}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                             className="w-full px-5 py-4 bg-gray-50/50 border-2 border-gray-50 rounded-2xl focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/30 transition-all outline-none font-bold text-gray-900 text-sm resize-none"
                         />
                     </div>
@@ -119,10 +101,7 @@ export default function ClinicProfile() {
                         <input 
                             type="text" 
                             defaultValue="New York"
-<<<<<<< HEAD
-=======
                             maxLength={30}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                             className="w-full px-5 py-4 bg-gray-50/50 border-2 border-gray-50 rounded-2xl focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/30 transition-all outline-none font-bold text-gray-900 text-sm"
                         />
                     </div>

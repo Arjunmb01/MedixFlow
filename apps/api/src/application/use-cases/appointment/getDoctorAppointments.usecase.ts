@@ -13,6 +13,8 @@ export class GetDoctorAppointmentsUseCase {
   async execute(doctorId: string, filter?: DoctorAppointmentFilter): Promise<{ data: AppointmentWithPatient[]; meta: any }> {
     if (!doctorId) throw new Error("Doctor ID is required");
 
+    await this.appointmentRepo.markPastAppointmentsAsNotAttended();
+
     const result = await this.appointmentRepo.getAppointmentsByDoctorId(doctorId, filter);
     let { appointments, total } = result;
 

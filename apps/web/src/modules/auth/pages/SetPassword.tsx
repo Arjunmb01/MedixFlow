@@ -113,10 +113,7 @@ export default function SetPassword() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="••••••••"
                                 className="w-full px-6 py-5 bg-gray-50/50 border-2 border-gray-50 rounded-[24px] focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/50 outline-none transition-all placeholder:text-gray-300 font-bold text-gray-900 text-[15px]"
-<<<<<<< HEAD
-=======
                                 maxLength={35}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                                 required
                             />
                         </div>
@@ -129,10 +126,7 @@ export default function SetPassword() {
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 placeholder="••••••••"
                                 className="w-full px-6 py-5 bg-gray-50/50 border-2 border-gray-50 rounded-[24px] focus:bg-white focus:border-primary-600/20 focus:ring-8 focus:ring-primary-50/50 outline-none transition-all placeholder:text-gray-300 font-bold text-gray-900 text-[15px]"
-<<<<<<< HEAD
-=======
                                 maxLength={35}
->>>>>>> 871c7862bcf397135f6809ff88e6ccf8cd29ad3c
                                 required
                             />
                         </div>

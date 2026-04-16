@@ -54,6 +54,7 @@ model DoctorProfile {
   specialization   Specialization   @relation(fields: [specializationId], references: [id])
   schedules        DoctorSchedule[]
   slots            Slot[]
+  leaves           DoctorLeave[]
 
   @@index([specializationId])
 }
@@ -215,6 +216,7 @@ enum AppointmentStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+  NOT_ATTENDED
 }
 
 enum ConsultationStatus {
@@ -226,4 +228,24 @@ enum ConsultationStatus {
 enum ConsultationType {
   VIDEO
   CLINIC
+}
+
+model DoctorLeave {
+  id        String      @id @default(uuid())
+  doctorId  String
+  startDate DateTime
+  endDate   DateTime
+  reason    String
+  status    LeaveStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  doctor    DoctorProfile @relation(fields: [doctorId], references: [id])
+
+  @@index([doctorId])
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

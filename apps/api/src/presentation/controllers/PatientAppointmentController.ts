@@ -4,13 +4,15 @@ import { GetUpcomingAppointmentsUseCase } from "@/application/use-cases/patient/
 import { GetPatientDashboardStatsUseCase } from "@/application/use-cases/patient/getPatientDashboardStats.usecase";
 import { GetPatientAppointmentsUseCase } from "@/application/use-cases/patient/getPatientAppointments.usecase";
 import { CancelAppointmentUseCase } from "@/application/use-cases/appointment/cancelAppointment.usecase";
+import { RescheduleAppointmentUseCase } from "@/application/use-cases/appointment/rescheduleAppointment.usecase";
 
 export class PatientAppointmentController {
     constructor(
         private getUpcomingAppointmentsUseCase: GetUpcomingAppointmentsUseCase,
         private getPatientDashboardStatsUseCase: GetPatientDashboardStatsUseCase,
         private getPatientAppointmentsUseCase: GetPatientAppointmentsUseCase,
-        private cancelAppointmentUseCase: CancelAppointmentUseCase
+        private cancelAppointmentUseCase: CancelAppointmentUseCase,
+        private rescheduleAppointmentUseCase: RescheduleAppointmentUseCase
     ) {}
 
     getUpcomingAppointments = async (req: Request, res: Response, next: NextFunction) => {
@@ -50,6 +52,25 @@ export class PatientAppointmentController {
             const { reason } = req.body;
             const result = await this.cancelAppointmentUseCase.execute(id, patientId, reason);
             res.json({ message: MESSAGES.APPOINTMENT_CANCELLED, data: result });
+        } catch (error: any) {
+            next(error);
+        }
+    }
+
+    rescheduleAppointment = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const callerId = req.user.id;
+            const id = req.params.id as string;
+            const { newDate, slotStart, slotEnd } = req.body;
+            const result = await this.rescheduleAppointmentUseCase.execute({
+                appointmentId: id,
+                callerId,
+                callerRole: "patient",
+                newDate: new Date(newDate),
+                slotStart,
+                slotEnd,
+            });
+            res.json({ message: "Appointment rescheduled successfully", data: result });
         } catch (error: any) {
             next(error);
         }
