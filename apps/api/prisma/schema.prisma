@@ -24,7 +24,7 @@ model User {
 model PatientProfile {
   id                String             @id
   firstName         String
-  lastName          String
+  lastName         String
   phone             String
   dob               DateTime?
   gender            Gender?
@@ -34,6 +34,8 @@ model PatientProfile {
   appointments      Appointment[]
   consultations     Consultation[]
   emergencyContacts EmergencyContact[]
+  payments          Payment[]
+  wallet            Wallet?
   user              User               @relation(fields: [id], references: [id])
 }
 
@@ -98,9 +100,12 @@ model Appointment {
   createdAt       DateTime          @default(now())
   slotEnd         String
   slotStart       String
+  paymentStatus   PaymentStatus?    @default(PENDING)
+  paymentMethod   PaymentMethod?    @default(RAZORPAY)
   doctor          DoctorProfile     @relation(fields: [doctorId], references: [id])
   patient         PatientProfile    @relation(fields: [patientId], references: [id])
   consultation    Consultation?
+  payment         Payment?
 }
 
 
@@ -266,4 +271,69 @@ enum NotificationType {
   COMPLETED
   PRESCRIPTION
   RESCHEDULED
+}
+
+model Payment {
+  id                  String         @id @default(uuid())
+  appointmentId       String         @unique
+  patientId           String
+  amount              Float
+  currency            String         @default("inr")
+  razorpayOrderId     String?        @unique
+  razorpayPaymentId   String?
+  razorpaySignature   String?
+  paymentMethod       PaymentMethod  @default(RAZORPAY)
+  status              PaymentStatus  @default(PENDING)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  appointment         Appointment    @relation(fields: [appointmentId], references: [id])
+  patient             PatientProfile @relation(fields: [patientId], references: [id])
+
+  @@index([patientId])
+  @@index([status])
+}
+
+enum PaymentMethod {
+  RAZORPAY
+  WALLET
+}
+
+model Wallet {
+  id        String              @id @default(uuid())
+  patientId String              @unique
+  balance   Float               @default(0)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  patient   PatientProfile      @relation(fields: [patientId], references: [id])
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id        String      @id @default(uuid())
+  walletId  String
+  amount    Float
+  type      TransactionType
+  status    TransactionStatus @default(COMPLETED)
+  reason    String?
+  createdAt DateTime    @default(now())
+  wallet    Wallet      @relation(fields: [walletId], references: [id])
+}
+
+enum TransactionType {
+  TOP_UP
+  PAYMENT
+  REFUND
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
 }

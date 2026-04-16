@@ -209,6 +209,11 @@ export default function PatientAppointments() {
                                                     <div className="flex items-center gap-3">
                                                         <h3 className="text-lg font-black text-[#0F172A]">Dr. {apt.doctor.firstName} {apt.doctor.lastName}</h3>
                                                         <Badge variant={getStatusVariant(apt.status)}>{apt.status}</Badge>
+                                                        <div className="flex items-center gap-1.5 ml-2 border-l border-[#E2E8F0] pl-3">
+                                                            <div className={`w-1.5 h-1.5 rounded-full ${apt.paymentStatus === 'PAID' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)]'}`} />
+                                                            <span className="text-[10px] font-black uppercase text-[#475569]">{apt.paymentStatus || 'PENDING'}</span>
+                                                            <span className="text-[9px] font-bold text-[#94A3B8] ml-1 bg-[#F1F5F9] px-2 py-0.5 rounded-md uppercase tracking-tighter">{apt.paymentMethod}</span>
+                                                        </div>
                                                     </div>
                                                     <p className="text-[#64748B] font-bold text-sm mt-1">{apt.doctor.specialization?.name} • Specialist</p>
 
@@ -237,14 +242,14 @@ export default function PatientAppointments() {
                                                 {apt.status === "COMPLETED" && apt.consultation?.prescription && (
                                                     <>
                                                         <button 
-                                                            onClick={() => navigate(`/patient/prescriptions/${apt.id}`)}
+                                                            onClick={() => navigate(`/prescriptions/${apt.id}`)}
                                                             className="flex-1 md:flex-none px-6 py-3 bg-teal-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-teal-700 transition-all flex items-center justify-center gap-2"
                                                         >
                                                             <Pill className="w-4 h-4" />
                                                             View Prescription
                                                         </button>
                                                         <button 
-                                                            onClick={() => navigate(`/patient/prescriptions/${apt.id}?download=true`)}
+                                                            onClick={() => navigate(`/prescriptions/${apt.id}?download=true`)}
                                                             className="flex-1 md:flex-none px-6 py-3 bg-blue-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-sm"
                                                         >
                                                             <Download className="w-4 h-4" />
@@ -351,6 +356,14 @@ export default function PatientAppointments() {
                                     <div>
                                         <p className="text-[11px] font-black text-[#94A3B8] uppercase tracking-widest mb-1">Status</p>
                                         <Badge variant={getStatusVariant(selectedApt.status)}>{selectedApt.status}</Badge>
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] font-black text-[#94A3B8] uppercase tracking-widest mb-1">Payment</p>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${selectedApt.paymentStatus === 'PAID' ? 'bg-green-500' : 'bg-amber-500'}`} />
+                                            <span className="text-sm font-black text-[#475569]">{selectedApt.paymentStatus || 'PENDING'}</span>
+                                            <span className="text-[10px] text-[#94A3B8] font-bold">({selectedApt.paymentMethod})</span>
+                                        </div>
                                     </div>
                                     <div>
                                         <p className="text-[11px] font-black text-[#94A3B8] uppercase tracking-widest mb-1">Appointment ID</p>

@@ -20,6 +20,8 @@ export interface Appointment {
         } | null;
     };
     reason?: string;
+    paymentStatus?: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+    paymentMethod?: "RAZORPAY" | "WALLET";
     consultation?: {
         id: string;
         status: string;

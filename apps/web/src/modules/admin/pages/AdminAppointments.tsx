@@ -133,6 +133,7 @@ export default function AdminAppointments() {
                                     <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Patient</th>
                                     <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Doctor</th>
                                     <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Time Slot</th>
+                                    <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Payment</th>
                                     <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Status</th>
                                     <th className="px-8 py-5 text-[11px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
                                 </tr>
@@ -141,7 +142,7 @@ export default function AdminAppointments() {
                                 {loading ? (
                                     Array(5).fill(0).map((_, i) => (
                                         <tr key={i} className="animate-pulse">
-                                            <td colSpan={6} className="px-8 py-6 h-20 bg-gray-50/30"></td>
+                                            <td colSpan={7} className="px-8 py-6 h-20 bg-gray-50/30"></td>
                                         </tr>
                                     ))
                                 ) : filteredAppointments.length > 0 ? (
@@ -180,6 +181,15 @@ export default function AdminAppointments() {
                                                 <div className="inline-flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
                                                     <Clock className="w-3.5 h-3.5 text-gray-400" />
                                                     <span className="text-xs font-bold text-gray-700">{apt.slotStart} - {apt.slotEnd}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${apt.paymentStatus === 'PAID' ? 'bg-green-500' : 'bg-amber-500'}`} />
+                                                        <span className="text-[10px] font-black uppercase text-gray-700">{apt.paymentStatus || 'PENDING'}</span>
+                                                    </div>
+                                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{apt.paymentMethod || '—'}</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">

@@ -21,5 +21,8 @@ export const config = {
         user: process.env.SMTP_USER || "",
         pass: process.env.SMTP_PASS || "",
         from: process.env.SMTP_FROM || ""
-    }
+    },
+    razorpayKeyId: process.env.RAZORPAY_KEY_ID || "",
+    razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || "",
+    razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || ""
 }

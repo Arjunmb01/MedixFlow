@@ -2,12 +2,21 @@ import { IAppointmentRepository } from "@/domain/repositories/IAppointmentReposi
 import { IConsultationRepository } from "@/domain/repositories/IConsultationRepository";
 import { SendNotificationUseCase } from "../notification/SendNotificationUseCase";
 import { NotificationType } from "@/domain/value-objects/types/notification.types";
+import { IPaymentRepository } from "@/domain/repositories/IPaymentRepository";
+import { IRazorpayService } from "@/domain/services/IRazorpayService";
+import { IWalletRepository } from "@/domain/repositories/IWalletRepository";
+import { PaymentStatus } from "@/domain/value-objects/enums/PaymentStatus";
+import { PaymentMethod } from "@/domain/value-objects/enums/PaymentMethod";
+import { TransactionType } from "@/domain/value-objects/enums/TransactionType";
 
 export class CancelAppointmentUseCase {
     constructor(
         private readonly appointmentRepo : IAppointmentRepository,
         private readonly consultationRepo : IConsultationRepository,
-        private readonly sendNotificationUseCase: SendNotificationUseCase
+        private readonly sendNotificationUseCase: SendNotificationUseCase,
+        private readonly paymentRepo: IPaymentRepository,
+        private readonly razorpayService: IRazorpayService,
+        private readonly walletRepo: IWalletRepository
     ) {}
 
     async execute (appointmentId : string, patientId : string, reason : string) {
@@ -26,6 +35,38 @@ export class CancelAppointmentUseCase {
 
         await this.consultationRepo.deleteByAppointmentId(appointmentId);
 
+        // Refund Logic
+        try {
+            const payment = await this.paymentRepo.findByAppointmentId(appointmentId);
+            
+            if (payment && payment.status === PaymentStatus.PAID) {
+                if (payment.paymentMethod === PaymentMethod.RAZORPAY) {
+                    if (payment.razorpayPaymentId) {
+                        await this.razorpayService.refundPayment(payment.razorpayPaymentId, payment.amount);
+                        await this.paymentRepo.updateStatus(payment.id, PaymentStatus.REFUNDED);
+                        await this.appointmentRepo.updatePaymentStatus(appointmentId, PaymentStatus.REFUNDED);
+                    } else {
+                        console.error(`Refund failed: Missing razorpayPaymentId for payment ${payment.id}`);
+                    }
+                } else if (payment.paymentMethod === PaymentMethod.WALLET) {
+                    const wallet = await this.walletRepo.findByPatientId(patientId);
+                    if (wallet) {
+                        await this.walletRepo.updateBalance(
+                            wallet.id, 
+                            payment.amount, 
+                            TransactionType.REFUND, 
+                            `Refund for cancelled appointment ${appointmentId}`
+                        );
+                        await this.paymentRepo.updateStatus(payment.id, PaymentStatus.REFUNDED);
+                        await this.appointmentRepo.updatePaymentStatus(appointmentId, PaymentStatus.REFUNDED);
+                    }
+                }
+            }
+        } catch (error) {
+            // We log the error but allow the cancellation to proceed as per the plan
+            console.error(`Error during refund for appointment ${appointmentId}:`, error);
+        }
+
         // Notify Doctor
         await this.sendNotificationUseCase.execute({
             recipientId: appointment.doctorId,
@@ -43,6 +84,5 @@ export class CancelAppointmentUseCase {
         });
 
         return updatedAppointment;
-
     }
-}
+}

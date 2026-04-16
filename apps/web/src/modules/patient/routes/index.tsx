@@ -7,6 +7,9 @@ import PatientProfile from "../pages/PatientProfile"
 import FindDoctors from "../pages/FindDoctors"
 import DoctorDetailsPage from "../pages/DoctorDetailsPage"
 import BookingPage from "../pages/BookingPage"
+import WalletPage from "../pages/WalletPage"
+import Prescriptions from "../pages/Prescriptions"
+import PrescriptionDetail from "../pages/PrescriptionDetail"
 
 export const PatientRoutes = (
     <>
@@ -20,10 +23,37 @@ export const PatientRoutes = (
         />
 
         <Route
+            path="/wallet"
+            element={
+                <ProtectedRoute role={UserRole.PATIENT}>
+                    <WalletPage />
+                </ProtectedRoute>
+            }
+        />
+
+        <Route
             path="/appointments"
             element={
                 <ProtectedRoute role={UserRole.PATIENT}>
                     <PatientAppointments />
+                </ProtectedRoute>
+            }
+        />
+
+        <Route
+            path="/prescriptions"
+            element={
+                <ProtectedRoute role={UserRole.PATIENT}>
+                    <Prescriptions />
+                </ProtectedRoute>
+            }
+        />
+
+        <Route
+            path="/prescriptions/:appointmentId"
+            element={
+                <ProtectedRoute role={UserRole.PATIENT}>
+                    <PrescriptionDetail />
                 </ProtectedRoute>
             }
         />

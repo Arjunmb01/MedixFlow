@@ -45,6 +45,7 @@ export class AppointmentController {
                 appointmentDate : data.date,
                 slotStart: data.slotStart,
                 slotEnd: data.slotEnd,
+                paymentMethod: data.paymentMethod
             })
 
             res.status(StatusCode.CREATED).json(appointment)
