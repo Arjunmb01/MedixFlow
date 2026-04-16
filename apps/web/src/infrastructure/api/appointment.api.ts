@@ -7,13 +7,13 @@ export interface BookAppointmentPayload {
     date: string; 
     slotStart: string;
     slotEnd: string;
+    paymentMethod?: "RAZORPAY" | "WALLET";
 }
 
 export const getAvailableSlots = async (
     doctorId: string,
     date: Date
 ): Promise<SlotInfo[]> => {
-    // Determine local date without timezone offset shifts
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const { data } = await api.get("/appointments/slots", {
         params: { doctorId, date: dateStr },
@@ -38,5 +38,15 @@ export const getAvailableSlots = async (
 
 export const bookAppointment = async (payload: BookAppointmentPayload) => {
     const { data } = await api.post("/appointments", payload);
+    return data;
+};
+
+export const getWalletBalance = async () => {
+    const { data } = await api.get("/payments/wallet");
+    return data;
+};
+
+export const topUpWallet = async (amount: number) => {
+    const { data } = await api.post("/payments/wallet/top-up", { amount });
     return data;
 };

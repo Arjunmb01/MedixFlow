@@ -1,9 +1,12 @@
+import { PaymentMethod } from "../enums/PaymentMethod";
+
 export interface CreateAppointmentInput {
   patientId: string;
   doctorId: string;
   appointmentDate: Date;
   slotStart: string;
   slotEnd: string;
+  paymentMethod?: PaymentMethod;
 }
 
 export interface DoctorScheduleInput {

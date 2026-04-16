@@ -77,6 +77,8 @@ export class AppointmentMapper {
             slotStart: prismaApp.slotStart,
             slotEnd: prismaApp.slotEnd,
             status: prismaApp.status,
+            paymentStatus: prismaApp.paymentStatus || undefined,
+            paymentMethod: prismaApp.paymentMethod || undefined,
             reason: prismaApp.reason,
             notes: prismaApp.notes,
             createdAt: prismaApp.createdAt,

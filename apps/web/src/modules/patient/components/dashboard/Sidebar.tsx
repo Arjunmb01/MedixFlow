@@ -21,7 +21,7 @@ const menuItems = [
     { label: "Find Doctors", icon: UserSearch, path: "/find-doctors" },
     { label: "My Appointments", icon: CalendarDays, path: "/appointments" },
     { label: "Wallet", icon: Wallet, path: "/wallet" },
-    { label: "Medical Records", icon: FileText, path: "/records" },
+    { label: "Medical Records", icon: FileText, path: "/prescriptions" },
     { label: "Billing", icon: CreditCard, path: "/billing" },
     { label: "Message", icon: MessageSquare, path: "/messages" },
     { label: "Profile & Settings", icon: Settings, path: "/profile" },

@@ -14,7 +14,7 @@ import {
 import { Calendar } from "../components/booking/Calendar";
 import { SlotPicker } from "../components/booking/SlotPicker";
 import type { SlotInfo } from "../components/booking/SlotPicker";
-import { getAvailableSlots, bookAppointment } from "@/infrastructure/api/appointment.api";
+import { getAvailableSlots, bookAppointment, getWalletBalance } from "@/infrastructure/api/appointment.api";
 
 export default function BookingPage() {
     const { id = "" } = useParams();
@@ -34,6 +34,26 @@ export default function BookingPage() {
     // Booking state
     const [isBooking, setIsBooking] = useState(false);
     const [bookingSuccess, setBookingSuccess] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<"RAZORPAY" | "WALLET">("RAZORPAY");
+    const [walletBalance, setWalletBalance] = useState<number | null>(null);
+
+    // Load Razorpay Script
+    useEffect(() => {
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+        script.async = true;
+        document.body.appendChild(script);
+        return () => {
+            document.body.removeChild(script);
+        };
+    }, []);
+
+    // Fetch wallet balance
+    useEffect(() => {
+        getWalletBalance()
+            .then(data => setWalletBalance(data.wallet?.balance || 0))
+            .catch(() => setWalletBalance(0));
+    }, []);
 
     // Availability Logic
     const availableDays = useMemo(() => {
@@ -326,56 +346,146 @@ export default function BookingPage() {
                         </div>
 
                         {/* Summary Footer */}
-                        <div className="p-10 bg-white border-t border-[#F1F5F9] flex flex-col md:flex-row justify-between items-center gap-8">
-                            <div className="space-y-2 text-center md:text-left">
-                                <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.2em]">Selected Date &amp; Time</p>
-                                <div className="flex items-center gap-2 justify-center md:justify-start">
-                                    <span className="text-xl font-black text-[#0F172A] tracking-tight">
-                                        {selectedDate ? selectedDate.toLocaleDateString("default", { month: "short", day: "numeric" }) : "Select Date"}
-                                    </span>
-                                    <span className="text-[#CBD5E1] font-bold text-xl">•</span>
-                                    <span className="text-xl font-black text-[#3B82F6] tracking-tight">
-                                        {selectedSlot
-                                            ? `${selectedSlot.start} – ${selectedSlot.end}`
-                                            : "Select Slot"}
-                                    </span>
+                        <div className="p-10 bg-white border-t border-[#F1F5F9] space-y-8">
+                            {/* Payment Method Selector */}
+                            <section>
+                                <h3 className="text-[10px] font-black text-[#0F172A] uppercase tracking-[0.2em] mb-4">Select Payment Method</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <button
+                                        onClick={() => setPaymentMethod("RAZORPAY")}
+                                        className={`p-6 rounded-2xl border-2 flex items-center justify-between transition-all ${
+                                            paymentMethod === "RAZORPAY"
+                                            ? "border-[#3B82F6] bg-blue-50/50"
+                                            : "border-[#F1F5F9] hover:border-[#E2E8F0]"
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                <svg className="w-5 h-5 text-[#3B82F6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                                </svg>
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-sm font-black text-[#0F172A]">Razorpay / Cards / UPI</p>
+                                                <p className="text-[11px] text-[#64748B] font-bold">Secure Online Payment</p>
+                                            </div>
+                                        </div>
+                                        {paymentMethod === "RAZORPAY" && <div className="w-5 h-5 bg-[#3B82F6] rounded-full flex items-center justify-center">
+                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                        </div>}
+                                    </button>
+
+                                    <button
+                                        onClick={() => setPaymentMethod("WALLET")}
+                                        className={`p-6 rounded-2xl border-2 flex items-center justify-between transition-all ${
+                                            paymentMethod === "WALLET"
+                                            ? "border-[#3B82F6] bg-blue-50/50"
+                                            : "border-[#F1F5F9] hover:border-[#E2E8F0]"
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                                                <svg className="w-5 h-5 text-[#10B981]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-sm font-black text-[#0F172A]">Patient Wallet</p>
+                                                <p className="text-[11px] text-[#64748B] font-bold">Balance: ₹{walletBalance !== null ? walletBalance : '...'}</p>
+                                            </div>
+                                        </div>
+                                        {paymentMethod === "WALLET" && <div className="w-5 h-5 bg-[#3B82F6] rounded-full flex items-center justify-center">
+                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                        </div>}
+                                    </button>
                                 </div>
+                            </section>
+
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+                                <div className="space-y-2 text-center md:text-left">
+                                    <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.2em]">Selected Date &amp; Time</p>
+                                    <div className="flex items-center gap-2 justify-center md:justify-start">
+                                        <span className="text-xl font-black text-[#0F172A] tracking-tight">
+                                            {selectedDate ? selectedDate.toLocaleDateString("default", { month: "short", day: "numeric" }) : "Select Date"}
+                                        </span>
+                                        <span className="text-[#CBD5E1] font-bold text-xl">•</span>
+                                        <span className="text-xl font-black text-[#3B82F6] tracking-tight">
+                                            {selectedSlot
+                                                ? `${selectedSlot.start} – ${selectedSlot.end}`
+                                                : "Select Slot"}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="text-center md:text-right">
+                                    <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.2em]">Estimated Fee</p>
+                                    <p className="text-[34px] font-black text-[#0F172A] tracking-tighter mt-1">₹{doctor.consultationFee}.00</p>
+                                </div>
+                                <button
+                                    disabled={!selectedDate || !selectedSlot || isBooking || (paymentMethod === 'WALLET' && walletBalance !== null && walletBalance < doctor.consultationFee)}
+                                    onClick={async () => {
+                                        if (!selectedDate || !selectedSlot || !profile?.id || !id) return;
+                                        setIsBooking(true);
+                                        try {
+                                            const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+                                            const response = await bookAppointment({
+                                                patientId: profile.id,
+                                                doctorId: id,
+                                                date: dateStr,
+                                                slotStart: selectedSlot.start,
+                                                slotEnd: selectedSlot.end,
+                                                paymentMethod
+                                            });
+
+                                            if (response.razorpayOrderId) {
+                                                // Razorpay flow - open modal
+                                                const options = {
+                                                    key: response.razorpayKeyId,
+                                                    amount: response.amount * 100, // already in paise from backend ideally, but backup
+                                                    currency: response.currency || "INR",
+                                                    name: "MedixFlow",
+                                                    description: `Appointment with Dr. ${doctor.firstName}`,
+                                                    order_id: response.razorpayOrderId,
+                                                    handler: function (res: any) {
+                                                        // Payment succeeded
+                                                        setBookingSuccess(true);
+                                                    },
+                                                    prefill: {
+                                                        name: profile.name,
+                                                        email: profile.email || "",
+                                                    },
+                                                    theme: {
+                                                        color: "#3B82F6",
+                                                    },
+                                                    modal: {
+                                                        ondismiss: function() {
+                                                            setIsBooking(false);
+                                                        }
+                                                    }
+                                                };
+                                                const rzp = new (window as any).Razorpay(options);
+                                                rzp.open();
+                                            } else {
+                                                // Wallet flow - confirmed immediately
+                                                setBookingSuccess(true);
+                                            }
+                                        } catch (error: any) {
+                                            console.error("Booking failed:", error);
+                                            const errorMsg = error.response?.data?.message || "Failed to book appointment. Please try again.";
+                                            alert(errorMsg);
+                                        } finally {
+                                            setIsBooking(false);
+                                        }
+                                    }}
+                                    className={`w-full md:w-auto px-16 py-5 rounded-2xl text-[13px] font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 flex justify-center items-center ${
+                                        selectedDate && selectedSlot && !isBooking && (paymentMethod !== 'WALLET' || (walletBalance !== null && walletBalance >= doctor.consultationFee))
+                                        ? "bg-[#3B82F6] text-white shadow-blue-100 hover:bg-[#2563EB]"
+                                        : "bg-[#F1F5F9] text-[#CBD5E1] cursor-not-allowed shadow-none"
+                                    }`}
+                                >
+                                    {isBooking ? <Loader2 className="w-5 h-5 animate-spin" /> : 
+                                     (paymentMethod === 'WALLET' && walletBalance !== null && walletBalance < doctor.consultationFee) ? "Insufficient Balance" : "Confirm Appointment"}
+                                </button>
                             </div>
-                            <div className="text-center md:text-right">
-                                <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.2em]">Estimated Fee</p>
-                                <p className="text-[34px] font-black text-[#0F172A] tracking-tighter mt-1">₹{doctor.consultationFee}.00</p>
-                            </div>
-                            <button
-                                disabled={!selectedDate || !selectedSlot || isBooking}
-                                onClick={async () => {
-                                    if (!selectedDate || !selectedSlot || !profile?.id || !id) return;
-                                    setIsBooking(true);
-                                    try {
-                                        const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-                                        await bookAppointment({
-                                            patientId: profile.id,
-                                            doctorId: id,
-                                            date: dateStr,
-                                            slotStart: selectedSlot.start,
-                                            slotEnd: selectedSlot.end
-                                        });
-                                        setBookingSuccess(true);
-                                    } catch (error: any) {
-                                        console.error("Booking failed:", error);
-                                        const errorMsg = error.response?.data?.message || "Failed to book appointment. Please try again.";
-                                        alert(errorMsg);
-                                    } finally {
-                                        setIsBooking(false);
-                                    }
-                                }}
-                                className={`w-full md:w-auto px-16 py-5 rounded-2xl text-[13px] font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 flex justify-center items-center ${
-                                    selectedDate && selectedSlot && !isBooking
-                                    ? "bg-[#3B82F6] text-white shadow-blue-100 hover:bg-[#2563EB]"
-                                    : "bg-[#F1F5F9] text-[#CBD5E1] cursor-not-allowed shadow-none"
-                                }`}
-                            >
-                                {isBooking ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirm Appointment"}
-                            </button>
                         </div>
                         </>
                         )}

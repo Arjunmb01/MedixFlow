@@ -10,6 +10,8 @@ export interface AppointmentRecord {
   slotStart: string;
   slotEnd: string;
   status: AppointmentStatus | string;
+  paymentStatus?: "PENDING" | "PAID" | "FAILED" | "REFUNDED" | string;
+  paymentMethod?: "RAZORPAY" | "WALLET" | string;
   reason?: string | null;
   notes?: string | null;
   createdAt: Date;
@@ -145,6 +147,7 @@ export interface IAppointmentRepository {
   getAppointmentsByDoctorId(doctorId: string, filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentWithPatient[]; total: number }>;
   getAllAppointments(filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentPreview[]; total: number }>;
   updateStatus(id: string, status: AppointmentStatus | string): Promise<AppointmentRecord>;
+  updatePaymentStatus(id: string, status: string): Promise<void>;
   getUpcomingByDoctorId(doctorId : string): Promise<AppointmentWithPatient[]>;
   markPastAppointmentsAsNotAttended(): Promise<void>;
 }

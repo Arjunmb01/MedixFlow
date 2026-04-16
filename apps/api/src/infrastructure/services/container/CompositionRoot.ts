@@ -9,6 +9,8 @@ import { PatientMapper } from "../../database/mappers/PatientMapper";
 import { SlotMapper } from "../../database/mappers/SlotMapper";
 import { AppointmentMapper } from "../../database/mappers/AppointmentMapper";
 import { NotificationMapper } from "../../database/mappers/NotificationMapper";
+import { PaymentMapper } from "../../database/mappers/PaymentMapper";
+import { WalletMapper } from "../../database/mappers/WalletMapper";
 
 // Repositories
 import { PatientRepository } from "../../repositories/PatientRepository";
@@ -20,6 +22,8 @@ import { SlotRepository } from "../../repositories/SlotRepository";
 import { AppointmentRepository } from "../../repositories/AppointmentRepository";
 import { DoctorLeaveRepository } from "../../repositories/DoctorLeaveRepository";
 import { NotificationRepository } from "../../repositories/NotificationRepository";
+import { PaymentRepository } from "../../repositories/PaymentRepository";
+import { WalletRepository } from "../../repositories/WalletRepository";
 
 // Infrastructure Services
 import { BcryptPasswordHasher } from "../BcryptPasswordHasher";
@@ -32,6 +36,7 @@ import { PatientIdGenerator } from "../PatientIdGenerator";
 import { SystemDateTimeService } from "../SystemDateTimeService";
 import { NotificationCacheService } from "../NotificationCacheService";
 import { socketService } from "../SocketService";
+import { RazorpayService } from "../RazorpayService";
 import redisClient from "../redisClient";
 
 // Use Cases - Auth
@@ -55,6 +60,7 @@ import { BookAppointmentUseCase } from "@/application/use-cases/appointment/book
 import { CancelAppointmentUseCase } from "@/application/use-cases/appointment/cancelAppointment.usecase";
 import { GetAllAppointmentsUseCase } from "@/application/use-cases/appointment/getAllAppointments.usecase";
 import { RescheduleAppointmentUseCase } from "@/application/use-cases/appointment/rescheduleAppointment.usecase";
+import { HandleRazorpayWebhookUseCase } from "@/application/use-cases/payment/HandleRazorpayWebhookUseCase";
 
 // Use Cases - Notification
 import { GetNotificationsUseCase } from "@/application/use-cases/notification/GetNotificationsUseCase";
@@ -95,6 +101,8 @@ import { GetUpcomingAppointmentsUseCase } from "@/application/use-cases/patient/
 import { UpdateEmergencyContactUseCase } from "@/application/use-cases/patient/updateEmergencyContact.usecase";
 import { UpdatePasswordUseCase } from "@/application/use-cases/patient/updatePassword.usecase";
 import { UpdatePatientProfileUseCase } from "@/application/use-cases/patient/updatePatientProfile.usecase";
+import { GetWalletBalanceUseCase } from "@/application/use-cases/patient/GetWalletBalanceUseCase";
+import { TopUpWalletUseCase } from "@/application/use-cases/patient/TopUpWalletUseCase";
 
 // Use Cases - Slot
 import { BookSlotUseCase } from "@/application/use-cases/slot/bookSlot.usecase";
@@ -134,6 +142,7 @@ import { PublicDoctorController } from "@/presentation/controllers/PublicDoctorC
 import { SlotController } from "@/presentation/controllers/SlotController";
 import { StaffController } from "@/presentation/controllers/StaffController";
 import { LeaveController } from "@/presentation/controllers/LeaveController";
+import { PaymentController } from "@/presentation/controllers/PaymentController";
 import { createAuthMiddleware } from "@/presentation/controllers/middleware/auth.middleware";
 
 export class CompositionRoot {
@@ -157,6 +166,8 @@ export class CompositionRoot {
         const slotMapper = new SlotMapper();
         const appointmentMapper = new AppointmentMapper();
         const notificationMapper = new NotificationMapper();
+        const paymentMapper = new PaymentMapper();
+        const walletMapper = new WalletMapper();
 
         // 3. Infrastructure Services
         const passwordHasher = new BcryptPasswordHasher();
@@ -169,6 +180,7 @@ export class CompositionRoot {
         const googleAuthService = new GoogleAuthService();
         const patientIdGenerator = new PatientIdGenerator(prisma);
         const notificationCacheService = new NotificationCacheService(redisClient);
+        const razorpayService = new RazorpayService();
 
         // 4. Repositories
         const patientRepository = new PatientRepository(prisma, patientMapper, dateTimeService);
@@ -180,6 +192,8 @@ export class CompositionRoot {
         const appointmentRepository = new AppointmentRepository(prisma, appointmentMapper, dateTimeService);
         const leaveRepository = new DoctorLeaveRepository(prisma);
         const notificationRepository = new NotificationRepository(prisma, notificationMapper);
+        const paymentRepository = new PaymentRepository(prisma);
+        const walletRepository = new WalletRepository(prisma);
 
         // 5. App Logic
         const calculateProfileCompletionUseCase = new CalculateProfileCompletionUseCase();
@@ -209,10 +223,27 @@ export class CompositionRoot {
         const markNotificationAsReadUseCase = new MarkNotificationAsReadUseCase(notificationRepository, notificationCacheService, socketService);
         const getUnreadCountUseCase = new GetUnreadCountUseCase(notificationRepository, notificationCacheService);
         const deleteNotificationsUseCase = new DeleteNotificationsUseCase(notificationRepository, notificationCacheService, socketService);
+        const handleRazorpayWebhookUseCase = new HandleRazorpayWebhookUseCase(razorpayService, paymentRepository, walletRepository, appointmentRepository, sendNotificationUseCase);
 
         // Appointment
-        const bookAppointmentUseCase = new BookAppointmentUseCase(appointmentRepository, schedulingPolicy, dateTimeService, sendNotificationUseCase);
-        const cancelAppointmentUseCase = new CancelAppointmentUseCase(appointmentRepository, consultationRepository, sendNotificationUseCase);
+        const bookAppointmentUseCase = new BookAppointmentUseCase(
+            appointmentRepository, 
+            schedulingPolicy, 
+            dateTimeService, 
+            sendNotificationUseCase,
+            paymentRepository,
+            walletRepository,
+            razorpayService,
+            doctorRepository
+        );
+        const cancelAppointmentUseCase = new CancelAppointmentUseCase(
+            appointmentRepository, 
+            consultationRepository, 
+            sendNotificationUseCase,
+            paymentRepository,
+            razorpayService,
+            walletRepository
+        );
         const getAllAppointmentsUseCase = new GetAllAppointmentsUseCase(appointmentRepository);
         const rescheduleAppointmentUseCase = new RescheduleAppointmentUseCase(appointmentRepository, schedulingPolicy, dateTimeService, sendNotificationUseCase);
 
@@ -249,6 +280,8 @@ export class CompositionRoot {
         const updateEmergencyContactUseCase = new UpdateEmergencyContactUseCase(patientRepository);
         const updatePasswordUseCase = new UpdatePasswordUseCase(patientRepository, passwordHasher);
         const updatePatientProfileUseCase = new UpdatePatientProfileUseCase(patientRepository, calculateProfileCompletionUseCase);
+        const getWalletBalanceUseCase = new GetWalletBalanceUseCase(walletRepository);
+        const topUpWalletUseCase = new TopUpWalletUseCase(razorpayService);
 
         // Slot
         const bookSlotUseCase = new BookSlotUseCase(slotRepository, consultationRepository);
@@ -342,6 +375,12 @@ export class CompositionRoot {
             reviewLeaveUseCase
         );
 
+        const paymentController = new PaymentController(
+            handleRazorpayWebhookUseCase,
+            getWalletBalanceUseCase,
+            topUpWalletUseCase
+        );
+
         return {
             adminAuthController,
             appointmentController,
@@ -360,6 +399,7 @@ export class CompositionRoot {
             slotController,
             staffController,
             leaveController,
+            paymentController,
             authMiddleware
         };
     }

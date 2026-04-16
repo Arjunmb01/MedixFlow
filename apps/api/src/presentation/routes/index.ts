@@ -25,6 +25,8 @@ router.use("/appointments",appointmentRoutes)
 router.use("/doctor/leaves", doctorLeaveRouter)
 router.use("/admin/leaves", adminLeaveRouter)
 import notificationRoutes from "./notification.routes"
+import paymentRoutes from "./payment.routes"
 router.use("/notifications", notificationRoutes)
+router.use("/payments", paymentRoutes)
 
 export default router

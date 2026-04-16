@@ -376,6 +376,15 @@ export class AppointmentRepository implements IAppointmentRepository {
     return this.mapper.toRecord(result);
   }
 
+  async updatePaymentStatus(id: string, status: string): Promise<void> {
+    await this.prisma.appointment.update({
+      where: { id },
+      data: {
+        paymentStatus: status as any,
+      },
+    });
+  }
+
   async markPastAppointmentsAsNotAttended(): Promise<void> {
     const now = this.dateTimeService.now();
     const todayStart = new Date(now);
