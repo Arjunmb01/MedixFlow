@@ -36,7 +36,8 @@ export default function DoctorAppointments() {
     const [rescheduleApt, setRescheduleApt] = useState<any | null>(null);
 
     const apiFilters = useMemo(() => ({
-        status: statusFilter === "ALL" ? undefined : statusFilter,
+        status: (statusFilter === "ALL" || statusFilter === "UPCOMING") ? undefined : statusFilter,
+        isUpcoming: statusFilter === "UPCOMING" ? true : undefined,
         fromDate: fromDate || undefined,
         toDate: toDate || undefined,
         page: currentPage,
@@ -49,10 +50,10 @@ export default function DoctorAppointments() {
         return appointments.filter(apt => {
             const patientName = `${apt.patient.firstName} ${apt.patient.lastName}`.toLowerCase();
             const matchesSearch = patientName.includes(searchTerm.toLowerCase());
-            const matchesStatus = statusFilter === "ALL" || apt.status === statusFilter;
-            return matchesSearch && matchesStatus;
+            // Frontend filter remains for search, but status is now mostly server-side
+            return matchesSearch;
         });
-    }, [appointments, searchTerm, statusFilter]);
+    }, [appointments, searchTerm]);
 
     const getStatusVariant = (status: string): "success" | "warning" | "error" | "info" | "gray" => {
         switch (status.toUpperCase()) {
@@ -99,22 +100,6 @@ export default function DoctorAppointments() {
                                     className="pl-12 pr-6 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-50 transition-all w-full md:w-[240px]"
                                 />
                             </div>
-                            
-                            <div className="relative group">
-                                <Filter className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-teal-600 transition-colors" />
-                                <select 
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="pl-12 pr-10 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 focus:outline-none focus:border-teal-600 transition-all appearance-none cursor-pointer w-full md:w-[180px]"
-                                >
-                                    <option value="ALL">All Status</option>
-                                    <option value="PENDING">Pending</option>
-                                    <option value="CONFIRMED">Confirmed</option>
-                                    <option value="COMPLETED">Completed</option>
-                                    <option value="CANCELLED">Cancelled</option>
-                                    <option value="NOT_ATTENDED">Not Attended</option>
-                                </select>
-                            </div>
 
                             <div className="flex items-center gap-2">
                                 <div className="relative">
@@ -151,6 +136,29 @@ export default function DoctorAppointments() {
                             </div>
                         </div>
                     </header>
+
+                    {/* Filter Tabs */}
+                    <div className="flex bg-gray-100/50 p-1.5 rounded-[2rem] border border-gray-200/50 mb-10 w-fit overflow-x-auto no-scrollbar">
+                        {[
+                            { id: 'UPCOMING', label: 'Upcoming' },
+                            { id: 'COMPLETED', label: 'Completed' },
+                            { id: 'CANCELLED', label: 'Cancelled' },
+                            { id: 'NOT_ATTENDED', label: 'Not Attended' },
+                            { id: 'ALL', label: 'All Appointments' }
+                        ].map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => { setStatusFilter(tab.id); setCurrentPage(1); }}
+                                className={`px-8 py-3.5 rounded-full text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                                    statusFilter === tab.id 
+                                    ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50' 
+                                    : 'text-gray-400 hover:text-gray-600'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
 
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm">

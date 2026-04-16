@@ -67,6 +67,21 @@ export class RescheduleAppointmentUseCase {
             throw new Error(`Slot is full (capacity: ${capacity} patients)`);
         }
 
+        const existingPatientBooking = await this.appointmentRepo.findActiveBookingByPatient(
+            appointment.patientId,
+            newDate,
+            appointment.doctorId,
+            slotStart
+        );
+
+        if (existingPatientBooking && existingPatientBooking.id !== appointmentId) {
+            if (existingPatientBooking.slotStart === slotStart) {
+                throw new Error("You already have an active appointment at this time.");
+            } else {
+                throw new Error("You already have an active appointment with this doctor today.");
+            }
+        }
+
         return this.appointmentRepo.rescheduleAppointment(appointmentId, newDate, slotStart, slotEnd);
     }
 }

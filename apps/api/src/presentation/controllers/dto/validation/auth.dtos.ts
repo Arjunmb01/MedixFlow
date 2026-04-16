@@ -26,6 +26,9 @@ export const signupSchema = z.object({
   acceptedTerms: z.literal(true, {
     message: MESSAGES.TERMS_ACCEPTED_REQUIRED
   }),
+}).refine(data => (data.firstName.length + data.lastName.length) <= 20, {
+  message: "Total length of first and last name cannot exceed 20 characters",
+  path: ["firstName"]
 });
 
 export const verifyOtpSchema = z.object({

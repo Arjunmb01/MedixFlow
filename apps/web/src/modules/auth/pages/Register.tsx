@@ -15,6 +15,9 @@ const signupSchema = z.object({
   acceptedTerms: z.literal(true).refine((val) => val === true, {
     message: "You must accept the terms"
   }),
+}).refine(data => (data.firstName.length + data.lastName.length) <= 20, {
+  message: "Total length of first and last name cannot exceed 20 characters",
+  path: ["firstName"]
 })
 
 export default function Register() {

@@ -54,7 +54,8 @@ export class GetDoctorDashboardStatsUseCase {
         todayAppointmentsCount: raw.todayAppointments.length,
         pendingToday: raw.todayAppointments.filter((a: any) => ["PENDING", "CONFIRMED"].includes(a.status)).length,
         completedToday: raw.todayAppointments.filter((a: any) => a.status === "COMPLETED").length,
-        totalEarnings: raw.totalEarnings
+        totalEarnings: raw.totalEarnings,
+        dashboardDate: raw.dashboardDate
     };
   }
 }

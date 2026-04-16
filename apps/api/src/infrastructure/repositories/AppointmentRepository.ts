@@ -97,21 +97,26 @@ export class AppointmentRepository implements IAppointmentRepository {
     });
   }
 
-  async findActiveBookingByPatient(patientId: string, doctorId: string, date: Date, slotStart: string): Promise<AppointmentRecord | null> {
+  async findActiveBookingByPatient(patientId: string, date: Date, doctorId?: string, slotStart?: string): Promise<AppointmentRecord | null> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
+    const orConditions: any[] = [];
+    if (doctorId) orConditions.push({ doctorId });
+    if (slotStart) orConditions.push({ slotStart });
+
+    if (orConditions.length === 0) return null;
+
     const result = await this.prisma.appointment.findFirst({
       where: {
         patientId,
-        doctorId,
         appointmentDate: {
           gte: startOfDay,
           lte: endOfDay,
         },
-        slotStart,
+        OR: orConditions,
         status: {
           not: "CANCELLED",
         },
@@ -230,6 +235,7 @@ export class AppointmentRepository implements IAppointmentRepository {
         "CONFIRMED",
         "COMPLETED",
         "CANCELLED",
+        "NOT_ATTENDED",
       ];
 
       const prismaStatus = AppointmentStatusMapper.toPrisma(filter.status);
@@ -297,23 +303,67 @@ export class AppointmentRepository implements IAppointmentRepository {
     };
   }
 
-  async getAllAppointments(): Promise<AppointmentPreview[]> {
-    const results = await this.prisma.appointment.findMany({
-      include: {
-        patient: {
-          include: { user: true },
-        },
-        doctor: {
-          include: {
-            specialization: true,
+  async getAllAppointments(filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentPreview[]; total: number }> {
+    const where: any = {};
+
+    if (filter?.status) {
+      const validStatuses: AppointmentStatus[] = [
+        "PENDING",
+        "CONFIRMED",
+        "COMPLETED",
+        "CANCELLED",
+        "NOT_ATTENDED",
+      ];
+
+      const prismaStatus = AppointmentStatusMapper.toPrisma(filter.status);
+      if (validStatuses.includes(prismaStatus)) {
+        where.status = prismaStatus;
+      }
+    }
+
+    if (filter?.fromDate || filter?.toDate) {
+      where.appointmentDate = {};
+      if (filter.fromDate) where.appointmentDate.gte = filter.fromDate;
+      if (filter.toDate) where.appointmentDate.lte = filter.toDate;
+    }
+
+    if (filter?.isUpcoming !== undefined) {
+      const now = this.dateTimeService.now();
+      where.appointmentDate = {
+        ...(where.appointmentDate || {}),
+        ...(filter.isUpcoming ? { gte: now } : { lt: now }),
+      };
+    }
+
+    const { page = 1, limit = 10 } = filter || {};
+    const skip = (page - 1) * limit;
+
+    const [appointments, total] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where,
+        include: {
+          patient: {
+            include: { user: true },
+          },
+          doctor: {
+            include: {
+              specialization: true,
+            },
           },
         },
-      },
-      orderBy: {
-        appointmentDate: "desc",
-      },
-    });
-    return results.map((r) => this.mapper.toPreview(r as any));
+        orderBy: {
+          appointmentDate: "desc",
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.appointment.count({ where }),
+    ]);
+
+    return {
+      appointments: appointments.map((r) => this.mapper.toPreview(r as any)),
+      total,
+    };
   }
 
   async updateStatus(id: string, status: AppointmentStatus | string): Promise<AppointmentRecord> {
@@ -331,7 +381,6 @@ export class AppointmentRepository implements IAppointmentRepository {
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
 
-    // 1. Mark appointments from previous days
     await this.prisma.appointment.updateMany({
       where: {
         appointmentDate: {
@@ -342,11 +391,10 @@ export class AppointmentRepository implements IAppointmentRepository {
         },
       },
       data: {
-        status: "NOT_ATTENDED",
+        status: AppointmentStatus.NOT_ATTENDED,
       },
     });
 
-    // 2. Mark today's appointments that have already ended
     const todaysUpcoming = await this.prisma.appointment.findMany({
       where: {
         appointmentDate: {
@@ -365,7 +413,7 @@ export class AppointmentRepository implements IAppointmentRepository {
         await this.prisma.appointment.update({
           where: { id: appt.id },
           data: {
-            status: "NOT_ATTENDED",
+            status: AppointmentStatus.NOT_ATTENDED,
           },
         });
       }

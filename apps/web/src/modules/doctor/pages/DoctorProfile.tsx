@@ -196,7 +196,7 @@ export default function DoctorProfile() {
                                             <input 
                                                 value={personalInfo.firstName}
                                                 onChange={e => setPersonalInfo({...personalInfo, firstName: e.target.value})}
-                                                maxLength={30}
+                                                maxLength={20}
                                                 className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-bold focus:ring-2 focus:ring-teal-500/10 transition-all"
                                             />
                                         </div>
@@ -205,7 +205,7 @@ export default function DoctorProfile() {
                                             <input 
                                                 value={personalInfo.lastName}
                                                 onChange={e => setPersonalInfo({...personalInfo, lastName: e.target.value})}
-                                                maxLength={30}
+                                                maxLength={20}
                                                 className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3.5 text-sm font-bold focus:ring-2 focus:ring-teal-500/10 transition-all"
                                             />
                                         </div>

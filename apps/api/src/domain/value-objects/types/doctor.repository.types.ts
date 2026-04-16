@@ -46,6 +46,7 @@ export interface DoctorDashboardStats {
     pendingToday: number;
     completedToday: number;
     totalEarnings: number;
+    dashboardDate: Date;
 }
 
 export interface DoctorSchedule {

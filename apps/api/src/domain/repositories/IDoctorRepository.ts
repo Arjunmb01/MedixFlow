@@ -29,6 +29,7 @@ export interface IDoctorStatsRepository {
         uniquePatientsCount: number;
         todayAppointments: any[];
         totalEarnings: number;
+        dashboardDate: Date;
     }>;
 }
 

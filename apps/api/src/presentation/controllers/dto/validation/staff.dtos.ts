@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { UserStatus } from "@/domain/value-objects/enums/UserStatus";
 
-export const createDoctorSchema = z.object({
+const baseDoctorSchema = z.object({
   firstName: z.string().min(2),
   lastName: z.string().min(2),
   email: z.string().email(),
@@ -20,7 +20,12 @@ export const createDoctorSchema = z.object({
   })).min(1)
 });
 
-export const updateDoctorSchema = createDoctorSchema.partial();
+export const createDoctorSchema = baseDoctorSchema.refine(data => (data.firstName.length + data.lastName.length) <= 20, {
+  message: "Total length of first and last name cannot exceed 20 characters",
+  path: ["firstName"]
+});
+
+export const updateDoctorSchema = baseDoctorSchema.partial();
 
 export const getDoctorsQuerySchema = z.object({
   search: z.string().optional(),
