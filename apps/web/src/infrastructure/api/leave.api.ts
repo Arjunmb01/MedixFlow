@@ -1,13 +1,13 @@
 import api from "@/core/api/axios";
 
 export const LEAVE_TYPES = [
-  { value: "VACATION", label: "Vacation", },
-  { value: "SICK", label: "Sick Leave", },
-  { value: "MATERNITY", label: "Maternity / Paternity",  },
-  { value: "EMERGENCY", label: "Emergency",  },
-  { value: "CONFERENCE", label: "Conference / Training", },
-  { value: "PERSONAL", label: "Personal",  },
-  { value: "OTHER", label: "Other", },
+  { value: "VACATION", label: "Vacation", emoji: "🌴" },
+  { value: "SICK", label: "Sick Leave", emoji: "🤒" },
+  { value: "MATERNITY", label: "Maternity / Paternity", emoji: "🍼" },
+  { value: "EMERGENCY", label: "Emergency", emoji: "🚨" },
+  { value: "CONFERENCE", label: "Conference / Training", emoji: "📚" },
+  { value: "PERSONAL", label: "Personal", emoji: "🏠" },
+  { value: "OTHER", label: "Other", emoji: "📝" },
 ] as const;
 
 export type LeaveType = (typeof LEAVE_TYPES)[number]["value"];

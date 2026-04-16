@@ -58,7 +58,16 @@ export class LoginPatientUseCase {
     const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as UserRole, user.email);
 
     await this.sessionService.saveSession(user.id, refreshToken);
-    return { accessToken, refreshToken, patientId };
+    return { 
+      accessToken, 
+      refreshToken, 
+      patientId,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      }
+    };
   }
 
 }

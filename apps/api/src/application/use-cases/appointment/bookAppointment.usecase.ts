@@ -2,12 +2,15 @@ import {IAppointmentRepository,AppointmentRecord} from "../../../domain/reposito
 import { CreateAppointmentInput } from "../../../domain/value-objects/types/appointment.types";
 import { SchedulingPolicy } from "../../../domain/services/SchedulingPolicy";
 import { IDateTimeService } from "../../../domain/services/IDateTimeService";
+import { SendNotificationUseCase } from "../notification/SendNotificationUseCase";
+import { NotificationType } from "@/domain/value-objects/types/notification.types";
 
 export class BookAppointmentUseCase {
     constructor(
         private readonly appointmentRepo: IAppointmentRepository,
         private readonly schedulingPolicy: SchedulingPolicy,
-        private readonly dateTimeService: IDateTimeService
+        private readonly dateTimeService: IDateTimeService,
+        private readonly sendNotificationUseCase: SendNotificationUseCase
     ) { }
 
     async execute(data: CreateAppointmentInput): Promise<AppointmentRecord> {
@@ -60,6 +63,22 @@ export class BookAppointmentUseCase {
         }
 
         const appointment = await this.appointmentRepo.createWithTransaction(data);
+
+        // Notify Doctor
+        await this.sendNotificationUseCase.execute({
+            recipientId: data.doctorId,
+            title: "New Appointment Booked",
+            message: `A new appointment has been scheduled for ${data.appointmentDate.toLocaleDateString()} at ${data.slotStart}.`,
+            type: NotificationType.BOOKED,
+        });
+
+        // Notify Patient
+        await this.sendNotificationUseCase.execute({
+            recipientId: data.patientId,
+            title: "Booking Confirmed",
+            message: `Your appointment with the doctor is confirmed for ${data.appointmentDate.toLocaleDateString()} at ${data.slotStart}.`,
+            type: NotificationType.BOOKED,
+        });
 
         return appointment;
     }

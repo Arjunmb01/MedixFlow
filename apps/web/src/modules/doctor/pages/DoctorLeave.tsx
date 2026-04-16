@@ -14,7 +14,6 @@ import {
     Loader2,
     Trash2,
     Plus,
-    ChevronDown,
     ChevronUp,
     ChevronLeft,
     ChevronRight,

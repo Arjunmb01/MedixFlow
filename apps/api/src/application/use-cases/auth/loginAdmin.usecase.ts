@@ -34,7 +34,15 @@ export class LoginAdminUseCase {
     const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as UserRole, user.email);
     await this.sessionService.saveSession(user.id, refreshToken);
 
-    return { accessToken, refreshToken };
+    return { 
+      accessToken, 
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      }
+    };
   }
 
 }

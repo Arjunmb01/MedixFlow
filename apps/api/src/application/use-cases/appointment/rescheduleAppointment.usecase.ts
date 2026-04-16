@@ -1,6 +1,8 @@
 import { IAppointmentRepository } from "@/domain/repositories/IAppointmentRepository";
 import { IDateTimeService } from "@/domain/services/IDateTimeService";
 import { SchedulingPolicy } from "@/domain/services/SchedulingPolicy";
+import { SendNotificationUseCase } from "../notification/SendNotificationUseCase";
+import { NotificationType } from "@/domain/value-objects/types/notification.types";
 
 export type RescheduleCallerRole = "patient" | "doctor" | "admin";
 
@@ -17,7 +19,8 @@ export class RescheduleAppointmentUseCase {
     constructor(
         private readonly appointmentRepo: IAppointmentRepository,
         private readonly schedulingPolicy: SchedulingPolicy,
-        private readonly dateTimeService: IDateTimeService
+        private readonly dateTimeService: IDateTimeService,
+        private readonly sendNotificationUseCase: SendNotificationUseCase
     ) {}
 
     async execute(input: RescheduleInput) {
@@ -82,6 +85,24 @@ export class RescheduleAppointmentUseCase {
             }
         }
 
-        return this.appointmentRepo.rescheduleAppointment(appointmentId, newDate, slotStart, slotEnd);
+        const updatedAppointment = await this.appointmentRepo.rescheduleAppointment(appointmentId, newDate, slotStart, slotEnd);
+
+        // Notify Doctor
+        await this.sendNotificationUseCase.execute({
+            recipientId: appointment.doctorId,
+            title: "Appointment Rescheduled",
+            message: `The appointment with patient ${appointment.patientId} has been rescheduled to ${newDate.toLocaleDateString()} at ${slotStart}.`,
+            type: NotificationType.RESCHEDULED,
+        });
+
+        // Notify Patient
+        await this.sendNotificationUseCase.execute({
+            recipientId: appointment.patientId,
+            title: "Appointment Rescheduled",
+            message: `Your appointment has been successfully rescheduled to ${newDate.toLocaleDateString()} at ${slotStart}.`,
+            type: NotificationType.RESCHEDULED,
+        });
+
+        return updatedAppointment;
     }
 }

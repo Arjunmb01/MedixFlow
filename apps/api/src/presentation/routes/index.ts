@@ -24,5 +24,7 @@ router.use("/doctors", publicDoctorRoutes)
 router.use("/appointments",appointmentRoutes)
 router.use("/doctor/leaves", doctorLeaveRouter)
 router.use("/admin/leaves", adminLeaveRouter)
+import notificationRoutes from "./notification.routes"
+router.use("/notifications", notificationRoutes)
 
 export default router

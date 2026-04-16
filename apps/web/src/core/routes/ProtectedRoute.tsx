@@ -4,7 +4,7 @@ import { UserRole } from "@/domain/auth/types/auth.types";
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    role: UserRole;
+    role: UserRole | UserRole[];
 }
 
 type WithPersist = { _persist?: { rehydrated: boolean; version: number } };
@@ -21,9 +21,13 @@ export default function ProtectedRoute({ children, role }: ProtectedRouteProps) 
         );
     }
 
-    if (!authState[role].isAuthenticated) {
-        if (role === UserRole.ADMIN) return <Navigate to="/admin/login" replace />;
-        if (role === UserRole.DOCTOR) return <Navigate to="/doctor/login" replace />;
+    const roles = Array.isArray(role) ? role : [role];
+    const isAuthorized = roles.some(r => authState[r]?.isAuthenticated);
+
+    if (!isAuthorized) {
+        const primaryRole = roles[0];
+        if (primaryRole === UserRole.ADMIN) return <Navigate to="/admin/login" replace />;
+        if (primaryRole === UserRole.DOCTOR) return <Navigate to="/doctor/login" replace />;
         return <Navigate to="/patient/login" replace />;
     }
 

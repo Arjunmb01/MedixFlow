@@ -43,11 +43,12 @@ export default function DoctorLogin() {
 
         try {
             const response = await doctorLogin(data)
-            const { accessToken } = response
+            const { accessToken, user } = response
             dispatch(
                 setAuth({
                     role: UserRole.DOCTOR,
-                    accessToken
+                    accessToken,
+                    user
                 })
             )
             toast.success("Welcome back, Doctor!")

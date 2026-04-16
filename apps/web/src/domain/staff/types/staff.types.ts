@@ -1,4 +1,3 @@
-import { DoctorProfile } from "@/domain/doctor/types/doctor.types";
 
 export interface CreateDoctorPayload {
     firstName: string;

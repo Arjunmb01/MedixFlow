@@ -45,7 +45,16 @@ export class GoogleAuthUseCase {
 
     await this.sessionService.saveSession(user.id, refreshToken);
 
-    return { accessToken, refreshToken, patientId };
+    return { 
+      accessToken, 
+      refreshToken, 
+      patientId,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      }
+    };
   }
 
 }

@@ -1,4 +1,5 @@
-import { Search, Bell } from "lucide-react"
+import { Search } from "lucide-react"
+import NavbarNotificationBell from "@/modules/shared/components/notifications/NavbarNotificationBell"
 
 interface Props {
     userName: string
@@ -23,10 +24,7 @@ export default function TopNav({ userName, patientId, title = "Health Overview" 
             </div>
 
             <div className="flex items-center gap-6">
-                <button className="relative p-2 text-gray-400 hover:bg-gray-50 rounded-full transition-all">
-                    <Bell className="w-5 h-5" />
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-                </button>
+                <NavbarNotificationBell />
 
                 <div className="flex items-center gap-3 pl-6 border-l border-gray-100">
                     <div className="flex flex-col items-end">

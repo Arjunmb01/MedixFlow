@@ -1,4 +1,5 @@
 import { Search, MessageSquare } from "lucide-react"
+import NavbarNotificationBell from "@/modules/shared/components/notifications/NavbarNotificationBell"
 
 interface Props {
     doctorName?: string
@@ -24,6 +25,7 @@ export default function DoctorTopNav({ doctorName = "Doctor", doctorSpecialty = 
 
             <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
+                    <NavbarNotificationBell />
                     <button className="p-2.5 rounded-xl bg-gray-50 text-gray-400 hover:text-teal-600 hover:bg-teal-50 transition-all border border-transparent hover:border-teal-100">
                         <MessageSquare className="w-5 h-5" />
                     </button>
