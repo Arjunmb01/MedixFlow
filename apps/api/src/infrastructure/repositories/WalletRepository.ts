@@ -23,7 +23,6 @@ export class WalletRepository implements IWalletRepository {
   }
 
   async updateBalance(walletId: string, amount: number, type: TransactionType, reason?: string): Promise<Wallet> {
-    // We update the balance and create a transaction in one Prisma transaction to ensure consistency
     const updatedWallet = await this.prisma.$transaction(async (tx) => {
       const wallet = await tx.wallet.update({
         where: { id: walletId },

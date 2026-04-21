@@ -26,7 +26,9 @@ router.use("/doctor/leaves", doctorLeaveRouter)
 router.use("/admin/leaves", adminLeaveRouter)
 import notificationRoutes from "./notification.routes"
 import paymentRoutes from "./payment.routes"
+import walletRoutes from "./wallet.routes"
 router.use("/notifications", notificationRoutes)
 router.use("/payments", paymentRoutes)
+router.use("/patient/wallet", walletRoutes)
 
 export default router

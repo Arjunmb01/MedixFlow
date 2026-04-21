@@ -27,6 +27,7 @@ export interface CompleteConsultationPayload {
         symptoms: string;
         diagnosis: string;
         notes?: string;
+        planForManagement?: string;
     };
     prescription?: {
         instructions?: string;
@@ -35,6 +36,7 @@ export interface CompleteConsultationPayload {
             dosage: string;
             frequency: string;
             duration: string;
+            instructions?: string;
         }[];
     };
 }
@@ -53,5 +55,21 @@ export const getPatientHistory = async (patientId: string) => {
     const response = await axiosInstance.get(`/doctor/consultations/patient-history`, {
         params: { patientId },
     });
+    return response.data;
+};
+
+// Lab Test Endpoints
+export const requestLabTests = async (consultationId: string, tests: { testName: string }[]) => {
+    const response = await axiosInstance.post(`/doctor/consultations/${consultationId}/lab-tests`, { tests });
+    return response.data;
+};
+
+export const getLabTests = async (consultationId: string, role: "doctor" | "patient" = "doctor") => {
+    const response = await axiosInstance.get(`/${role}/consultations/${consultationId}/lab-tests`);
+    return response.data;
+};
+
+export const uploadLabTest = async (consultationId: string, labTestId: string, reportUrl: string) => {
+    const response = await axiosInstance.post(`/patient/consultations/${consultationId}/lab-tests/${labTestId}/upload`, { reportUrl });
     return response.data;
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect,useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import AdminSidebar from "../components/AdminSidebar"
 import AdminTopNav from "../components/AdminTopNav"
 import { Search, Calendar, User, Stethoscope, ChevronLeft, ChevronRight, Clock, CalendarClock } from "lucide-react"
@@ -6,7 +6,7 @@ import { getAdminAppointments } from "@/infrastructure/api/admin.api"
 import type { Appointment } from "@/domain/appointment/types"
 import { RescheduleModal } from "@/modules/shared/components/RescheduleModal"
 
-// const STATUS_OPTIONS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED", "NOT_ATTENDED"] as const
+
 
 export default function AdminAppointments() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -43,7 +43,7 @@ export default function AdminAppointments() {
 
     const filteredAppointments = useMemo(() => {
         return appointments.filter(apt => {
-            const matchesSearch = 
+            const matchesSearch =
                 `${apt.patient.firstName} ${apt.patient.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
                 `${apt.doctor.firstName} ${apt.doctor.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
                 apt.id.toLowerCase().includes(search.toLowerCase())
@@ -51,7 +51,9 @@ export default function AdminAppointments() {
         })
     }, [appointments, search])
 
+
     const totalPages = Math.ceil(totalAppointments / itemsPerPage)
+
 
     const formatDate = (date: string | Date) => {
         return new Date(date).toLocaleDateString('en-IN', {
@@ -75,7 +77,7 @@ export default function AdminAppointments() {
     return (
         <div className="flex min-h-screen bg-gray-50/50 font-outfit">
             <AdminSidebar />
-            
+
             <main className="flex-1 ml-64 p-8">
                 <AdminTopNav title="Appointments Directory" subtitle="Manage and monitor all clinic appointments." />
 
@@ -113,16 +115,16 @@ export default function AdminAppointments() {
                         <button
                             key={tab.id}
                             onClick={() => { setStatusFilter(tab.id); setPage(1); }}
-                            className={`px-8 py-3.5 rounded-full text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
-                                statusFilter === tab.id 
-                                ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50' 
+                            className={`px-8 py-3.5 rounded-full text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${statusFilter === tab.id
+                                ? 'bg-white text-gray-900 shadow-sm border border-gray-200/50'
                                 : 'text-gray-400 hover:text-gray-600'
-                            }`}
+                                }`}
                         >
                             {tab.label}
                         </button>
                     ))}
                 </div>
+
 
                 <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
                     <div className="overflow-x-auto">
@@ -189,7 +191,10 @@ export default function AdminAppointments() {
                                                         <span className={`w-1.5 h-1.5 rounded-full ${apt.paymentStatus === 'PAID' ? 'bg-green-500' : 'bg-amber-500'}`} />
                                                         <span className="text-[10px] font-black uppercase text-gray-700">{apt.paymentStatus || 'PENDING'}</span>
                                                     </div>
-                                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{apt.paymentMethod || '—'}</span>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[11px] font-black text-gray-900 leading-none">₹{apt.paymentAmount || 'N/A'}</span>
+                                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">ID: {apt.transactionId?.slice(-8).toUpperCase() || apt.paymentMethod || 'N/A'}</span>
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
@@ -221,7 +226,7 @@ export default function AdminAppointments() {
                                                 </div>
                                                 <p className="text-gray-400 font-black text-sm uppercase tracking-widest">No appointments found</p>
                                                 {(search || statusFilter !== "ALL") && (
-                                                    <button 
+                                                    <button
                                                         onClick={() => { setSearch(""); setStatusFilter("ALL") }}
                                                         className="text-teal-600 font-black text-[10px] uppercase tracking-widest hover:underline mt-2"
                                                     >

@@ -14,7 +14,7 @@ import {
     TrendingUp,
     CreditCard
 } from "lucide-react";
-import { getWalletBalance, topUpWallet } from "@/infrastructure/api/appointment.api";
+import { getWalletBalance, topUpWallet, verifyWalletTopUp, getFinancialActivity } from "@/infrastructure/api/appointment.api";
 import { toast } from "sonner";
 
 interface Transaction {
@@ -22,8 +22,10 @@ interface Transaction {
     amount: number;
     type: "TOP_UP" | "PAYMENT" | "REFUND";
     status: "SUCCESS" | "PENDING" | "FAILED";
+    method: "WALLET" | "RAZORPAY";
     createdAt: string;
-    description?: string;
+    description: string;
+    referenceId?: string;
 }
 
 export default function WalletPage() {
@@ -36,11 +38,14 @@ export default function WalletPage() {
 
     const fetchWalletData = async () => {
         try {
-            const data = await getWalletBalance();
-            setBalance(data.wallet.balance);
-            setTransactions(data.transactions || []);
+            const [balanceData, activityData] = await Promise.all([
+                getWalletBalance(),
+                getFinancialActivity()
+            ]);
+            setBalance(balanceData.wallet.balance);
+            setTransactions(activityData || []);
         } catch (error) {
-            console.error("Failed to fetch wallet:", error);
+            console.error("Failed to fetch wallet data:", error);
             setBalance(0);
         } finally {
             setLoading(false);
@@ -80,10 +85,24 @@ export default function WalletPage() {
                     name: "MedixFlow",
                     description: "Wallet Top Up",
                     order_id: response.razorpayOrderId,
-                    handler: function (res: any) {
-                        toast.success("Wallet top-up successful");
-                        fetchWalletData();
-                        setTopUpAmount("");
+                    handler: async function (res: any) {
+                        try {
+                            setIsToppingUp(true);
+                            await verifyWalletTopUp({
+                                razorpayOrderId: res.razorpay_order_id,
+                                razorpayPaymentId: res.razorpay_payment_id,
+                                razorpaySignature: res.razorpay_signature,
+                                amount: amount
+                            });
+                            toast.success("Wallet top-up successful");
+                            fetchWalletData();
+                            setTopUpAmount("");
+                        } catch (error) {
+                            toast.error("Payment verification failed. If amount was deducted, it will be credited soon.");
+                            console.error("Verification error:", error);
+                        } finally {
+                            setIsToppingUp(false);
+                        }
                     },
                     prefill: {
                         name: profile?.name || "",
@@ -219,9 +238,13 @@ export default function WalletPage() {
                                                             </div>
                                                             <div>
                                                                 <p className="text-sm font-black text-[#0F172A] tracking-tight">
-                                                                    {tx.type === 'TOP_UP' ? 'Add Funds' : tx.type === 'PAYMENT' ? 'Consultation' : 'Refund'}
+                                                                    {tx.description}
                                                                 </p>
-                                                                <p className="text-[11px] text-[#94A3B8] font-bold">TXN: {tx.id.slice(0, 8).toUpperCase()}</p>
+                                                                <div className="flex items-center gap-2 mt-0.5">
+                                                                    <p className="text-[10px] text-[#94A3B8] font-bold">Ref: {tx.referenceId?.slice(-8).toUpperCase()}</p>
+                                                                    <span className="w-1 h-1 bg-gray-200 rounded-full" />
+                                                                    <p className="text-[10px] text-[#3B82F6] font-black uppercase tracking-widest">{tx.method}</p>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </td>

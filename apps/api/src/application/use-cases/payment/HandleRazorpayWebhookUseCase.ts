@@ -25,23 +25,44 @@ export class HandleRazorpayWebhookUseCase {
     }
 
     const event = payload.event;
+    console.log(`[Webhook] Processing event: ${event}`);
 
-    if (event === "order.paid") {
-      const order = payload.payload.order.entity;
-      const notes = order.notes;
+    if (event === "order.paid" || event === "payment.captured") {
+      const order = payload.payload.order?.entity;
+      const payment = payload.payload.payment?.entity;
+      
+      const notes = order?.notes || payment?.notes;
       const patientId = notes?.patientId;
       const type = notes?.type || "APPOINTMENT";
 
       if (!patientId) {
-        console.error("No patientId found in Razorpay order notes");
+        console.error("No patientId found in Razorpay webhook notes");
         return;
       }
 
+      const amount = (payment?.amount || order?.amount) / 100;
+
       if (type === "TOP_UP") {
-        const amount = order.amount / 100; // Razorpay amount is in paise
+        console.log(`[Webhook] Processing TOP_UP for patient ${patientId}, amount: ${amount}`);
         const wallet = await this.walletRepo.findByPatientId(patientId);
         if (wallet) {
-          await this.walletRepo.updateBalance(wallet.id, amount, TransactionType.TOP_UP, "Razorpay Wallet Top-up");
+          // Check if transaction already exists (idempotency)
+          const history = await this.walletRepo.getTransactionHistory(wallet.id);
+          const alreadyProcessed = history.some(tx => 
+             tx.reason?.includes(payment?.id || "")
+          );
+
+          if (alreadyProcessed) {
+            console.log(`[Webhook] TOP_UP for payment ${payment?.id} already processed.`);
+            return;
+          }
+
+          await this.walletRepo.updateBalance(
+            wallet.id, 
+            amount, 
+            TransactionType.TOP_UP, 
+            `Razorpay Wallet Top-up (Payment ID: ${payment?.id || "N/A"})`
+          );
           
           await this.sendNotificationUseCase.execute({
             recipientId: patientId,
@@ -55,27 +76,32 @@ export class HandleRazorpayWebhookUseCase {
 
       // APPOINTMENT FLOW
       const appointmentId = notes?.appointmentId;
-      const razorpayPaymentId = payload.payload.payment?.entity.id;
-      const razorpaySignature = signature; // Or whatever verification we want to store
+      const razorpayPaymentId = payment?.id;
+      const razorpaySignature = signature;
 
       if (!appointmentId) {
-        console.error("No appointmentId found in Razorpay order notes");
+        // Only log error if not a TOP_UP and no appointmentId
+        console.error("No appointmentId found in Razorpay webhook notes");
         return;
       }
 
-      const payment = await this.paymentRepo.findByOrderId(order.id);
-      if (!payment) {
-        console.error(`Payment not found for order ${order.id}`);
+      const paymentRecord = await this.paymentRepo.findByOrderId(order?.id || payment?.order_id);
+      if (!paymentRecord) {
+        console.error(`Payment record not found for order ${order?.id || payment?.order_id}`);
         return;
       }
 
-      await this.paymentRepo.updateStatus(payment.id, PaymentStatus.PAID, razorpayPaymentId, razorpaySignature);
+      if (paymentRecord.status === PaymentStatus.PAID) {
+        console.log(`[Webhook] Payment ${paymentRecord.id} already marked as PAID.`);
+        return;
+      }
+
+      await this.paymentRepo.updateStatus(paymentRecord.id, PaymentStatus.PAID, razorpayPaymentId, razorpaySignature);
 
       await this.appointmentRepo.updateStatus(appointmentId, AppointmentStatus.CONFIRMED);
 
       const appointment = await this.appointmentRepo.findById(appointmentId);
       if (appointment) {
-        // Notify Doctor
         await this.sendNotificationUseCase.execute({
           recipientId: appointment.doctorId,
           title: "New Appointment Confirmed",
@@ -83,7 +109,6 @@ export class HandleRazorpayWebhookUseCase {
           type: NotificationType.BOOKED,
         });
 
-        // Notify Patient
         await this.sendNotificationUseCase.execute({
           recipientId: appointment.patientId,
           title: "Booking Confirmed",

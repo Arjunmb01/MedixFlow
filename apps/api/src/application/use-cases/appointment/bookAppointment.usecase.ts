@@ -51,7 +51,6 @@ export class BookAppointmentUseCase {
             throw new Error("Cannot book an appointment in the past");
         }
 
-        // Fetch Doctor Profile for Consultation Fee
         const doctorProfile = await this.doctorRepo.findProfileById(data.doctorId);
         if (!doctorProfile) {
             throw new Error("Doctor not found");
@@ -81,7 +80,6 @@ export class BookAppointmentUseCase {
             }
         }
 
-        // Create status as PENDING
         const appointment = await this.appointmentRepo.createWithTransaction({
             ...data,
             status: AppointmentStatus.PENDING
@@ -114,7 +112,7 @@ export class BookAppointmentUseCase {
                 razorpayOrderId: `wallet_${appointment.id}`, // Placeholder
                 paymentMethod: PaymentMethod.WALLET,
                 status: PaymentStatus.PAID
-            } as any);
+            });
 
             // Notify Doctor & Patient (Immediate for Wallet)
             await this.sendNotifications(data, appointment);
@@ -170,4 +168,4 @@ export class BookAppointmentUseCase {
             type: NotificationType.BOOKED,
         });
     }
-}
+}

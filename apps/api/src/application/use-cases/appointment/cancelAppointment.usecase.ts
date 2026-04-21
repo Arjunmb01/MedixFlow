@@ -19,12 +19,14 @@ export class CancelAppointmentUseCase {
         private readonly walletRepo: IWalletRepository
     ) {}
 
-    async execute (appointmentId : string, patientId : string, reason : string) {
+    async execute (appointmentId : string, patientId : string, reason : string, refundToWallet: boolean = false, isSystemAction: boolean = false) {
         const appointment = await this.appointmentRepo.findById(appointmentId);
 
         if(!appointment) throw new Error("Appointment not found");
         
-        if(appointment.patientId !== patientId) throw new Error("Unauthorized to cancel to this appointment")
+        if(!isSystemAction && appointment.patientId !== patientId) {
+            throw new Error("Unauthorized to cancel to this appointment");
+        }
         
         if(appointment.status === "CANCELLED" || appointment.status === "COMPLETED") throw new Error(`Cannot cancel appointment with status ${appointment.status}`);
 
@@ -40,16 +42,10 @@ export class CancelAppointmentUseCase {
             const payment = await this.paymentRepo.findByAppointmentId(appointmentId);
             
             if (payment && payment.status === PaymentStatus.PAID) {
-                if (payment.paymentMethod === PaymentMethod.RAZORPAY) {
-                    if (payment.razorpayPaymentId) {
-                        await this.razorpayService.refundPayment(payment.razorpayPaymentId, payment.amount);
-                        await this.paymentRepo.updateStatus(payment.id, PaymentStatus.REFUNDED);
-                        await this.appointmentRepo.updatePaymentStatus(appointmentId, PaymentStatus.REFUNDED);
-                    } else {
-                        console.error(`Refund failed: Missing razorpayPaymentId for payment ${payment.id}`);
-                    }
-                } else if (payment.paymentMethod === PaymentMethod.WALLET) {
-                    const wallet = await this.walletRepo.findByPatientId(patientId);
+                const wallet = await this.walletRepo.findByPatientId(patientId);
+                
+                if (refundToWallet) {
+                    // Force refund to wallet regardless of original method
                     if (wallet) {
                         await this.walletRepo.updateBalance(
                             wallet.id, 
@@ -59,6 +55,30 @@ export class CancelAppointmentUseCase {
                         );
                         await this.paymentRepo.updateStatus(payment.id, PaymentStatus.REFUNDED);
                         await this.appointmentRepo.updatePaymentStatus(appointmentId, PaymentStatus.REFUNDED);
+                    } else {
+                        throw new Error("Patient wallet not found for refund");
+                    }
+                } else {
+                    // Standard logic: refund to original source
+                    if (payment.paymentMethod === PaymentMethod.RAZORPAY) {
+                        if (payment.razorpayPaymentId) {
+                            await this.razorpayService.refundPayment(payment.razorpayPaymentId, payment.amount);
+                            await this.paymentRepo.updateStatus(payment.id, PaymentStatus.REFUNDED);
+                            await this.appointmentRepo.updatePaymentStatus(appointmentId, PaymentStatus.REFUNDED);
+                        } else {
+                            console.error(`Refund failed: Missing razorpayPaymentId for payment ${payment.id}`);
+                        }
+                    } else if (payment.paymentMethod === PaymentMethod.WALLET) {
+                        if (wallet) {
+                            await this.walletRepo.updateBalance(
+                                wallet.id, 
+                                payment.amount, 
+                                TransactionType.REFUND, 
+                                `Refund for cancelled appointment ${appointmentId}`
+                            );
+                            await this.paymentRepo.updateStatus(payment.id, PaymentStatus.REFUNDED);
+                            await this.appointmentRepo.updatePaymentStatus(appointmentId, PaymentStatus.REFUNDED);
+                        }
                     }
                 }
             }

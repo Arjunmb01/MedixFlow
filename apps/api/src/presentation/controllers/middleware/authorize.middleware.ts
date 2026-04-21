@@ -8,11 +8,13 @@ export const authorize = (roles: UserRole[]) => {
       return res.status(401).json({ message: "Authentication required" });
     }
 
-    const userRole = req.user.role.toUpperCase();
+    const userRole = (req.user?.role || "").toUpperCase();
     const uppercaseRoles = roles.map(r => r.toUpperCase());
 
+    console.log(`[AuthorizeMiddleware] Checking access. User Role: "${userRole}", Allowed Roles: [${uppercaseRoles.join(", ")}]`);
+
     if (!uppercaseRoles.includes(userRole)) {
-      console.log("[AuthorizeMiddleware] Access Denied for role:", userRole);
+      console.warn(`[AuthorizeMiddleware] ACCESS DENIED: Role "${userRole}" not in allowed list [${uppercaseRoles.join(", ")}]`);
       return res.status(403).json({ message: "Access denied: insufficient permissions" });
     }
 

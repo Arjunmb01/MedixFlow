@@ -12,6 +12,7 @@ const applyLeaveSchema = z.object({
   startDate: z.string().datetime({ offset: true }).or(z.string().date()),
   endDate: z.string().datetime({ offset: true }).or(z.string().date()),
   reason: z.string().min(5, "Reason must be at least 5 characters"),
+  suppressConflicts: z.boolean().optional(),
 });
 
 const reviewLeaveSchema = z.object({
@@ -35,6 +36,7 @@ export class LeaveController {
         startDate: new Date(body.startDate),
         endDate: new Date(body.endDate),
         reason: body.reason,
+        suppressConflicts: body.suppressConflicts,
       });
       res.status(StatusCode.CREATED).json(result);
     } catch (error) {

@@ -4,6 +4,7 @@ import Sidebar from "../components/dashboard/Sidebar";
 import TopNav from "../components/dashboard/TopNav";
 import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile";
 import { getPatientAppointments } from "@/infrastructure/api/patient.api";
+import { getLabTests, uploadLabTest } from "@/infrastructure/api/consultation.api";
 import { pdf } from '@react-pdf/renderer';
 import PrescriptionPDF from "../components/prescription/PrescriptionPDF";
 import { toast } from "sonner";
@@ -17,6 +18,11 @@ import {
     Pill,
     ClipboardList,
     CalendarCheck,
+    FlaskConical,
+    Upload,
+    FileImage,
+    FileText as FilePdf,
+    ExternalLink,
 } from "lucide-react";
 
 // Standard HEX colors to satisfy html2canvas parser (doesn't support oklch)
@@ -47,6 +53,16 @@ interface Medicine {
     dosage: string;
     frequency: string;
     duration: string;
+    instructions?: string | null;
+}
+
+interface LabTest {
+    id: string;
+    consultationId: string;
+    testName: string;
+    status: string;
+    reportUrl: string | null;
+    createdAt: string;
 }
 
 interface PrescriptionData {
@@ -69,6 +85,7 @@ interface PrescriptionData {
             symptoms: string;
             diagnosis: string;
             notes: string | null;
+            planForManagement: string | null;
         } | null;
         prescription: {
             id: string;
@@ -86,7 +103,9 @@ export default function PrescriptionDetail() {
     const printRef = useRef<HTMLDivElement>(null);
 
     const [data, setData] = useState<PrescriptionData | null>(null);
+    const [labTests, setLabTests] = useState<LabTest[]>([]);
     const [loading, setLoading] = useState(true);
+    const [uploadingTestId, setUploadingTestId] = useState<string | null>(null);
 
     useEffect(() => {
         fetchData();
@@ -133,11 +152,61 @@ export default function PrescriptionDetail() {
             const apt = appointments.find((a: { id: string }) => a.id === appointmentId);
             if (apt && apt.consultation) {
                 setData(apt);
+                
+                // Fetch lab tests for this consultation
+                const tests = await getLabTests(apt.consultation.id, "patient");
+                setLabTests(tests);
             }
         } catch (error) {
             console.error("Failed to fetch prescription details:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleFileUpload = async (labTestId: string, file: File) => {
+        if (!file || !data) return;
+
+        // Check file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+        if (!allowedTypes.includes(file.type)) {
+            toast.error("Only JPG, PNG, and PDF files are allowed.");
+            return;
+        }
+
+        try {
+            setUploadingTestId(labTestId);
+            
+            // 1. Upload to Cloudinary (Need to implement or use existing service)
+            // For now, I'll simulate the upload process logic 
+            // but in a real app, you'd send to an upload endpoint first.
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ml_default');
+
+            const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dck5be4et';
+            const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            const uploadData = await uploadRes.json();
+            
+            if (uploadData.secure_url) {
+                // 2. Save URL to backend
+                await uploadLabTest(data.consultation.id, labTestId, uploadData.secure_url);
+                toast.success("Report uploaded successfully!");
+                
+                // 3. Refresh lab tests
+                const tests = await getLabTests(data.consultation.id, "patient");
+                setLabTests(tests);
+            } else {
+                throw new Error("Upload failed");
+            }
+        } catch (error) {
+            console.error("File upload failed:", error);
+            toast.error("Failed to upload report. Please try again.");
+        } finally {
+            setUploadingTestId(null);
         }
     };
 
@@ -344,16 +413,16 @@ export default function PrescriptionDetail() {
                                         <div>
                                             <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
                                                 <Stethoscope style={{ color: COLORS.amber500 }} className="w-4 h-4 text-amber-500" />
-                                                Initial Symptoms
+                                                Reported Symptoms
                                             </h2>
-                                            <p style={{ color: COLORS.gray700 }} className="text-sm text-gray-700 leading-relaxed">{record.symptoms}</p>
+                                            <p style={{ color: COLORS.gray700 }} className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{record.symptoms}</p>
                                         </div>
                                         <div>
                                             <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
                                                 <Stethoscope style={{ color: COLORS.orange500 }} className="w-4 h-4 text-orange-500" />
-                                                Diagnosis
+                                                Clinical Diagnosis
                                             </h2>
-                                            <p style={{ color: COLORS.gray900 }} className="text-sm font-bold text-gray-900">{record.diagnosis}</p>
+                                            <p style={{ color: COLORS.gray900 }} className="text-sm font-bold text-gray-900 whitespace-pre-wrap">{record.diagnosis}</p>
                                         </div>
                                     </div>
                                 </section>
@@ -370,9 +439,9 @@ export default function PrescriptionDetail() {
                                         <thead>
                                             <tr style={{ backgroundColor: COLORS.gray50, borderBottomColor: COLORS.gray100 }} className="bg-gray-50 border-b border-gray-100">
                                                 <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Medicine Name</th>
-                                                <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Dosage</th>
-                                                <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Frequency</th>
+                                                <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Dosage / Freq</th>
                                                 <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Duration</th>
+                                                <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Instructions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -381,15 +450,68 @@ export default function PrescriptionDetail() {
                                                     <td className="px-6 py-4">
                                                         <p style={{ color: COLORS.blue700 }} className="font-black text-blue-700">{med.name}</p>
                                                     </td>
-                                                    <td style={{ color: COLORS.gray700 }} className="px-6 py-4 text-gray-700 font-medium">{med.dosage}</td>
-                                                    <td style={{ color: COLORS.gray700 }} className="px-6 py-4 text-gray-700 font-medium">{med.frequency}</td>
+                                                    <td className="px-6 py-4">
+                                                        <p style={{ color: COLORS.gray900 }} className="text-sm font-bold text-gray-900">{med.dosage}</p>
+                                                        <p style={{ color: COLORS.gray500 }} className="text-[10px] font-bold text-gray-500 uppercase">{med.frequency}</p>
+                                                    </td>
                                                     <td style={{ color: COLORS.gray700 }} className="px-6 py-4 text-gray-700 font-medium">{med.duration}</td>
+                                                    <td style={{ color: COLORS.gray700 }} className="px-6 py-4 text-gray-700 text-xs italic">{med.instructions || "—"}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
                             </section>
+
+                            {/* Lab Test Requests (Patient Actionable) */}
+                            {labTests.length > 0 && (
+                                <section className="print:hidden">
+                                     <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-4">
+                                        <FlaskConical style={{ color: COLORS.orange500 }} className="w-4 h-4 text-orange-500" />
+                                        Lab Test Requests
+                                    </h2>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {labTests.map((test) => (
+                                            <div key={test.id} className="flex items-center justify-between p-4 bg-gray-50 border border-gray-100 rounded-2xl">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`p-3 rounded-xl ${test.status === 'UPLOADED' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                        {test.status === 'UPLOADED' ? <FilePdf className="w-5 h-5" /> : <Upload className="w-5 h-5" />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-gray-900">{test.testName}</p>
+                                                        <p className="text-xs text-gray-500 font-medium tracking-tight">Status: <span className={test.status === 'UPLOADED' ? 'text-green-600' : 'text-orange-600'}>{test.status}</span></p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {test.reportUrl && (
+                                                        <a 
+                                                            href={test.reportUrl} target="_blank" rel="noopener noreferrer"
+                                                            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-2 transition-all"
+                                                        >
+                                                            <ExternalLink className="w-3.5 h-3.5" />
+                                                            View Report
+                                                        </a>
+                                                    )}
+                                                    <label className={`cursor-pointer px-4 py-2 border rounded-lg text-xs font-bold flex items-center gap-2 transition-all ${
+                                                        uploadingTestId === test.id 
+                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                                        : 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                                                    }`}>
+                                                        {uploadingTestId === test.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                                                        {test.status === 'UPLOADED' ? "Update Report" : "Upload Result"}
+                                                        <input 
+                                                            type="file" className="hidden" 
+                                                            disabled={uploadingTestId === test.id}
+                                                            onChange={(e) => e.target.files?.[0] && handleFileUpload(test.id, e.target.files[0])} 
+                                                            accept=".jpg,.jpeg,.png,.pdf"
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
 
                             {/* Notes & Follow-up */}
                             {record?.notes && (
@@ -398,20 +520,32 @@ export default function PrescriptionDetail() {
                                         <div>
                                             <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
                                                 <ClipboardList style={{ color: COLORS.purple500 }} className="w-4 h-4 text-purple-500" />
-                                                Plan for Management
+                                                Management Plan
                                             </h2>
-                                            <p style={{ color: COLORS.gray700 }} className="text-sm text-gray-700 leading-relaxed">{record.notes}</p>
+                                            <p style={{ color: COLORS.gray700 }} className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                                {record.planForManagement || "Patient is advised to take rest and follow general precautions."}
+                                            </p>
                                         </div>
                                         <div>
                                             <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
                                                 <CalendarCheck style={{ color: COLORS.green500 }} className="w-4 h-4 text-green-500" />
-                                                Follow-Up
+                                                Follow-Up Advice
                                             </h2>
                                             <p style={{ color: COLORS.gray700 }} className="text-sm text-gray-700">
-                                                {rx.instructions || "No specific follow-up instructions."}
+                                                {rx.instructions || "No specific follow-up specified by the doctor."}
                                             </p>
                                         </div>
                                     </div>
+                                    
+                                    {record.notes && (
+                                        <div className="mt-8 pt-8 border-t border-gray-50">
+                                            <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
+                                                <ClipboardList style={{ color: COLORS.blue600 }} className="w-4 h-4 text-blue-600" />
+                                                Additional Doctor Observations
+                                            </h2>
+                                            <p style={{ color: COLORS.gray700 }} className="text-sm text-gray-700 leading-relaxed italic">{record.notes}</p>
+                                        </div>
+                                    )}
                                 </section>
                             )}
 

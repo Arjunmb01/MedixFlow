@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { HandleRazorpayWebhookUseCase } from "../../application/use-cases/payment/HandleRazorpayWebhookUseCase";
 import { GetWalletBalanceUseCase } from "../../application/use-cases/patient/GetWalletBalanceUseCase";
 import { TopUpWalletUseCase } from "../../application/use-cases/patient/TopUpWalletUseCase";
+import { VerifyWalletTopUpUseCase } from "../../application/use-cases/patient/VerifyWalletTopUpUseCase";
+import { GetPatientFinancialActivityUseCase } from "../../application/use-cases/patient/GetPatientFinancialActivityUseCase";
 import { StatusCode } from "../../shared/constants";
 import { config } from "../../infrastructure/services/config";
 
@@ -9,7 +11,9 @@ export class PaymentController {
   constructor(
     private readonly handleWebhookUseCase: HandleRazorpayWebhookUseCase,
     private readonly getWalletBalanceUseCase: GetWalletBalanceUseCase,
-    private readonly topUpWalletUseCase: TopUpWalletUseCase
+    private readonly topUpWalletUseCase: TopUpWalletUseCase,
+    private readonly verifyWalletTopUpUseCase: VerifyWalletTopUpUseCase,
+    private readonly getFinancialActivityUseCase: GetPatientFinancialActivityUseCase
   ) {}
 
   async handleWebhook(req: Request, res: Response): Promise<void> {
@@ -52,6 +56,44 @@ export class PaymentController {
         customerEmail: (req as any).user.email
       });
 
+      res.status(StatusCode.OK).json(result);
+    } catch (error: any) {
+      res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ message: error.message });
+    }
+  }
+
+  async verifyWalletTopUp(req: Request, res: Response): Promise<void> {
+    try {
+      const patientId = (req as any).user.id;
+      const { razorpayOrderId, razorpayPaymentId, razorpaySignature, amount } = req.body;
+
+      if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature || !amount) {
+        res.status(StatusCode.BAD_REQUEST).json({ message: "Missing required verification data" });
+        return;
+      }
+
+      const result = await this.verifyWalletTopUpUseCase.execute({
+        patientId,
+        razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature,
+        amount
+      });
+
+      res.status(StatusCode.OK).json({
+        message: "Wallet top-up verified successfully",
+        balance: result.balance
+      });
+    } catch (error: any) {
+      res.status(StatusCode.BAD_REQUEST).json({ message: error.message });
+    }
+  }
+
+  async getFinancialActivity(req: Request, res: Response): Promise<void> {
+    try {
+      const patientId = (req as any).user.id;
+      const result = await this.getFinancialActivityUseCase.execute(patientId);
+      console.log(`[PaymentController] Fetched ${result.length} financial activity records for patient: ${patientId}`);
       res.status(StatusCode.OK).json(result);
     } catch (error: any) {
       res.status(StatusCode.INTERNAL_SERVER_ERROR).json({ message: error.message });

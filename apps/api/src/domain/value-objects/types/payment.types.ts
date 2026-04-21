@@ -1,4 +1,5 @@
 import { PaymentMethod } from "../enums/PaymentMethod";
+import { PaymentStatus } from "../enums/PaymentStatus";
 
 export interface CreatePaymentInput {
   appointmentId: string;
@@ -7,6 +8,7 @@ export interface CreatePaymentInput {
   currency: string;
   razorpayOrderId: string;
   paymentMethod?: PaymentMethod;
+  status?: PaymentStatus;
   razorpayPaymentId?: string;
   razorpaySignature?: string;
 }

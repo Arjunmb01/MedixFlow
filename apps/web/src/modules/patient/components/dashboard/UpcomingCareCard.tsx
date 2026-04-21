@@ -90,7 +90,7 @@ export default function UpcomingCareCard({ appointment }: Props) {
         appt.setHours(hours, minutes, 0, 0);
 
         const diff = (appt.getTime() - now.getTime()) / (1000 * 60);
-        return diff <= 20 && diff >= -10;
+        return diff <= 15 && diff >= -10;
     };
 
 

@@ -17,27 +17,38 @@ export class SocketService {
     this.io.on("connection", (socket) => {
       const userId = socket.handshake.query.userId as string;
       
+      console.log(`[SocketService] New connection attempt: socketId=${socket.id}, userId=${userId}`);
+
       if (userId && userId !== "undefined") {
         socket.join(userId);
+        console.log(`[SocketService] User joined room: ${userId}`);
       } else {
-        console.warn("Socket connected but no valid userId provided in query");
+        console.warn(`[SocketService] Socket connected (id=${socket.id}) but no valid userId provided in query`);
       }
 
       socket.on("disconnect", (reason) => {
-        console.log(`User ${userId} disconnected from socket. Reason: ${reason}`);
+        console.log(`[SocketService] User ${userId} (socketId=${socket.id}) disconnected. Reason: ${reason}`);
       });
     });
   }
 
   sendNotification(userId: string, data: any) {
+    console.log(`[SocketService] Attempting to send notification to userId=${userId}, type=${data?.type}`);
     if (this.io) {
       this.io.to(userId).emit("notification_received", data);
+      console.log(`[SocketService] Notification emitted to room=${userId}`);
+    } else {
+      console.error("[SocketService] Cannot send notification: io server not initialized");
     }
   }
 
   sendUnreadCountUpdate(userId: string, count: number) {
+    console.log(`[SocketService] Attempting to send unread count update to userId=${userId}, count=${count}`);
     if (this.io) {
       this.io.to(userId).emit("unread_count_updated", { count });
+      console.log(`[SocketService] Unread count update emitted to room=${userId}`);
+    } else {
+      console.error("[SocketService] Cannot send unread count update: io server not initialized");
     }
   }
 }

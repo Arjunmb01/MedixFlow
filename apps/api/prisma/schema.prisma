@@ -159,15 +159,17 @@ model Consultation {
   medicalRecord MedicalRecord?
   prescription  Prescription?
   vitals        Vitals[]
+  labTests      LabTest[]
 }
 
 model MedicalRecord {
-  id             String       @id @default(uuid())
-  consultationId String       @unique
-  symptoms       String
-  diagnosis      String
-  notes          String?
-  consultation   Consultation @relation(fields: [consultationId], references: [id])
+  id                String       @id @default(uuid())
+  consultationId    String       @unique
+  symptoms          String
+  diagnosis         String
+  notes             String?
+  planForManagement String?      // New field for precautions
+  consultation      Consultation @relation(fields: [consultationId], references: [id])
 }
 
 model Vitals {
@@ -195,7 +197,24 @@ model Medicine {
   dosage         String
   frequency      String
   duration       String
+  instructions   String?      // New field for "When to eat" etc.
   prescription   Prescription @relation(fields: [prescriptionId], references: [id])
+}
+
+model LabTest {
+  id             String       @id @default(uuid())
+  consultationId String
+  testName       String
+  status         LabTestStatus @default(PENDING)
+  reportUrl      String?      // URL to the uploaded file
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  consultation   Consultation @relation(fields: [consultationId], references: [id])
+}
+
+enum LabTestStatus {
+  PENDING
+  UPLOADED
 }
 
 enum Role {
@@ -271,6 +290,7 @@ enum NotificationType {
   COMPLETED
   PRESCRIPTION
   RESCHEDULED
+  LAB_TEST
 }
 
 model Payment {

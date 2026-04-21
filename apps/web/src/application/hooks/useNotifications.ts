@@ -9,13 +9,15 @@ export const useNotifications = () => {
   const [notifications, setNotifications] = useState<NotificationDTO[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Get current user ID from Redux
+  // Get current user ID from Redux with fallback to local storage
   const authState = useSelector((state: any) => state.auth);
-  const persistedRole = authState.persistedRole;
-  const user = persistedRole ? authState[persistedRole].user : null;
+  const persistedRole = authState.persistedRole || (typeof window !== "undefined" ? localStorage.getItem("medixflow_user_role") : null);
+  const user = persistedRole ? authState[persistedRole]?.user : null;
   const userId = user?.id;
   
-  console.log(`[useNotifications] Hook rendered. userId: ${userId}, role: ${persistedRole}`);
+  if (userId) {
+    console.log(`[useNotifications] Active session for user: ${userId} (${persistedRole})`);
+  }
 
   const fetchInitialData = useCallback(async () => {
     if (!userId) {
@@ -37,10 +39,7 @@ export const useNotifications = () => {
   }, [userId]);
 
   useEffect(() => {
-    if (!userId) {
-      console.log("[useNotifications] Effect skipped: userId is missing");
-      return;
-    }
+    if (!userId) return;
 
     fetchInitialData();
 

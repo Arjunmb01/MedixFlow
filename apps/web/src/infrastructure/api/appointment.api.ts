@@ -42,11 +42,26 @@ export const bookAppointment = async (payload: BookAppointmentPayload) => {
 };
 
 export const getWalletBalance = async () => {
-    const { data } = await api.get("/payments/wallet");
+    const { data } = await api.get("/patient/wallet/");
     return data;
 };
 
 export const topUpWallet = async (amount: number) => {
-    const { data } = await api.post("/payments/wallet/top-up", { amount });
+    const { data } = await api.post("/patient/wallet/top-up", { amount });
+    return data;
+};
+
+export const verifyWalletTopUp = async (payload: {
+    razorpayOrderId: string;
+    razorpayPaymentId: string;
+    razorpaySignature: string;
+    amount: number;
+}) => {
+    const { data } = await api.post("/patient/wallet/verify", payload);
+    return data;
+};
+
+export const getFinancialActivity = async () => {
+    const { data } = await api.get("/patient/wallet/activity");
     return data;
 };

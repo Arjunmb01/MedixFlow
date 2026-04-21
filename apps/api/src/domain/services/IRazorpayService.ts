@@ -16,5 +16,6 @@ export interface RazorpayOrder {
 export interface IRazorpayService {
   createOrder(data: CreateRazorpayOrderInput): Promise<RazorpayOrder>;
   verifyWebhookSignature(payload: string, signature: string, secret: string): boolean;
+  verifyPaymentSignature(orderId: string, paymentId: string, signature: string): boolean;
   refundPayment(paymentId: string, amount: number): Promise<void>;
 }

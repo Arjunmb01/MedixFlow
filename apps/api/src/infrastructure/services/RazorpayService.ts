@@ -46,6 +46,20 @@ export class RazorpayService implements IRazorpayService {
     }
   }
 
+  verifyPaymentSignature(orderId: string, paymentId: string, signature: string): boolean {
+    try {
+      const generatedSignature = crypto
+        .createHmac("sha256", config.razorpayKeySecret)
+        .update(`${orderId}|${paymentId}`)
+        .digest("hex");
+
+      return generatedSignature === signature;
+    } catch (error) {
+      console.error("Razorpay payment signature verification failed:", error);
+      return false;
+    }
+  }
+
   async refundPayment(paymentId: string, amount: number): Promise<void> {
     try {
       await this.razorpay.payments.refund(paymentId, {

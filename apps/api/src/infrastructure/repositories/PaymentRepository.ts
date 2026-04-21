@@ -18,7 +18,7 @@ export class PaymentRepository implements IPaymentRepository {
                 currency: data.currency,
                 razorpayOrderId: data.razorpayOrderId,
                 paymentMethod: data.paymentMethod || PaymentMethod.RAZORPAY,
-                // defaults to PENDING based on schema
+                status: data.status || PaymentStatus.PENDING,
             }
         });
         return PaymentMapper.toDomain(payment);

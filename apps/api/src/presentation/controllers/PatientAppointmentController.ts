@@ -49,8 +49,8 @@ export class PatientAppointmentController {
         try {
             const patientId = req.user.id;
             const id = req.params.id as string;
-            const { reason } = req.body;
-            const result = await this.cancelAppointmentUseCase.execute(id, patientId, reason);
+            const { reason, refundToWallet } = req.body;
+            const result = await this.cancelAppointmentUseCase.execute(id, patientId, reason, refundToWallet === true || refundToWallet === "true");
             res.json({ message: MESSAGES.APPOINTMENT_CANCELLED, data: result });
         } catch (error: any) {
             next(error);

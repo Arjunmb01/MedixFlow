@@ -17,6 +17,7 @@ export interface SaveMedicalRecordDTO {
   symptoms: string;
   diagnosis: string;
   notes?: string;
+  planForManagement?: string;
 }
 
 export interface MedicineDTO {
@@ -24,6 +25,7 @@ export interface MedicineDTO {
   dosage: string;
   frequency: string;
   duration: string;
+  instructions?: string;
 }
 
 export interface SavePrescriptionDTO {
@@ -31,6 +33,19 @@ export interface SavePrescriptionDTO {
   medicines: MedicineDTO[];
 }
 
+export interface LabTestRequestDTO {
+  testName: string;
+}
+
+export interface LabTestRecord {
+  id: string;
+  consultationId: string;
+  testName: string;
+  status: 'PENDING' | 'UPLOADED';
+  reportUrl?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export interface ConsultationRecord {
   id: string;
@@ -66,12 +81,14 @@ export interface ConsultationWithDetails extends ConsultationRecord {
     symptoms: string;
     diagnosis: string;
     notes?: string | null;
+    planForManagement?: string | null;
   } | null;
   prescription: {
     id: string;
     instructions?: string | null;
     medicines: MedicineDTO[];
   } | null;
+  labTests: LabTestRecord[];
   appointment: {
     id: string;
     appointmentDate: Date;
@@ -105,12 +122,14 @@ export interface ConsultationHistoryItem extends ConsultationRecord {
     symptoms: string;
     diagnosis: string;
     notes?: string | null;
+    planForManagement?: string | null;
   } | null;
   prescription: {
     id: string;
     instructions?: string | null;
     medicines: MedicineDTO[];
   } | null;
+  labTests: LabTestRecord[];
   appointment: {
     id: string;
     appointmentDate: Date;
@@ -136,12 +155,14 @@ export interface ConsultationWithEMR extends ConsultationRecord {
     symptoms: string;
     diagnosis: string;
     notes?: string | null;
+    planForManagement?: string | null;
   } | null;
   prescription: {
     id: string;
     instructions?: string | null;
     medicines: MedicineDTO[];
   } | null;
+  labTests: LabTestRecord[];
 }
 
 // ─── Repository contract ──────────────────────────────────────────────────
@@ -159,4 +180,9 @@ export interface IConsultationRepository {
   ): Promise<ConsultationWithEMR>;
   getPatientHistory(patientId: string): Promise<ConsultationHistoryItem[]>;
   deleteByAppointmentId(appointmentId: string): Promise<void>;
+
+  // Lab Test methods
+  requestLabTests(consultationId: string, tests: LabTestRequestDTO[]): Promise<void>;
+  getLabTestsByConsultation(consultationId: string): Promise<LabTestRecord[]>;
+  uploadLabTestReport(labTestId: string, reportUrl: string): Promise<void>;
 }

@@ -7,7 +7,8 @@ import {
     Vitals,
     MedicalRecord,
     Prescription,
-    Medicine
+    Medicine,
+    LabTest
 } from "@prisma/client";
 import {
     ConsultationRecord,
@@ -23,6 +24,7 @@ export type PrismaConsultationWithDetails = Consultation & {
     vitals: Vitals[];
     medicalRecord: MedicalRecord | null;
     prescription: (Prescription & { medicines: Medicine[] }) | null;
+    labTests: LabTest[];
     appointment: Appointment;
 };
 
@@ -35,6 +37,7 @@ export type PrismaConsultationWithEMR = Consultation & {
     vitals: Vitals[];
     medicalRecord: MedicalRecord | null;
     prescription: (Prescription & { medicines: Medicine[] }) | null;
+    labTests: LabTest[];
 };
 
 export class ConsultationMapper {
@@ -76,6 +79,7 @@ export class ConsultationMapper {
                 symptoms: prismaCons.medicalRecord.symptoms,
                 diagnosis: prismaCons.medicalRecord.diagnosis,
                 notes: prismaCons.medicalRecord.notes,
+                planForManagement: prismaCons.medicalRecord.planForManagement,
             } : null,
             prescription: prismaCons.prescription ? {
                 id: prismaCons.prescription.id,
@@ -85,8 +89,18 @@ export class ConsultationMapper {
                     dosage: m.dosage,
                     frequency: m.frequency,
                     duration: m.duration,
+                    instructions: m.instructions ?? undefined,
                 })),
             } : null,
+            labTests: prismaCons.labTests.map(l => ({
+                id: l.id,
+                consultationId: l.consultationId,
+                testName: l.testName,
+                status: l.status as any,
+                reportUrl: l.reportUrl,
+                createdAt: l.createdAt,
+                updatedAt: l.updatedAt,
+            })),
             appointment: {
                 id: prismaCons.appointment.id,
                 appointmentDate: prismaCons.appointment.appointmentDate,
@@ -112,6 +126,7 @@ export class ConsultationMapper {
                 symptoms: prismaCons.medicalRecord.symptoms,
                 diagnosis: prismaCons.medicalRecord.diagnosis,
                 notes: prismaCons.medicalRecord.notes,
+                planForManagement: prismaCons.medicalRecord.planForManagement,
             } : null,
             prescription: prismaCons.prescription ? {
                 id: prismaCons.prescription.id,
@@ -121,8 +136,18 @@ export class ConsultationMapper {
                     dosage: m.dosage,
                     frequency: m.frequency,
                     duration: m.duration,
+                    instructions: m.instructions ?? undefined,
                 })),
             } : null,
+            labTests: prismaCons.labTests.map(l => ({
+                id: l.id,
+                consultationId: l.consultationId,
+                testName: l.testName,
+                status: l.status as any,
+                reportUrl: l.reportUrl,
+                createdAt: l.createdAt,
+            updatedAt: l.updatedAt,
+            })),
         };
     }
 

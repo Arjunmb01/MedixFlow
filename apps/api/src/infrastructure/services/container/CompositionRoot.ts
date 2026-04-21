@@ -84,6 +84,9 @@ import { GetDoctorAppointmentsUseCase } from "@/application/use-cases/doctor/get
 import { GetDoctorDashboardStatsUseCase } from "@/application/use-cases/doctor/getDoctorDashboardStats.usecase";
 import { GetDoctorPrescriptionsUseCase } from "@/application/use-cases/doctor/getDoctorPrescriptions.usecase";
 import { GetDoctorProfileUseCase } from "@/application/use-cases/doctor/getDoctorProfile.usecase";
+import { RequestLabTestUseCase } from "../../../application/use-cases/consultation/requestLabTest.usecase";
+import { UploadLabTestUseCase } from "../../../application/use-cases/consultation/uploadLabTest.usecase";
+import { GetLabTestsUseCase } from "../../../application/use-cases/consultation/getLabTests.usecase";
 import { GetPublicDoctorDetailsUseCase } from "@/application/use-cases/doctor/getPublicDoctorDetails.usecase";
 import { UpdateDoctorPasswordUseCase } from "@/application/use-cases/doctor/updateDoctorPassword.usecase";
 import { UpdateDoctorProfileUseCase } from "@/application/use-cases/doctor/updateDoctorProfile.usecase";
@@ -103,6 +106,8 @@ import { UpdatePasswordUseCase } from "@/application/use-cases/patient/updatePas
 import { UpdatePatientProfileUseCase } from "@/application/use-cases/patient/updatePatientProfile.usecase";
 import { GetWalletBalanceUseCase } from "@/application/use-cases/patient/GetWalletBalanceUseCase";
 import { TopUpWalletUseCase } from "@/application/use-cases/patient/TopUpWalletUseCase";
+import { VerifyWalletTopUpUseCase } from "@/application/use-cases/patient/VerifyWalletTopUpUseCase";
+import { GetPatientFinancialActivityUseCase } from "@/application/use-cases/patient/GetPatientFinancialActivityUseCase";
 
 // Use Cases - Slot
 import { BookSlotUseCase } from "@/application/use-cases/slot/bookSlot.usecase";
@@ -249,6 +254,7 @@ export class CompositionRoot {
 
 
 
+
         // Consultation
         const checkinPatientUseCase = new CheckinPatientUseCase(appointmentRepository, consultationRepository, dateTimeService);
         const completeConsultationUseCase = new CompleteConsultationUseCase(consultationRepository, appointmentRepository, sendNotificationUseCase);
@@ -256,6 +262,9 @@ export class CompositionRoot {
         const getDoctorQueueUseCase = new GetDoctorQueueUseCase(consultationRepository);
         const getPatientHistoryUseCase = new GetPatientHistoryUseCase(consultationRepository);
         const startConsultationUseCase = new StartConsultationUseCase(consultationRepository);
+        const requestLabTestUseCase = new RequestLabTestUseCase(consultationRepository, sendNotificationUseCase);
+        const uploadLabTestUseCase = new UploadLabTestUseCase(consultationRepository, sendNotificationUseCase);
+        const getLabTestsUseCase = new GetLabTestsUseCase(consultationRepository);
 
         // Doctor
         const getAllDoctorsUseCase = new GetAllDoctorsUseCase(doctorRepository);
@@ -282,6 +291,8 @@ export class CompositionRoot {
         const updatePatientProfileUseCase = new UpdatePatientProfileUseCase(patientRepository, calculateProfileCompletionUseCase);
         const getWalletBalanceUseCase = new GetWalletBalanceUseCase(walletRepository);
         const topUpWalletUseCase = new TopUpWalletUseCase(razorpayService);
+        const verifyWalletTopUpUseCase = new VerifyWalletTopUpUseCase(razorpayService, walletRepository);
+        const getPatientFinancialActivityUseCase = new GetPatientFinancialActivityUseCase(prisma);
 
         // Slot
         const bookSlotUseCase = new BookSlotUseCase(slotRepository, consultationRepository);
@@ -297,7 +308,7 @@ export class CompositionRoot {
         const updateStaffDoctorUseCase = new UpdateStaffDoctorUseCase(staffRepository);
 
         // Leave
-        const applyLeaveUseCase = new ApplyLeaveUseCase(leaveRepository);
+        const applyLeaveUseCase = new ApplyLeaveUseCase(leaveRepository, appointmentRepository, sendNotificationUseCase, cancelAppointmentUseCase);
         const getMyLeavesUseCase = new GetMyLeavesUseCase(leaveRepository);
         const cancelLeaveUseCase = new CancelLeaveUseCase(leaveRepository);
         const getAllLeavesUseCase = new GetAllLeavesUseCase(leaveRepository);
@@ -316,7 +327,8 @@ export class CompositionRoot {
         
         const consultationController = new ConsultationController(
             checkinPatientUseCase, getDoctorQueueUseCase, startConsultationUseCase, 
-            completeConsultationUseCase, getPatientHistoryUseCase, getConsultationDetailsUseCase
+            completeConsultationUseCase, getPatientHistoryUseCase, getConsultationDetailsUseCase,
+            requestLabTestUseCase, uploadLabTestUseCase, getLabTestsUseCase
         );
 
         const doctorAuthController = new DoctorAuthController(
@@ -378,7 +390,9 @@ export class CompositionRoot {
         const paymentController = new PaymentController(
             handleRazorpayWebhookUseCase,
             getWalletBalanceUseCase,
-            topUpWalletUseCase
+            topUpWalletUseCase,
+            verifyWalletTopUpUseCase,
+            getPatientFinancialActivityUseCase
         );
 
         return {

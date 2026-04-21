@@ -63,12 +63,17 @@ type PrismaAppointmentPreview = Prisma.AppointmentGetPayload<{
         },
         doctor: {
             include: { specialization: true }
-        }
+        },
+        payment: true
     }
 }>;
 
+type PrismaAppointmentWithPayment = Prisma.AppointmentGetPayload<{
+    include: { payment: true }
+}>;
+
 export class AppointmentMapper {
-    toRecord(prismaApp: Appointment): AppointmentRecord {
+    toRecord(prismaApp: Appointment & { payment?: any }): AppointmentRecord {
         return {
             id: prismaApp.id,
             patientId: prismaApp.patientId,
@@ -82,6 +87,8 @@ export class AppointmentMapper {
             reason: prismaApp.reason,
             notes: prismaApp.notes,
             createdAt: prismaApp.createdAt,
+            paymentAmount: prismaApp.payment?.amount,
+            transactionId: prismaApp.payment?.razorpayPaymentId || prismaApp.payment?.id,
         };
     }
 

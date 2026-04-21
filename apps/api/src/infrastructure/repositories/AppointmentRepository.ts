@@ -350,6 +350,7 @@ export class AppointmentRepository implements IAppointmentRepository {
               specialization: true,
             },
           },
+          payment: true,
         },
         orderBy: {
           appointmentDate: "desc",

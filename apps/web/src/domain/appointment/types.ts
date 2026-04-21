@@ -22,6 +22,8 @@ export interface Appointment {
     reason?: string;
     paymentStatus?: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
     paymentMethod?: "RAZORPAY" | "WALLET";
+    paymentAmount?: number;
+    transactionId?: string;
     consultation?: {
         id: string;
         status: string;

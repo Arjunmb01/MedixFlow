@@ -26,6 +26,10 @@ router.patch("/appointments/:id/reschedule", authorize([UserRole.PATIENT]), appo
 router.post("/appointments/:appointmentId/checkin", authorize([UserRole.PATIENT]), consultationController.checkin);
 router.get("/dashboard-stats", authorize([UserRole.PATIENT]), appointmentController.getPatientDashboardStats);
 
+// Consultation extra routes
+router.post("/consultations/:id/lab-tests/:labTestId/upload", authorize([UserRole.PATIENT]), consultationController.uploadLabTest);
+router.get("/consultations/:id/lab-tests", authorize([UserRole.PATIENT]), consultationController.getLabTests);
+
 // Admin routes for patient management (Note: These might be better in admin.routes.ts)
 const adminController = container.adminPatientController;
 router.get("/all", authorize([UserRole.ADMIN]), adminController.getAllPatients);

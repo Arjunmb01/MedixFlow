@@ -30,6 +30,8 @@ router.get("/consultations/patient-history", consultationController.getPatientHi
 router.patch("/consultations/:id/start", consultationController.start);
 router.patch("/consultations/:id/complete", consultationController.complete);
 router.get("/consultations/:id", consultationController.getDetails);
+router.post("/consultations/:id/lab-tests", consultationController.requestLabTest);
+router.get("/consultations/:id/lab-tests", consultationController.getLabTests);
 
 router.get("/patients", clinicalController.getConsultedPatients);
 router.get("/prescriptions", clinicalController.getDoctorPrescriptions);

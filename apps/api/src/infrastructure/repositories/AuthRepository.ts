@@ -47,11 +47,19 @@ export class AuthRepository implements IAuthRepository {
             firstName: "Patient",
             lastName: "User",
             phone: "",
+            wallet: {
+              create: { balance: 0 }
+            }
           }
         });
         patientId = profile.patientId;
       } else {
         patientId = raw.patientProfile.patientId;
+        // Ensure wallet exists for existing profile
+        const wallet = await this.prisma.wallet.findUnique({ where: { patientId: raw.id } });
+        if (!wallet) {
+          await this.prisma.wallet.create({ data: { patientId: raw.id, balance: 0 } });
+        }
       }
     }
 
@@ -81,6 +89,9 @@ export class AuthRepository implements IAuthRepository {
             firstName: data.firstName,
             lastName: data.lastName,
             phone: data.phone,
+            wallet: {
+              create: { balance: 0 }
+            }
           },
         },
       },
@@ -112,6 +123,9 @@ export class AuthRepository implements IAuthRepository {
             firstName: data.firstName,
             lastName: data.lastName,
             phone: "",
+            wallet: {
+              create: { balance: 0 }
+            }
           },
         },
       },
@@ -223,11 +237,19 @@ export class AuthRepository implements IAuthRepository {
             firstName: "Patient",
             lastName: "User",
             phone: "",
+            wallet: {
+              create: { balance: 0 }
+            }
           }
         });
         patientId = profile.patientId;
       } else {
         patientId = raw.patientProfile.patientId;
+        // Ensure wallet exists for existing profile
+        const wallet = await this.prisma.wallet.findUnique({ where: { patientId: raw.id } });
+        if (!wallet) {
+          await this.prisma.wallet.create({ data: { patientId: raw.id, balance: 0 } });
+        }
       }
     }
 

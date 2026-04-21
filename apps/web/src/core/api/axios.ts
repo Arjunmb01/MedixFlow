@@ -18,7 +18,8 @@ function getRoleFromUrl(url?: string): UserRole {
     if (url === "/doctor" || url?.startsWith("/doctor/") || (url?.includes("/doctor") && !url?.includes("/doctors"))) return UserRole.DOCTOR;
     if (url === "/patient" || url?.startsWith("/patient/")) return UserRole.PATIENT;
     
-    if ((url?.includes("/common/") || url?.includes("/doctors")) && typeof window !== "undefined") {
+    // Static context awareness for top-level routes
+    if ((url?.includes("/common/") || url?.includes("/doctors") || url?.startsWith("/payments/")) && typeof window !== "undefined") {
         const path = window.location.pathname;
         if (path.startsWith("/admin")) return UserRole.ADMIN;
         if (path.startsWith("/patient")) return UserRole.PATIENT;

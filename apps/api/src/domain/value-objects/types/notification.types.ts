@@ -4,6 +4,7 @@ export enum NotificationType {
   COMPLETED = "COMPLETED",
   PRESCRIPTION = "PRESCRIPTION",
   RESCHEDULED = "RESCHEDULED",
+  LAB_TEST = "LAB_TEST",
 }
 
 export interface NotificationRecord {

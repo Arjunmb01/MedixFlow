@@ -10,7 +10,8 @@ import {
     ConsultationWithDetails,
     ConsultationQueueItem,
     ConsultationWithEMR,
-    ConsultationHistoryItem
+    ConsultationHistoryItem,
+    LabTestRequestDTO
 } from "../../domain/repositories/IConsultationRepository";
 
 import { 
@@ -56,6 +57,7 @@ export class ConsultationRepository implements IConsultationRepository {
                         medicines: true
                     }
                 },
+                labTests: true,
                 appointment: true
             }
         });
@@ -72,7 +74,8 @@ export class ConsultationRepository implements IConsultationRepository {
                     include: {
                         medicines: true
                     }
-                }
+                },
+                labTests: true
             }
         });
         return result ? this.mapper.toWithEMR(result as PrismaConsultationWithEMR) : null;
@@ -192,12 +195,13 @@ export class ConsultationRepository implements IConsultationRepository {
                 }
             }
 
-            const result: ConsultationWithEMR | null = await tx.consultation.findUnique({
+            const result = await tx.consultation.findUnique({
                 where: { id },
                 include: {
                     vitals: true,
                     medicalRecord: true,
-                    prescription: { include: { medicines: true } }
+                    prescription: { include: { medicines: true } },
+                    labTests: true
                 }
             });
 
@@ -205,7 +209,7 @@ export class ConsultationRepository implements IConsultationRepository {
                 throw new Error("Consultation not found after save");
             }
 
-            return this.mapper.toWithEMR(result as PrismaConsultationWithEMR);
+            return this.mapper.toWithEMR(result as any);
         });
     }
 
@@ -224,6 +228,7 @@ export class ConsultationRepository implements IConsultationRepository {
                         medicines: true
                     }
                 },
+                labTests: true,
                 appointment: true,
                 doctor: {
                     include: {
@@ -241,6 +246,33 @@ export class ConsultationRepository implements IConsultationRepository {
     async deleteByAppointmentId(appointmentId: string): Promise<void> {
         await this.prisma.consultation.deleteMany({
             where: { appointmentId }
+        });
+    }
+
+    async requestLabTests(consultationId: string, tests: LabTestRequestDTO[]): Promise<void> {
+        await this.prisma.labTest.createMany({
+            data: tests.map(test => ({
+                consultationId,
+                testName: test.testName,
+                status: "PENDING"
+            }))
+        });
+    }
+
+    async getLabTestsByConsultation(consultationId: string): Promise<any[]> {
+        return this.prisma.labTest.findMany({
+            where: { consultationId },
+            orderBy: { createdAt: "asc" }
+        });
+    }
+
+    async uploadLabTestReport(labTestId: string, reportUrl: string): Promise<void> {
+        await this.prisma.labTest.update({
+            where: { id: labTestId },
+            data: {
+                reportUrl,
+                status: "UPLOADED"
+            }
         });
     }
 }

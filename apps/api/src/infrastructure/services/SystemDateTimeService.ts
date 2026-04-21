@@ -31,6 +31,6 @@ export class SystemDateTimeService implements IDateTimeService {
     const appt = this.toDateTime(date, time);
     const diff = (appt.getTime() - now.getTime()) / (1000 * 60);
 
-    return diff <= 15 && diff >= -10;
+    return diff <= 30 && diff >= -10;
   }
 }

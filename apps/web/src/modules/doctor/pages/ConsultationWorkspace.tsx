@@ -1,10 +1,18 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { completeConsultation, getConsultationDetails, getPatientHistory } from "@/infrastructure/api/consultation.api";
+import { completeConsultation, getConsultationDetails, getPatientHistory, requestLabTests, getLabTests } from "@/infrastructure/api/consultation.api";
 import { getDoctorProfile } from "@/infrastructure/api/doctor.api";
-import { Loader2, ArrowLeft, Save, FileText, Activity, Stethoscope, Pill, History, ChevronDown, ChevronUp, AlertTriangle, X, Check } from "lucide-react";
+import { Loader2, ArrowLeft, Save, FileText, Activity, Stethoscope, Pill, History, ChevronDown, ChevronUp, AlertTriangle, X, Check, FlaskConical, ExternalLink } from "lucide-react";
 import DoctorSidebar from "../components/DoctorSidebar";
 import DoctorTopNav from "../components/DoctorTopNav";
+
+interface LabTest {
+    id: string;
+    testName: string;
+    status: string;
+    reportUrl?: string;
+    createdAt: string;
+}
 
 interface PastVisit {
     id: string;
@@ -22,6 +30,7 @@ interface PastVisit {
         symptoms: string;
         diagnosis: string;
         notes: string | null;
+        planForManagement?: string | null;
     } | null;
     prescription: {
         instructions: string | null;
@@ -31,6 +40,7 @@ interface PastVisit {
             dosage: string;
             frequency: string;
             duration: string;
+            instructions?: string | null;
         }[];
     } | null;
     vitals: {
@@ -68,6 +78,7 @@ interface ConsultationDetails {
         symptoms: string;
         diagnosis: string;
         notes: string | null;
+        planForManagement?: string | null;
     } | null;
     prescription?: {
         instructions: string | null;
@@ -76,8 +87,10 @@ interface ConsultationDetails {
             dosage: string;
             frequency: string;
             duration: string;
+            instructions?: string | null;
         }>;
     } | null;
+    labTests?: LabTest[];
 }
 
 export default function ConsultationWorkspace() {
@@ -87,6 +100,9 @@ export default function ConsultationWorkspace() {
     const [consultation, setConsultation] = useState<ConsultationDetails | null>(null);
     const [doctorProfile, setDoctorProfile] = useState<any>(null);
     const [pastVisits, setPastVisits] = useState<PastVisit[]>([]);
+    const [labTests, setLabTests] = useState<LabTest[]>([]);
+    const [requestedTestName, setRequestedTestName] = useState("");
+    const [isRequestingLab, setIsRequestingLab] = useState(false);
     const [expandedVisit, setExpandedVisit] = useState<string | null>(null);
     const [isLoadingDetails, setIsLoadingDetails] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -104,11 +120,12 @@ export default function ConsultationWorkspace() {
         symptoms: "",
         diagnosis: "",
         notes: "",
+        planForManagement: "",
     });
 
     const [prescription, setPrescription] = useState({
         instructions: "",
-        medicines: [] as { name: string; dosage: string; frequency: string; duration: string }[],
+        medicines: [] as { name: string; dosage: string; frequency: string; duration: string; instructions?: string }[],
     });
 
     const [customMedicine, setCustomMedicine] = useState({
@@ -116,6 +133,7 @@ export default function ConsultationWorkspace() {
         dosage: "",
         frequency: "",
         duration: "",
+        instructions: "",
     });
 
     useEffect(() => {
@@ -144,6 +162,12 @@ export default function ConsultationWorkspace() {
                 setPastVisits(history.filter((h: PastVisit) => h.id !== id));
             }
 
+            // Fetch Lab Tests
+            if (id) {
+                const tests = await getLabTests(id, "doctor");
+                setLabTests(tests);
+            }
+
             // Pre-populate form if data exists (e.g. for completed or resumed consultations)
             if (data.vitals && data.vitals.length > 0) {
                 const latestVitals = data.vitals[0];
@@ -159,6 +183,7 @@ export default function ConsultationWorkspace() {
                     symptoms: data.medicalRecord.symptoms || "",
                     diagnosis: data.medicalRecord.diagnosis || "",
                     notes: data.medicalRecord.notes || "",
+                    planForManagement: data.medicalRecord.planForManagement || "",
                 });
             }
             if (data.prescription) {
@@ -180,7 +205,7 @@ export default function ConsultationWorkspace() {
             ...prev,
             medicines: [...prev.medicines, customMedicine],
         }));
-        setCustomMedicine({ name: "", dosage: "", frequency: "", duration: "" });
+        setCustomMedicine({ name: "", dosage: "", frequency: "", duration: "", instructions: "" });
     };
 
     const handleRemoveMedicine = (index: number) => {
@@ -188,6 +213,23 @@ export default function ConsultationWorkspace() {
             ...prev,
             medicines: prev.medicines.filter((_, i) => i !== index),
         }));
+    };
+
+    const handleRequestLabTest = async () => {
+        if (!requestedTestName.trim() || !id) return;
+        setIsRequestingLab(true);
+        try {
+            await requestLabTests(id, [{ testName: requestedTestName.trim() }]);
+            setRequestedTestName("");
+
+            const tests = await getLabTests(id, "doctor");
+            setLabTests(tests);
+        } catch (error) {
+            console.error("Failed to request lab test", error);
+            alert("Failed to request lab test.");
+        } finally {
+            setIsRequestingLab(false);
+        }
     };
 
     const handleRequestComplete = () => {
@@ -213,6 +255,7 @@ export default function ConsultationWorkspace() {
                     symptoms: medicalRecord.symptoms,
                     diagnosis: medicalRecord.diagnosis,
                     notes: medicalRecord.notes || undefined,
+                    planForManagement: medicalRecord.planForManagement || undefined,
                 },
                 prescription: {
                     instructions: prescription.instructions || undefined,
@@ -465,28 +508,104 @@ export default function ConsultationWorkspace() {
                                     rows={3} placeholder="Patient complains of..."
                                     value={medicalRecord.symptoms} onChange={(e) => setMedicalRecord({...medicalRecord, symptoms: e.target.value})}
                                     maxLength={2000}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none font-medium"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Provisional Diagnosis <span className="text-red-500">*</span></label>
-                                <input 
-                                    type="text" placeholder="e.g. Acute Viral Pharyngitis"
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Clinical Diagnosis <span className="text-red-500">*</span></label>
+                                <textarea 
+                                    rows={2} placeholder="e.g. Acute Viral Pharyngitis"
                                     value={medicalRecord.diagnosis} onChange={(e) => setMedicalRecord({...medicalRecord, diagnosis: e.target.value})}
                                     maxLength={255}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-medium text-gray-900"
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-bold text-gray-900 resize-none"
                                 />
                             </div>
+                            
+                            <div className="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Plan for Management (Preventions)</label>
+                                    <textarea 
+                                        rows={3} placeholder="Steps for patient to take..."
+                                        value={medicalRecord.planForManagement} onChange={(e) => setMedicalRecord({...medicalRecord, planForManagement: e.target.value})}
+                                        maxLength={1000}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none text-[13px]"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Follow-up</label>
+                                    <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 font-medium text-gray-400 italic text-[13px] h-[98px]">
+                                        Follow-up details not editable in this version
+                                    </div>
+                                </div>
+                            </div>
+
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Clinical Notes & Advice</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Additional Clinical Notes (Optional)</label>
                                 <textarea 
-                                    rows={2} placeholder="Additional observations, recommended tests or diet modifications..."
+                                    rows={2} placeholder="Internal observations..."
                                     value={medicalRecord.notes} onChange={(e) => setMedicalRecord({...medicalRecord, notes: e.target.value})}
                                     maxLength={2000}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none"
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none text-[13px]"
                                 />
                             </div>
                         </div>
+                    </div>
+
+                    {/* Lab Test Management */}
+                    <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm mb-6">
+                        <div className="flex items-center gap-2 mb-6 text-gray-900 font-bold text-lg">
+                            <FlaskConical className="w-5 h-5 text-orange-500" />
+                            Lab Test Requests
+                        </div>
+
+                        <div className="flex gap-3 mb-6">
+                            <input 
+                                type="text" placeholder="Search or enter Lab Test name..."
+                                value={requestedTestName} onChange={(e) => setRequestedTestName(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleRequestLabTest()}
+                                className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 transition-all font-medium"
+                            />
+                            <button 
+                                onClick={handleRequestLabTest}
+                                disabled={isRequestingLab || !requestedTestName.trim()}
+                                className="bg-orange-600 hover:bg-orange-700 text-white px-6 rounded-xl font-bold transition-all disabled:opacity-50"
+                            >
+                                {isRequestingLab ? <Loader2 className="w-4 h-4 animate-spin" /> : "Request"}
+                            </button>
+                        </div>
+
+                        {labTests.length > 0 ? (
+                            <div className="space-y-3">
+                                {labTests.map((test) => (
+                                    <div key={test.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                        <div>
+                                            <p className="font-bold text-gray-900">{test.testName}</p>
+                                            <p className="text-xs text-gray-500 mt-1">Requested on {new Date(test.createdAt).toLocaleDateString()}</p>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                                test.status === 'UPLOADED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                                            }`}>
+                                                {test.status}
+                                            </span>
+                                            {test.reportUrl && (
+                                                <a 
+                                                    href={test.reportUrl} target="_blank" rel="noopener noreferrer"
+                                                    className="p-2 bg-white border border-gray-200 rounded-lg text-blue-600 hover:bg-blue-50 transition-all"
+                                                >
+                                                    <ExternalLink className="w-4 h-4" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl">
+                                <FlaskConical className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                                <p className="text-sm text-gray-400 font-medium">No lab tests requested yet</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Digital Prescription */}
@@ -534,6 +653,15 @@ export default function ConsultationWorkspace() {
                                     className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 transition-all"
                                 />
                             </div>
+                            <div className="flex-1">
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Instructions (When to eat)</label>
+                                <input 
+                                    type="text" placeholder="e.g. After food"
+                                    value={customMedicine.instructions} onChange={(e) => setCustomMedicine({...customMedicine, instructions: e.target.value})}
+                                    maxLength={100}
+                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 transition-all"
+                                />
+                            </div>
                             <button 
                                 onClick={handleAddMedicine}
                                 className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-bold text-sm h-[38px] transition-colors"
@@ -552,6 +680,7 @@ export default function ConsultationWorkspace() {
                                             <th className="px-4 py-3 font-bold">Dosage</th>
                                             <th className="px-4 py-3 font-bold">Frequency</th>
                                             <th className="px-4 py-3 font-bold">Duration</th>
+                                            <th className="px-4 py-3 font-bold">Instructions</th>
                                             <th className="px-4 py-3 font-bold text-right rounded-r-lg">Action</th>
                                         </tr>
                                     </thead>
@@ -562,6 +691,7 @@ export default function ConsultationWorkspace() {
                                                 <td className="px-4 py-3 text-gray-600">{med.dosage}</td>
                                                 <td className="px-4 py-3 text-gray-600 font-medium">{med.frequency}</td>
                                                 <td className="px-4 py-3 text-gray-600">{med.duration}</td>
+                                                <td className="px-4 py-3 text-gray-500 italic text-xs">{med.instructions || "—"}</td>
                                                 <td className="px-4 py-3 text-right">
                                                     <button onClick={() => handleRemoveMedicine(idx)} className="text-red-500 hover:text-red-700 font-semibold text-xs transition-colors">
                                                         Remove

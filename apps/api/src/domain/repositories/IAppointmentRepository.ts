@@ -15,6 +15,8 @@ export interface AppointmentRecord {
   reason?: string | null;
   notes?: string | null;
   createdAt: Date;
+  paymentAmount?: number;
+  transactionId?: string;
 }
 
 export interface AppointmentWithDoctor extends AppointmentRecord {
