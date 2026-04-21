@@ -6,8 +6,12 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --ignore-watch uploads -r tsconfig-paths/register src/server.ts",
     "build": "tsc",
+    "postinstall": "prisma generate",
     "start": "node dist/server.js",
     "lint": "eslint ."
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

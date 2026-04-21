@@ -445,7 +445,7 @@ export default function BookingPage() {
                                                     name: "MedixFlow",
                                                     description: `Appointment with Dr. ${doctor.firstName}`,
                                                     order_id: response.razorpayOrderId,
-                                                    handler: function (res: any) {
+                                                    handler: function (_res: any) {
                                                         // Payment succeeded
                                                         setBookingSuccess(true);
                                                     },

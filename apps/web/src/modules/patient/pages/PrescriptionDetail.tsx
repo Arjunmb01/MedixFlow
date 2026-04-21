@@ -20,7 +20,6 @@ import {
     CalendarCheck,
     FlaskConical,
     Upload,
-    FileImage,
     FileText as FilePdf,
     ExternalLink,
 } from "lucide-react";

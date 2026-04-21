@@ -1,4 +1,4 @@
-import { Role } from "../value-objects/enums/Role";
+import { UserRole } from "../value-objects/enums/UserRole";
 import { UserStatus } from "../value-objects/enums/UserStatus";
 
 export interface CreateDoctorPayload {
@@ -30,7 +30,7 @@ export class Staff {
   constructor(
     public readonly id: string,
     public email: string,
-    public role: Role,
+    public role: UserRole,
     public status: UserStatus
   ) {}
 
