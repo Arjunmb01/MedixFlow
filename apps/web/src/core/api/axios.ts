@@ -6,7 +6,7 @@ import { UserRole } from "@/domain/auth/types/auth.types";
 import { toast } from "sonner";
 
 const api = axios.create({
-    baseURL: "http://localhost:5000/api",
+    baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
     withCredentials: true
 })
 
@@ -40,9 +40,10 @@ function getLoginPath(role: UserRole) {
 }
 
 function getRefreshUrl(role: UserRole) {
-    if (role === UserRole.ADMIN) return "http://localhost:5000/api/admin/auth/refresh-token"
-    if (role === UserRole.DOCTOR) return "http://localhost:5000/api/doctor/auth/refresh-token"
-    return "http://localhost:5000/api/auth/refresh-token"
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    if (role === UserRole.ADMIN) return `${baseUrl}/admin/auth/refresh-token`;
+    if (role === UserRole.DOCTOR) return `${baseUrl}/doctor/auth/refresh-token`;
+    return `${baseUrl}/auth/refresh-token`;
 }
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {

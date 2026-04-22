@@ -23,9 +23,10 @@ export const AuthLoader = ({ children }: AuthLoaderProps) => {
 
             try {
                 // Determine refresh URL based on role
-                let refreshUrl = "http://localhost:5000/api/auth/refresh-token";
-                if (persistedRole === UserRole.ADMIN) refreshUrl = "http://localhost:5000/api/admin/auth/refresh-token";
-                if (persistedRole === UserRole.DOCTOR) refreshUrl = "http://localhost:5000/api/doctor/auth/refresh-token";
+                const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+                let refreshUrl = `${baseUrl}/auth/refresh-token`;
+                if (persistedRole === UserRole.ADMIN) refreshUrl = `${baseUrl}/admin/auth/refresh-token`;
+                if (persistedRole === UserRole.DOCTOR) refreshUrl = `${baseUrl}/doctor/auth/refresh-token`;
 
                 const response = await axios.post(
                     refreshUrl,
