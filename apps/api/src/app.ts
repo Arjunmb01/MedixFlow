@@ -19,7 +19,8 @@ app.use(
 
 app.use(helmet({ 
   crossOriginResourcePolicy: { policy: "cross-origin" },
-  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+  crossOriginEmbedderPolicy: false
 }));
 app.use(cookieParser());
 app.use(express.json({
