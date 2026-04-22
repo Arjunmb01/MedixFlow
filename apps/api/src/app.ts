@@ -6,12 +6,13 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { ZodError } from "zod";
 import router from "./presentation/routes";
+import { config } from "./infrastructure/services/config";
 
 const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"],
+    origin: config.allowedOrigins,
     credentials: true
   })
 )

@@ -1,6 +1,8 @@
 import dotenv from "dotenv"
 dotenv.config()
 
+const frontendUrlRaw = process.env.FRONTEND_URL || "http://localhost:5173";
+
 export const config = {
     env: process.env.NODE_ENV || "development",
     port: parseInt(process.env.PORT || "5000", 10),
@@ -9,7 +11,8 @@ export const config = {
     jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || "refresh_secret",
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
     resendApiKey: process.env.RESEND_API_KEY || "",
-    frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
+    frontendUrl: frontendUrlRaw.split(",")[0],
+    allowedOrigins: frontendUrlRaw.split(","),
     googleClientId: process.env.GOOGLE_CLIENT_ID || "",
     mongoUri: process.env.DATABASE_URL || "",
     cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || "",
