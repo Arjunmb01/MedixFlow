@@ -15,8 +15,13 @@ export class Payment {
     public readonly razorpayOrderId: string | null,
     public readonly razorpayPaymentId: string | null,
     public readonly razorpaySignature: string | null,
+    public readonly stripeSessionId: string | null,
+    public readonly stripePaymentIntentId: string | null,
+    public readonly paypalOrderId: string | null,
+    public readonly paypalCaptureId: string | null,
     public readonly paymentMethod: PaymentMethod,
     public readonly status: PaymentStatus,
+    public readonly walletAmount: number = 0,
     public readonly createdAt: Date,
     public readonly updatedAt: Date
   ) {}

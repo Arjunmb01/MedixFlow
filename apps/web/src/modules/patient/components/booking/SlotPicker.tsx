@@ -50,10 +50,10 @@ export const SlotPicker: React.FC<SlotPickerProps> = ({
                 {slots.map(slot => {
                     const isSelected = selectedSlot?.start === slot.start;
                     const isDisabled = slot.isFull || slot.isPast;
-                    const capacityPercent = ((slot.capacity - slot.available) / slot.capacity) * 100;
-                    const capacityColor = isDisabled
+                    const capacityPercent = 100;
+                    const capacityColor = slot.isPast
                         ? 'text-gray-400'
-                        : slot.available <= 1
+                        : slot.isFull
                         ? 'text-[#F59E0B]'
                         : 'text-[#10B981]';
 
@@ -92,7 +92,7 @@ export const SlotPicker: React.FC<SlotPickerProps> = ({
                                 <div className="h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden">
                                     <div
                                         className={`h-full rounded-full transition-all ${
-                                            isDisabled ? 'bg-gray-300' : slot.available <= 1 ? 'bg-[#F59E0B]' : 'bg-[#10B981]'
+                                            slot.isPast ? 'bg-gray-200' : slot.isFull ? 'bg-[#F59E0B]' : 'bg-[#10B981]'
                                         }`}
                                         style={{ width: `${capacityPercent}%` }}
                                     />
@@ -104,10 +104,10 @@ export const SlotPicker: React.FC<SlotPickerProps> = ({
                                 <Users className={`w-3 h-3 ${capacityColor}`} />
                                 <span className={`text-[11px] font-bold ${capacityColor}`}>
                                     {slot.isFull
-                                        ? `${slot.capacity}/${slot.capacity} filled`
+                                        ? "Already Booked"
                                         : slot.isPast
                                         ? "Unavailable"
-                                        : `${slot.available} of ${slot.capacity} spots left`
+                                        : "Slot Available"
                                     }
                                 </span>
                             </div>

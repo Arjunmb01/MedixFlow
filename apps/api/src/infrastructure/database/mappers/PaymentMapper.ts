@@ -14,8 +14,13 @@ export class PaymentMapper {
             prismaPayment.razorpayOrderId,
             prismaPayment.razorpayPaymentId,
             prismaPayment.razorpaySignature,
+            prismaPayment.stripeSessionId,
+            prismaPayment.stripePaymentIntentId,
+            prismaPayment.paypalOrderId,
+            prismaPayment.paypalCaptureId,
             prismaPayment.paymentMethod as PaymentMethod,
             prismaPayment.status as PaymentStatus,
+            prismaPayment.walletAmount,
             prismaPayment.createdAt,
             prismaPayment.updatedAt
         );

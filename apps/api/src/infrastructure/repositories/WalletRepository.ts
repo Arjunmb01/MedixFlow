@@ -22,16 +22,20 @@ export class WalletRepository implements IWalletRepository {
     return WalletMapper.toDomain(wallet);
   }
 
-  async updateBalance(walletId: string, amount: number, type: TransactionType, reason?: string): Promise<Wallet> {
+  async updateBalance(walletId: string, amount: number, type: TransactionType, reason?: string, stripeSessionId?: string, metadata?: any): Promise<Wallet> {
     const updatedWallet = await this.prisma.$transaction(async (tx) => {
+      const current = await tx.wallet.findUnique({ where: { id: walletId } });
+      const isBalanceValid = current && !isNaN(current.balance);
+      const oldBalance = current ? current.balance : 'N/A';
+
       const wallet = await tx.wallet.update({
         where: { id: walletId },
         data: {
-          balance: {
-            increment: amount
-          }
+          balance: isBalanceValid ? { increment: amount } : amount
         }
       });
+
+      console.log(`[WalletRepository] Updated wallet ${walletId}. Old: ${oldBalance}, Change: ${amount}, New: ${wallet.balance}, Type: ${type}`);
 
       await tx.walletTransaction.create({
         data: {
@@ -39,7 +43,9 @@ export class WalletRepository implements IWalletRepository {
           amount,
           type,
           status: "COMPLETED",
-          reason: reason || null
+          reason: reason || null,
+          stripeSessionId: stripeSessionId || null,
+          metadata: metadata || null
         }
       });
 
@@ -55,5 +61,12 @@ export class WalletRepository implements IWalletRepository {
       orderBy: { createdAt: "desc" }
     });
     return transactions.map(WalletMapper.toDomainTransaction);
+  }
+
+  async findTransactionByStripeSessionId(sessionId: string): Promise<WalletTransaction | null> {
+    const transaction = await this.prisma.walletTransaction.findFirst({
+      where: { stripeSessionId: sessionId }
+    });
+    return transaction ? WalletMapper.toDomainTransaction(transaction) : null;
   }
 }

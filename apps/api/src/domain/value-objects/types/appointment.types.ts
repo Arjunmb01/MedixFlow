@@ -6,7 +6,12 @@ export interface CreateAppointmentInput {
   appointmentDate: Date;
   slotStart: string;
   slotEnd: string;
+  startTime?: Date;
+  endTime?: Date;
   paymentMethod?: PaymentMethod;
+  useWallet?: boolean;
+  reason?: string;
+  expiresAt?: Date;
 }
 
 export interface DoctorScheduleInput {
@@ -25,10 +30,15 @@ export interface AppointmentDateTime {
 import { AppointmentStatus } from "../enums/AppointmentStatus";
 
 export type DoctorAppointmentFilter = {
-  status?: AppointmentStatus;
+  status?: AppointmentStatus | string;
+  paymentStatus?: string;
+  doctorId?: string;
   fromDate?: Date;
   toDate?: Date;
   isUpcoming?: boolean;
   page?: number;
   limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  search?: string;
 }

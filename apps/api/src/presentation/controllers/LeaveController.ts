@@ -67,7 +67,13 @@ export class LeaveController {
 
   getAllLeaves = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.getAllLeavesUseCase.execute();
+      const { status, search, page, limit } = req.query;
+      const result = await this.getAllLeavesUseCase.execute({
+        status: status as any,
+        search: search as string,
+        page: page ? parseInt(page as string) : 1,
+        limit: limit ? parseInt(limit as string) : 10,
+      });
       res.json(result);
     } catch (error) {
       next(error);

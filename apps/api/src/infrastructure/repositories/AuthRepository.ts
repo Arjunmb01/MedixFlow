@@ -37,30 +37,8 @@ export class AuthRepository implements IAuthRepository {
     if (!raw) return null;
 
     let patientId = "";
-    if (raw.role === Role.PATIENT) {
-      if (!raw.patientProfile) {
-        const generatedId = await this.patientIdGenerator.generate();
-        const profile = await this.prisma.patientProfile.create({
-          data: {
-            id: raw.id,
-            patientId: generatedId,
-            firstName: "Patient",
-            lastName: "User",
-            phone: "",
-            wallet: {
-              create: { balance: 0 }
-            }
-          }
-        });
-        patientId = profile.patientId;
-      } else {
-        patientId = raw.patientProfile.patientId;
-        // Ensure wallet exists for existing profile
-        const wallet = await this.prisma.wallet.findUnique({ where: { patientId: raw.id } });
-        if (!wallet) {
-          await this.prisma.wallet.create({ data: { patientId: raw.id, balance: 0 } });
-        }
-      }
+    if (raw.role === Role.PATIENT && raw.patientProfile) {
+      patientId = raw.patientProfile.patientId;
     }
 
     return {
@@ -227,43 +205,8 @@ export class AuthRepository implements IAuthRepository {
     if (!raw) return null;
 
     let patientId = "";
-    if (raw.role === Role.PATIENT) {
-      if (!raw.patientProfile) {
-        const generatedId = await this.patientIdGenerator.generate();
-        const profile = await this.prisma.patientProfile.create({
-          data: {
-            id: raw.id,
-            patientId: generatedId,
-            firstName: "Patient",
-            lastName: "User",
-            phone: "",
-            wallet: {
-              create: { balance: 0 }
-            }
-          }
-        });
-        patientId = profile.patientId;
-      } else {
-        patientId = raw.patientProfile.patientId;
-        // Ensure wallet exists for existing profile
-        const wallet = await this.prisma.wallet.findUnique({ where: { patientId: raw.id } });
-        if (!wallet) {
-          await this.prisma.wallet.create({ data: { patientId: raw.id, balance: 0 } });
-        }
-      }
-    }
-
-    if (raw.role === Role.DOCTOR && !raw.doctorProfile) {
-      await this.prisma.doctorProfile.create({
-        data: {
-          id: raw.id,
-          firstName: "Doctor",
-          lastName: "User",
-          licenseNumber: "TEMP-" + raw.id.slice(0, 8),
-          consultationFee: 0,
-          specializationId: (await this.prisma.specialization.findFirst())?.id || "",
-        }
-      });
+    if (raw.role === Role.PATIENT && raw.patientProfile) {
+      patientId = raw.patientProfile.patientId;
     }
 
     return {

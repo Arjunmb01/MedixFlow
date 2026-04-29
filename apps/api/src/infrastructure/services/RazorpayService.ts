@@ -1,15 +1,15 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import { IRazorpayService, CreateRazorpayOrderInput, RazorpayOrder } from "../../domain/services/IRazorpayService";
-import { config } from "./config";
+import { env as config } from "@/shared/config/env";
 
 export class RazorpayService implements IRazorpayService {
   private readonly razorpay: Razorpay;
 
   constructor() {
     this.razorpay = new Razorpay({
-      key_id: config.razorpayKeyId,
-      key_secret: config.razorpayKeySecret,
+      key_id: config.RAZORPAY_KEY_ID,
+      key_secret: config.RAZORPAY_KEY_SECRET,
     });
   }
 
@@ -49,7 +49,7 @@ export class RazorpayService implements IRazorpayService {
   verifyPaymentSignature(orderId: string, paymentId: string, signature: string): boolean {
     try {
       const generatedSignature = crypto
-        .createHmac("sha256", config.razorpayKeySecret)
+        .createHmac("sha256", config.RAZORPAY_KEY_SECRET)
         .update(`${orderId}|${paymentId}`)
         .digest("hex");
 

@@ -50,8 +50,8 @@ export const cancelLeave = async (id: string): Promise<void> => {
 };
 
 // Admin endpoints
-export const getAllLeaves = async (): Promise<LeaveRequest[]> => {
-  const res = await api.get("/admin/leaves");
+export const getAllLeaves = async (params?: any): Promise<{ data: LeaveRequest[], total: number }> => {
+  const res = await api.get("/admin/leaves", { params });
   return res.data;
 };
 

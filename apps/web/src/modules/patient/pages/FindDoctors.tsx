@@ -11,10 +11,13 @@ export default function FindDoctors() {
     const navigate = useNavigate()
     const { profile, loading: profileLoading } = usePatientProfile()
     
+    const [experience, setExperience] = useState(0)
+    const [minRating, setMinRating] = useState(0)
+    const [sortBy, setSortBy] = useState("rating_desc")
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedSpecialty, setSelectedSpecialty] = useState("All")
     const [availableToday, setAvailableToday] = useState(false)
-    const [priceRange, setPriceRange] = useState({ min: 0, max: 2000 })
+    const [priceRange, setPriceRange] = useState({ min: 0, max: 10000 })
     const [currentPage, setCurrentPage] = useState(1)
 
     const { 
@@ -28,6 +31,9 @@ export default function FindDoctors() {
         availableToday,
         minFee: priceRange.min,
         maxFee: priceRange.max,
+        experienceYears: experience,
+        minRating: minRating,
+        sortBy: sortBy,
         page: currentPage,
         limit: 9
     })
@@ -44,12 +50,15 @@ export default function FindDoctors() {
                 availableToday,
                 minFee: priceRange.min,
                 maxFee: priceRange.max,
+                experienceYears: experience,
+                minRating: minRating,
+                sortBy: sortBy,
                 page: 1
             })
             setCurrentPage(1)
         }, 500)
         return () => clearTimeout(timer)
-    }, [searchQuery, selectedSpecialty, availableToday, priceRange])
+    }, [searchQuery, selectedSpecialty, availableToday, priceRange, experience, minRating, sortBy])
 
     const handlePageChange = (newPage: number) => {
         setCurrentPage(newPage)
@@ -82,79 +91,140 @@ export default function FindDoctors() {
                         <p className="text-gray-500 font-medium">Book appointments with top-rated doctors in your city.</p>
                     </div>
 
-                    {/* Horizontal Filter Bar */}
-                    <div className="bg-white rounded-[2rem] p-4 border border-gray-100 shadow-sm mb-10 flex flex-wrap items-center gap-4">
-                        {/* Quick Search */}
-                        <div className="flex-1 min-w-[240px] relative group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
-                            <input 
-                                type="text"
-                                placeholder="Doctor name, specialty..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-gray-50 border-none rounded-xl pl-11 pr-4 py-3 text-sm font-bold focus:ring-2 focus:ring-blue-500/10 transition-all placeholder:text-gray-300"
-                            />
-                        </div>
-
-                        <div className="h-8 w-px bg-gray-100 hidden md:block"></div>
-
-                        {/* Specialization Dropdown */}
-                        <div className="relative group">
-                            <select 
-                                value={selectedSpecialty}
-                                onChange={(e) => setSelectedSpecialty(e.target.value)}
-                                className="bg-gray-50 border-none rounded-xl px-4 py-3 pr-10 text-sm font-bold text-gray-600 focus:ring-2 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer"
-                            >
-                                {specialties.map(spec => (
-                                    <option key={spec} value={spec}>{spec}</option>
-                                ))}
-                            </select>
-                            <SlidersHorizontal className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-                        </div>
-
-                        {/* Availability Toggle */}
-                        <button 
-                            onClick={() => setAvailableToday(!availableToday)}
-                            className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
-                                availableToday ? 'bg-green-50 border-green-200 text-green-700 shadow-sm' : 'bg-gray-50 border-transparent text-gray-500'
-                            }`}
-                        >
-                            <Clock className={`w-4 h-4 ${availableToday ? 'text-green-500' : 'text-gray-400'}`} />
-                            <span className="text-sm font-bold">Available today</span>
-                        </button>
-
-                        <div className="h-8 w-px bg-gray-100 hidden md:block"></div>
-
-                        {/* Fee Filter */}
-                        <div className="flex items-center gap-4 bg-gray-50 px-4 py-2 rounded-xl">
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Max Fee</span>
-                                <span className="text-xs font-black text-blue-600">₹{priceRange.max}</span>
+                    {/* Advanced Filter Bar */}
+                    <div className="bg-white rounded-[2.5rem] p-6 border border-gray-100 shadow-xl shadow-blue-900/5 mb-10 space-y-6">
+                        <div className="flex flex-wrap items-center gap-4">
+                            {/* Quick Search */}
+                            <div className="flex-1 min-w-[280px] relative group">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
+                                <input 
+                                    type="text"
+                                    placeholder="Doctor name, hospital, keywords..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full bg-gray-50 border-none rounded-2xl pl-11 pr-4 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-500/10 transition-all placeholder:text-gray-300"
+                                />
                             </div>
-                            <input 
-                                type="range"
-                                min="0"
-                                max="2000"
-                                step="100"
-                                value={priceRange.max}
-                                onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })}
-                                className="w-24 md:w-32 accent-blue-600 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                            />
+
+                            <div className="h-10 w-px bg-gray-100 hidden lg:block"></div>
+
+                            {/* Sort Dropdown */}
+                            <div className="relative group">
+                                <select 
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value)}
+                                    className="bg-blue-50 border-none rounded-2xl px-5 py-4 pr-12 text-sm font-black text-blue-700 focus:ring-2 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer"
+                                >
+                                    <option value="rating_desc">Top Rated</option>
+                                    <option value="fee_asc">Price: Low to High</option>
+                                    <option value="fee_desc">Price: High to Low</option>
+                                    <option value="experience_desc">Experience</option>
+                                    <option value="name_asc">Name (A-Z)</option>
+                                </select>
+                                <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400 pointer-events-none rotate-90" />
+                            </div>
                         </div>
 
-                        {/* Reset Button */}
-                        <button 
-                            onClick={() => {
-                                setSearchQuery("")
-                                setSelectedSpecialty("All")
-                                setAvailableToday(false)
-                                setPriceRange({ min: 0, max: 2000 })
-                            }}
-                            className="p-3 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                            title="Reset filters"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
+                        <div className="flex flex-wrap items-center gap-6 pt-2">
+                            {/* Specialization */}
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Specialization</label>
+                                <div className="relative">
+                                    <select 
+                                        value={selectedSpecialty}
+                                        onChange={(e) => setSelectedSpecialty(e.target.value)}
+                                        className="bg-gray-50 border-none rounded-xl px-4 py-2.5 pr-10 text-xs font-bold text-gray-600 focus:ring-2 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer min-w-[160px]"
+                                    >
+                                        {specialties.map(spec => (
+                                            <option key={spec} value={spec}>{spec}</option>
+                                        ))}
+                                    </select>
+                                    <SlidersHorizontal className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 pointer-events-none" />
+                                </div>
+                            </div>
+
+                            {/* Experience Filter */}
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Experience</label>
+                                <select 
+                                    value={experience}
+                                    onChange={(e) => setExperience(Number(e.target.value))}
+                                    className="bg-gray-50 border-none rounded-xl px-4 py-2.5 text-xs font-bold text-gray-600 focus:ring-2 focus:ring-blue-500/10 transition-all cursor-pointer"
+                                >
+                                    <option value={0}>Any Experience</option>
+                                    <option value={5}>5+ Years</option>
+                                    <option value={10}>10+ Years</option>
+                                    <option value={15}>15+ Years</option>
+                                </select>
+                            </div>
+
+                            {/* Rating Filter */}
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Min Rating</label>
+                                <div className="flex items-center gap-1.5 bg-gray-50 p-1.5 rounded-xl">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button 
+                                            key={star}
+                                            onClick={() => setMinRating(minRating === star ? 0 : star)}
+                                            className={`p-1 rounded-md transition-all ${minRating >= star ? 'text-orange-400' : 'text-gray-200'}`}
+                                        >
+                                            <Star className={`w-4 h-4 ${minRating >= star ? 'fill-current' : ''}`} />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Fee Slider */}
+                            <div className="flex flex-col gap-2 flex-1 min-w-[200px]">
+                                <div className="flex items-center justify-between px-1">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Consultation Fee</label>
+                                    <span className="text-[10px] font-black text-blue-600">Up to ₹{priceRange.max}</span>
+                                </div>
+                                <input 
+                                    type="range"
+                                    min="0"
+                                    max="5000"
+                                    step="500"
+                                    value={priceRange.max}
+                                    onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) })}
+                                    className="w-full accent-blue-600 h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer"
+                                />
+                            </div>
+
+                            {/* Quick Availability */}
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Availability</label>
+                                <button 
+                                    onClick={() => setAvailableToday(!availableToday)}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all ${
+                                        availableToday ? 'bg-green-50 border-green-200 text-green-700 shadow-sm' : 'bg-gray-50 border-transparent text-gray-500'
+                                    }`}
+                                >
+                                    <Clock className={`w-3.5 h-3.5 ${availableToday ? 'text-green-500' : 'text-gray-400'}`} />
+                                    <span className="text-xs font-bold whitespace-nowrap">Available today</span>
+                                </button>
+                            </div>
+
+                            {/* Reset Button */}
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[10px] opacity-0 uppercase tracking-widest px-1">Reset</label>
+                                <button 
+                                    onClick={() => {
+                                        setSearchQuery("")
+                                        setSelectedSpecialty("All")
+                                        setAvailableToday(false)
+                                        setPriceRange({ min: 0, max: 2000 })
+                                        setExperience(0)
+                                        setMinRating(0)
+                                        setSortBy("rating_desc")
+                                    }}
+                                    className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100"
+                                    title="Reset all filters"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Doctors Grid */}

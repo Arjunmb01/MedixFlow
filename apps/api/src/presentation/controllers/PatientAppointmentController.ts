@@ -5,6 +5,7 @@ import { GetPatientDashboardStatsUseCase } from "@/application/use-cases/patient
 import { GetPatientAppointmentsUseCase } from "@/application/use-cases/patient/getPatientAppointments.usecase";
 import { CancelAppointmentUseCase } from "@/application/use-cases/appointment/cancelAppointment.usecase";
 import { RescheduleAppointmentUseCase } from "@/application/use-cases/appointment/rescheduleAppointment.usecase";
+import { RespondToProposalUseCase } from "@/application/use-cases/appointment/RespondToProposalUseCase";
 
 export class PatientAppointmentController {
     constructor(
@@ -12,7 +13,8 @@ export class PatientAppointmentController {
         private getPatientDashboardStatsUseCase: GetPatientDashboardStatsUseCase,
         private getPatientAppointmentsUseCase: GetPatientAppointmentsUseCase,
         private cancelAppointmentUseCase: CancelAppointmentUseCase,
-        private rescheduleAppointmentUseCase: RescheduleAppointmentUseCase
+        private rescheduleAppointmentUseCase: RescheduleAppointmentUseCase,
+        private respondToProposalUseCase: RespondToProposalUseCase
     ) {}
 
     getUpcomingAppointments = async (req: Request, res: Response, next: NextFunction) => {
@@ -38,7 +40,14 @@ export class PatientAppointmentController {
     getPatientAppointments = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
-            const appointments = await this.getPatientAppointmentsUseCase.execute(patientId);
+            const filter = {
+                status: req.query.status as string,
+                paymentStatus: req.query.paymentStatus as string,
+                isUpcoming: String(req.query.isUpcoming) === "true",
+                page: req.query.page ? parseInt(req.query.page as string) : undefined,
+                limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+            };
+            const appointments = await this.getPatientAppointmentsUseCase.execute(patientId, filter);
             res.json(appointments);
         } catch (error) {
             next(error);
@@ -71,6 +80,18 @@ export class PatientAppointmentController {
                 slotEnd,
             });
             res.json({ message: "Appointment rescheduled successfully", data: result });
+        } catch (error: any) {
+            next(error);
+        }
+    }
+
+    respondToProposal = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const actorId = req.user.id;
+            const proposalId = req.params.proposalId as string;
+            const { action } = req.body; // ACCEPT or REJECT
+            const result = await this.respondToProposalUseCase.execute(proposalId, action, actorId);
+            res.json({ message: `Proposal ${action.toLowerCase()}ed successfully`, data: result });
         } catch (error: any) {
             next(error);
         }

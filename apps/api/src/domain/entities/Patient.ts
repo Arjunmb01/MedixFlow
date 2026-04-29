@@ -15,7 +15,8 @@ export class Patient {
     public gender?: Gender,
     public passwordHash?: string,
     public role: UserRole = UserRole.PATIENT,
-    public emergencyContacts: { id?: string; name: string; mobile: string; }[] = []
+    public emergencyContacts: { id?: string; name: string; mobile: string; }[] = [],
+    public readonly wallet?: { id: string; balance: number }
   ) {}
 
 

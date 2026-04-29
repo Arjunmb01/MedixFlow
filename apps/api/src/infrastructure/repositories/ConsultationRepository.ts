@@ -99,7 +99,7 @@ export class ConsultationRepository implements IConsultationRepository {
                         lte : endOfDay
                     },
                     status : {
-                        in : ["CONFIRMED", "COMPLETED"]
+                        in : ["BOOKED", "COMPLETED"]
                     }
                 }
             },

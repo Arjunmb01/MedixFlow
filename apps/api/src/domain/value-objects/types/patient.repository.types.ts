@@ -23,6 +23,10 @@ export interface PatientProfile {
   };
   createdAt: Date;
   emergencyContacts?: EmergencyContact[];
+  wallet?: {
+    id: string;
+    balance: number;
+  };
 }
 
 export interface EmergencyContact {

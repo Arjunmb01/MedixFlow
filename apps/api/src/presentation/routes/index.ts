@@ -10,6 +10,9 @@ import publicDoctorRoutes from ".//publicDoctor.routes"
 import uploadRoutes from ".//upload.routes"
 import appointmentRoutes from ".//appointment.routes"
 import { doctorLeaveRouter, adminLeaveRouter } from ".//leave.routes"
+import notificationRoutes from "./notification.routes"
+import paymentRoutes from "./payment.routes"
+import walletRoutes from "./wallet.routes"
 
 const router = Router()
 router.use("/common", uploadRoutes)
@@ -17,6 +20,7 @@ router.use("/auth", authRoutes)
 router.use("/admin/auth", adminAuthRoutes)
 router.use("/doctor/auth", doctorAuthRoutes)
 router.use("/admin", sharedAdminRoutes)
+router.use("/patient/wallet", walletRoutes)
 router.use("/patient", patientRoutes)
 router.use("/staff", staffRoutes)
 router.use("/doctor", doctorRoutes)
@@ -24,11 +28,7 @@ router.use("/doctors", publicDoctorRoutes)
 router.use("/appointments",appointmentRoutes)
 router.use("/doctor/leaves", doctorLeaveRouter)
 router.use("/admin/leaves", adminLeaveRouter)
-import notificationRoutes from "./notification.routes"
-import paymentRoutes from "./payment.routes"
-import walletRoutes from "./wallet.routes"
 router.use("/notifications", notificationRoutes)
 router.use("/payments", paymentRoutes)
-router.use("/patient/wallet", walletRoutes)
 
 export default router

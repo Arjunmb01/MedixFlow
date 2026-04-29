@@ -6,8 +6,7 @@ import { storage } from "@/infrastructure/services/cloudinary.config"
 import { container } from "@/infrastructure/services/container/CompositionRoot"
 
 const router = Router()
-const authMiddleware = container.authMiddleware;
-
+const auth = container.authMiddleware;
 
 const upload = multer({
     storage,
@@ -22,7 +21,6 @@ const upload = multer({
     }
 })
 
-router.post("/upload/image", authMiddleware, upload.single('image'), uploadFile)
+router.post("/upload/image", auth.authenticate, upload.single('image'), uploadFile)
 
 export default router
-

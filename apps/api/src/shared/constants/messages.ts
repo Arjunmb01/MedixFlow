@@ -1,0 +1,72 @@
+export const MESSAGES = {
+    // Auth
+    LOGIN_SUCCESS: "Login successful",
+    LOGIN_FAILED: "Invalid email or password",
+    LOGOUT_SUCCESS: "Logout successful",
+    AUTH_REQUIRED: "Authentication required",
+    INSUFFICIENT_PERMISSIONS: "You do not have permission to perform this action",
+    SESSION_EXPIRED: "Session expired, please login again",
+    ACCOUNT_BLOCKED: "Your account has been blocked by the administrator",
+    ACCOUNT_SUSPENDED: "Your account has been suspended by the administrator",
+    USER_NOT_FOUND: "User not found",
+    USER_ALREADY_EXISTS: "User with this email already exists",
+    USER_ID_REQUIRED: "User ID is required",
+    INVALID_GOOGLE_TOKEN: "Invalid Google token",
+    INVALID_ROLE_PATIENT: "Patient account not found. Please register or check your credentials.",
+    INVALID_ROLE_DOCTOR: "Doctor account not found. Please contact the administrator.",
+    INVALID_ROLE_ADMIN: "Admin account not found.",
+    REFRESH_TOKEN_REQUIRED: "Refresh token is required",
+    INVALID_ROLE_SESSION: "Invalid session role",
+
+    // OTP & Password
+    OTP_SENT: "OTP sent. Please verify to complete registration.",
+    OTP_RESENT: "OTP resent successfully",
+    OTP_VERIFIED: "Account verified and created successfully",
+    INVALID_OTP: "Invalid OTP",
+    OTP_EXPIRED: "Registration session expired. Please start again.",
+    OTP_EXPIRED_SIMPLE: "OTP expired",
+    PASSWORD_RESET_SUCCESS: "Password updated successfully",
+    CURRENT_PASSWORD_INCORRECT: "Current password is incorrect",
+    INVALID_CURRENT_PASSWORD: "Current password is incorrect",
+    CURRENT_NEW_PASSWORD_REQUIRED: "Both current and new passwords are required",
+    NEW_PASSWORD_LENGTH: "New password must be at least 6 characters long",
+    FORGOT_PASSWORD_SENT: "Password reset link sent to your email",
+    FORGOT_PASSWORD_CONFIRM: "If an account with that email exists, a password reset link has been sent.",
+    INVALID_RESET_TOKEN: "Invalid or expired reset token",
+    INVALID_SETUP_TOKEN: "Invalid setup token",
+    SETUP_TOKEN_EXPIRED: "Setup token has expired",
+    EMAIL_REQUIRED: "Email is required",
+
+    // Staff & Doctor
+    STAFF_CREATED: "Doctor created successfully",
+    STAFF_UPDATED: "Doctor updated successfully",
+    PROFILE_UPDATED: "Profile updated successfully",
+    EMERGENCY_CONTACT_UPDATED: "Emergency contacts updated successfully",
+    SCHEDULE_UPDATED: "Schedules updated successfully",
+    DOCTOR_PROFILE_NOT_FOUND: "Doctor profile not found",
+    DOCTOR_NOT_FOUND: "Doctor not found",
+    
+    // Patient
+    PATIENT_NOT_FOUND: "Patient not found",
+    PATIENT_PROFILE_UPDATED: "Profile updated successfully",
+    PATIENT_DELETED: "Patient record deleted successfully",
+    PATIENT_STATUS_UPDATED: "Patient status updated successfully",
+
+    // Appointment
+    APPOINTMENT_CREATED: "Appointment created successfully",
+    APPOINTMENT_CANCELLED: "Appointment cancelled successfully",
+    APPOINTMENT_UPDATED: "Appointment updated successfully",
+    APPOINTMENT_NOT_FOUND: "Appointment not found",
+    SLOT_NOT_AVAILABLE: "Selected slot is no longer available",
+
+    // Validation & Errors
+    VALIDATION_ERROR: "Validation failed",
+    INVALID_ID: "Invalid ID provided",
+    TERMS_ACCEPTED_REQUIRED: "You must accept the terms and conditions",
+    GOOGLE_ID_TOKEN_REQUIRED: "Google ID token is required",
+    NO_FILE_UPLOADED: "No file was uploaded",
+    INVALID_FILE_TYPE: "Invalid file type. Only images (JPEG, PNG, WEBP) are allowed.",
+    INTERNAL_ERROR: "Internal Server Error",
+    INTERNAL_SERVER_ERROR: "Internal Server Error",
+    ALREADY_REGISTERED: "This email is already registered and verified",
+} as const;

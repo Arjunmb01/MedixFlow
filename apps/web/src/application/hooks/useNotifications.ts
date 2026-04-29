@@ -15,22 +15,15 @@ export const useNotifications = () => {
   const user = persistedRole ? authState[persistedRole]?.user : null;
   const userId = user?.id;
   
-  if (userId) {
-    console.log(`[useNotifications] Active session for user: ${userId} (${persistedRole})`);
-  }
-
   const fetchInitialData = useCallback(async () => {
     if (!userId) {
-      console.warn("[useNotifications] fetchInitialData skipped: userId is missing");
       return;
     }
-    console.log(`[useNotifications] Fetching initial data for user: ${userId}`);
     try {
       const [notifs, count] = await Promise.all([
         getNotifications(10, 0),
         getUnreadCount()
       ]);
-      console.log(`[useNotifications] Successfully fetched ${notifs.length} notifications, unread count: ${count}`);
       setNotifications(notifs);
       setUnreadCount(count);
     } catch (error) {
@@ -43,7 +36,6 @@ export const useNotifications = () => {
 
     fetchInitialData();
 
-    console.log(`[useNotifications] Attempting to connect to socket for user: ${userId} at ${SOCKET_SERVER_URL}`);
     const newSocket = io(SOCKET_SERVER_URL, {
       query: { userId },
       withCredentials: true,

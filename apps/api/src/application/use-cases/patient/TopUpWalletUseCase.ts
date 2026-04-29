@@ -1,5 +1,5 @@
 import { IRazorpayService } from "../../../domain/services/IRazorpayService";
-import { config } from "../../../infrastructure/services/config";
+import { env as config } from "../../../shared/config/env";
 
 export interface TopUpWalletInput {
   patientId: string;
@@ -23,7 +23,7 @@ export class TopUpWalletUseCase {
 
     return { 
       razorpayOrderId: razorpayOrder.id,
-      razorpayKeyId: config.razorpayKeyId,
+      razorpayKeyId: config.RAZORPAY_KEY_ID,
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency
     };

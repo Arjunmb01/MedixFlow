@@ -10,18 +10,19 @@ import {
     Plus, 
     Loader2,
     Calendar,
+    ChevronLeft,
     ChevronRight,
     TrendingUp,
     CreditCard
 } from "lucide-react";
-import { getWalletBalance, topUpWallet, verifyWalletTopUp, getFinancialActivity } from "@/infrastructure/api/appointment.api";
+import { getWalletBalance, topUpWallet, getFinancialActivity } from "@/infrastructure/api/appointment.api";
 import { toast } from "sonner";
 
 interface Transaction {
     id: string;
     amount: number;
     type: "TOP_UP" | "PAYMENT" | "REFUND";
-    status: "SUCCESS" | "PENDING" | "FAILED";
+    status: "SUCCESS" | "PENDING" | "FAILED" | "PAID";
     method: "WALLET" | "RAZORPAY";
     createdAt: string;
     description: string;
@@ -32,18 +33,23 @@ export default function WalletPage() {
     const { profile } = usePatientProfile();
     const [balance, setBalance] = useState<number | null>(null);
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [totalTransactions, setTotalTransactions] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
     const [isToppingUp, setIsToppingUp] = useState(false);
     const [topUpAmount, setTopUpAmount] = useState<string>("");
+    const limit = 10;
 
     const fetchWalletData = async () => {
         try {
+            setLoading(true);
             const [balanceData, activityData] = await Promise.all([
                 getWalletBalance(),
-                getFinancialActivity()
+                getFinancialActivity({ page, limit })
             ]);
             setBalance(balanceData.wallet.balance);
-            setTransactions(activityData || []);
+            setTransactions(activityData.data || []);
+            setTotalTransactions(activityData.total || 0);
         } catch (error) {
             console.error("Failed to fetch wallet data:", error);
             setBalance(0);
@@ -54,18 +60,9 @@ export default function WalletPage() {
 
     useEffect(() => {
         fetchWalletData();
-    }, []);
+    }, [page]);
 
-    // Load Razorpay Script
-    useEffect(() => {
-        const script = document.createElement("script");
-        script.src = "https://checkout.razorpay.com/v1/checkout.js";
-        script.async = true;
-        document.body.appendChild(script);
-        return () => {
-            document.body.removeChild(script);
-        };
-    }, []);
+    // Removed Razorpay Script Loading as we use Stripe now
 
     const handleTopUp = async () => {
         const amount = parseFloat(topUpAmount);
@@ -77,48 +74,9 @@ export default function WalletPage() {
         setIsToppingUp(true);
         try {
             const response = await topUpWallet(amount);
-            if (response.razorpayOrderId) {
-                const options = {
-                    key: response.razorpayKeyId,
-                    amount: response.amount * 100,
-                    currency: response.currency || "INR",
-                    name: "MedixFlow",
-                    description: "Wallet Top Up",
-                    order_id: response.razorpayOrderId,
-                    handler: async function (res: any) {
-                        try {
-                            setIsToppingUp(true);
-                            await verifyWalletTopUp({
-                                razorpayOrderId: res.razorpay_order_id,
-                                razorpayPaymentId: res.razorpay_payment_id,
-                                razorpaySignature: res.razorpay_signature,
-                                amount: amount
-                            });
-                            toast.success("Wallet top-up successful");
-                            fetchWalletData();
-                            setTopUpAmount("");
-                        } catch (error) {
-                            toast.error("Payment verification failed. If amount was deducted, it will be credited soon.");
-                            console.error("Verification error:", error);
-                        } finally {
-                            setIsToppingUp(false);
-                        }
-                    },
-                    prefill: {
-                        name: profile?.name || "",
-                        email: profile?.email || "",
-                    },
-                    theme: {
-                        color: "#3B82F6",
-                    },
-                    modal: {
-                        ondismiss: function() {
-                            setIsToppingUp(false);
-                        }
-                    }
-                };
-                const rzp = new (window as any).Razorpay(options);
-                rzp.open();
+            if (response.url) {
+                toast.info("Redirecting to secure payment...");
+                window.location.href = response.url;
             } else {
                 toast.success("Wallet top-up initiated");
                 fetchWalletData();
@@ -173,7 +131,7 @@ export default function WalletPage() {
                                     <div>
                                         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Total Balance</p>
                                         <div className="flex items-baseline gap-2">
-                                            <span className="text-[54px] font-black tracking-tighter">₹{balance?.toLocaleString()}</span>
+                                            <span className="text-[54px] font-black tracking-tighter">₹{balance?.toLocaleString() ?? '0'}</span>
                                             <span className="text-slate-400 font-bold mb-4">.00</span>
                                         </div>
                                     </div>
@@ -251,12 +209,12 @@ export default function WalletPage() {
                                                     <td className="px-8 py-5">
                                                         <div className="flex items-center gap-2 text-[#64748B] text-sm font-bold">
                                                             <Calendar className="w-3.5 h-3.5" />
-                                                            {new Date(tx.createdAt).toLocaleDateString()}
+                                                            {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : 'N/A'}
                                                         </div>
                                                     </td>
                                                     <td className="px-8 py-5">
                                                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                                            tx.status === 'SUCCESS' ? 'bg-[#ECFDF5] text-[#10B981] border border-[#D1FAE5]' : 
+                                                            tx.status === 'SUCCESS' || tx.status === 'PAID' ? 'bg-[#ECFDF5] text-[#10B981] border border-[#D1FAE5]' : 
                                                             tx.status === 'PENDING' ? 'bg-[#FFFBEB] text-[#F59E0B] border border-[#FEF3C7]' : 
                                                             'bg-[#FEF2F2] text-[#EF4444] border border-[#FEE2E2]'
                                                         }`}>
@@ -267,7 +225,7 @@ export default function WalletPage() {
                                                         <span className={`text-sm font-black tracking-tight ${
                                                             tx.type === 'TOP_UP' || tx.type === 'REFUND' ? 'text-[#10B981]' : 'text-[#0F172A]'
                                                         }`}>
-                                                            {tx.type === 'TOP_UP' || tx.type === 'REFUND' ? '+' : '-'} ₹{tx.amount.toLocaleString()}
+                                                            {tx.type === 'TOP_UP' || tx.type === 'REFUND' ? '+' : '-'} ₹{tx.amount?.toLocaleString() ?? '0'}
                                                         </span>
                                                     </td>
                                                 </tr>
@@ -286,6 +244,29 @@ export default function WalletPage() {
                                         </tbody>
                                     </table>
                                 </div>
+                                {totalTransactions > limit && (
+                                    <div className="px-8 py-5 bg-[#F8FAFC] border-t border-[#F1F5F9] flex items-center justify-between">
+                                        <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">
+                                            Page <span className="text-[#0F172A]">{page}</span> of <span className="text-[#0F172A]">{Math.ceil(totalTransactions / limit)}</span>
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                                disabled={page === 1}
+                                                className="p-2 bg-white border border-[#E2E8F0] rounded-xl text-[#94A3B8] hover:text-[#3B82F6] disabled:opacity-30 transition-all shadow-sm"
+                                            >
+                                                <ChevronLeft className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => setPage(p => Math.min(Math.ceil(totalTransactions / limit), p + 1))}
+                                                disabled={page === Math.ceil(totalTransactions / limit)}
+                                                className="p-2 bg-white border border-[#E2E8F0] rounded-xl text-[#94A3B8] hover:text-[#3B82F6] disabled:opacity-30 transition-all shadow-sm"
+                                            >
+                                                <ChevronRight className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -346,7 +327,7 @@ export default function WalletPage() {
                                                 </svg>
                                             </div>
                                             <p className="text-[11px] text-[#1E40AF] font-bold leading-relaxed">
-                                                Payments are processed securely via Razorpay. Funds will be credited to your wallet instantly after successful payment.
+                                                Payments are processed securely via Stripe. Funds will be credited to your wallet instantly after successful payment.
                                             </p>
                                         </div>
                                     </div>

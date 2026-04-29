@@ -3,12 +3,12 @@ import { ITokenService, TokenPayload } from "@/application/interfaces/ITokenServ
 import { UserRole } from "@/domain/value-objects/enums/UserRole";
 
 export class JwtTokenService implements ITokenService {
-    constructor(private readonly config: { jwtAccessSecret: string; jwtRefreshSecret: string }) {}
+    constructor(private readonly config: { JWT_ACCESS_SECRET: string; JWT_REFRESH_SECRET: string }) {}
 
     generateAccessToken(userId: string, role: UserRole, email?: string): string {
         return jwt.sign(
             { id: userId, role, email },
-            this.config.jwtAccessSecret,
+            this.config.JWT_ACCESS_SECRET,
             { expiresIn: "1h" }
         );
     }
@@ -16,16 +16,16 @@ export class JwtTokenService implements ITokenService {
     generateRefreshToken(userId: string, role: UserRole, email?: string): string {
         return jwt.sign(
             { id: userId, role, email },
-            this.config.jwtRefreshSecret,
+            this.config.JWT_REFRESH_SECRET,
             { expiresIn: "7d" }
         );
     }
 
     verifyAccessToken(token: string): TokenPayload {
-        return jwt.verify(token, this.config.jwtAccessSecret) as TokenPayload;
+        return jwt.verify(token, this.config.JWT_ACCESS_SECRET) as TokenPayload;
     }
 
     verifyRefreshToken(token: string): TokenPayload {
-        return jwt.verify(token, this.config.jwtRefreshSecret) as TokenPayload;
+        return jwt.verify(token, this.config.JWT_REFRESH_SECRET) as TokenPayload;
     }
 }

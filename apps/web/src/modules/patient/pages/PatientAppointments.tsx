@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/dashboard/Sidebar";
 import TopNav from "../components/dashboard/TopNav";
 import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { 
     Calendar, 
     Clock, 
@@ -32,28 +32,46 @@ export default function PatientAppointments() {
     const { profile } = usePatientProfile();
     const navigate = useNavigate();
     const [appointments, setAppointments] = useState<Appointment[]>([])
+    const [totalAppointments, setTotalAppointments] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("UPCOMING");
     const [currentPage, setCurrentPage] = useState(1);
+    const [dateRange] = useState({ from: "", to: "" });
 
-    
     // Modal states
     const [selectedApt, setSelectedApt] = useState<any | null>(null);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [cancelReason, setCancelReason] = useState("");
+    const [refundToWallet, setRefundToWallet] = useState(true); // Default to true for convenience
     const [isCancelling, setIsCancelling] = useState(false);
     const [rescheduleApt, setRescheduleApt] = useState<any | null>(null);
 
     useEffect(() => {
-        fetchAppointments();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchAppointments();
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [statusFilter, searchTerm, currentPage, dateRange]);
 
     const fetchAppointments = async () => {
         try {
             setLoading(true);
-            const data = await getPatientAppointments();
-            setAppointments(data);
+            const response = await getPatientAppointments({
+                status: (statusFilter === "ALL" || statusFilter === "UPCOMING") ? undefined : statusFilter,
+                isUpcoming: statusFilter === "UPCOMING",
+                search: searchTerm || undefined,
+                fromDate: dateRange.from || undefined,
+                toDate: dateRange.to || undefined,
+                page: currentPage,
+                limit: ITEMS_PER_PAGE
+            });
+            
+            // Backend returns { appointments, total } or just appointments?
+            // Let's check the backend repository return. 
+            // getAppointmentsByPatientId returns { appointments, total }
+            setAppointments(response.appointments || []);
+            setTotalAppointments(response.total || 0);
         } catch (error) {
             console.error("Failed to fetch appointments:", error);
             toast.error("Failed to load appointments");
@@ -70,8 +88,8 @@ export default function PatientAppointments() {
 
         try {
             setIsCancelling(true);
-            await cancelAppointment(selectedApt.id, cancelReason);
-            toast.success("Appointment cancelled successfully");
+            await cancelAppointment(selectedApt.id, cancelReason, refundToWallet);
+            toast.success(refundToWallet ? "Appointment cancelled. Refund credited to wallet." : "Appointment cancelled successfully");
             setShowCancelModal(false);
             setSelectedApt(null);
             setCancelReason("");
@@ -83,38 +101,15 @@ export default function PatientAppointments() {
         }
     };
 
-    const filteredAppointments = useMemo(() => {
-        setCurrentPage(1); // reset page whenever filters change
-        return appointments.filter(apt => {
-            const drName = `${apt.doctor.firstName} ${apt.doctor.lastName}`.toLowerCase();
-            const matchesSearch = drName.includes(searchTerm.toLowerCase());
-            
-            let matchesStatus = false;
-            if (statusFilter === "ALL") {
-                matchesStatus = true;
-            } else if (statusFilter === "UPCOMING") {
-                matchesStatus = apt.status === "PENDING" || apt.status === "CONFIRMED";
-            } else {
-                matchesStatus = apt.status === statusFilter;
-            }
-            
-            return matchesSearch && matchesStatus;
-        });
-    }, [appointments, searchTerm, statusFilter]);
-
-    const totalPages = Math.max(1, Math.ceil(filteredAppointments.length / ITEMS_PER_PAGE));
-    const paginatedAppointments = filteredAppointments.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
+    const paginatedAppointments = appointments;
 
     const getStatusVariant = (status: string): "success" | "warning" | "error" | "info" | "gray" => {
         switch (status.toUpperCase()) {
             case 'COMPLETED': return 'success';
             case 'CANCELLED': return 'error';
             case 'PENDING': return 'warning';
-            case 'CONFIRMED': return 'info';
-            case 'NOT_ATTENDED': return 'gray';
+            case 'BOOKED': return 'info';
+            case 'NO_SHOW': return 'gray';
             default: return 'info';
         }
     };
@@ -164,7 +159,7 @@ export default function PatientAppointments() {
                             { id: "UPCOMING", label: "Upcoming", color: "blue" },
                             { id: "COMPLETED", label: "Completed", color: "emerald" },
                             { id: "CANCELLED", label: "Cancelled", color: "rose" },
-                            { id: "NOT_ATTENDED", label: "Not Attended", color: "slate" },
+                            { id: "NO_SHOW", label: "Not Attended", color: "slate" },
                             { id: "ALL", label: "All Appointments", color: "slate" }
                         ].map((tab) => {
                             const isActive = statusFilter === tab.id;
@@ -282,44 +277,48 @@ export default function PatientAppointments() {
                             </div>
 
                             {/* Pagination Controls */}
-                            {filteredAppointments.length > ITEMS_PER_PAGE && (
-                                <div className="flex items-center justify-between mt-8 px-2">
-                                    <p className="text-sm font-bold text-[#64748B]">
-                                        Showing <span className="text-[#0F172A]">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span>–<span className="text-[#0F172A]">{Math.min(currentPage * ITEMS_PER_PAGE, filteredAppointments.length)}</span> of <span className="text-[#0F172A]">{filteredAppointments.length}</span> appointments
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                            disabled={currentPage === 1}
-                                            className="w-10 h-10 flex items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0] disabled:hover:text-[#475569] disabled:hover:bg-white"
-                                        >
-                                            <ChevronLeft className="w-5 h-5" />
-                                        </button>
-
-                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            {(() => {
+                                const totalPages = Math.ceil(totalAppointments / ITEMS_PER_PAGE);
+                                if (totalAppointments <= ITEMS_PER_PAGE) return null;
+                                return (
+                                    <div className="flex items-center justify-between mt-8 px-2">
+                                        <p className="text-sm font-bold text-[#64748B]">
+                                            Showing <span className="text-[#0F172A]">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span>–<span className="text-[#0F172A]">{Math.min(currentPage * ITEMS_PER_PAGE, totalAppointments)}</span> of <span className="text-[#0F172A]">{totalAppointments}</span> appointments
+                                        </p>
+                                        <div className="flex items-center gap-2">
                                             <button
-                                                key={page}
-                                                onClick={() => setCurrentPage(page)}
-                                                className={`w-10 h-10 flex items-center justify-center rounded-xl text-[13px] font-black transition-all ${
-                                                    currentPage === page
-                                                        ? "bg-[#3B82F6] text-white shadow-md shadow-blue-200"
-                                                        : "border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50"
-                                                }`}
+                                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                                disabled={currentPage === 1}
+                                                className="w-10 h-10 flex items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0] disabled:hover:text-[#475569] disabled:hover:bg-white"
                                             >
-                                                {page}
+                                                <ChevronLeft className="w-5 h-5" />
                                             </button>
-                                        ))}
 
-                                        <button
-                                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                            disabled={currentPage === totalPages}
-                                            className="w-10 h-10 flex items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0] disabled:hover:text-[#475569] disabled:hover:bg-white"
-                                        >
-                                            <ChevronRight className="w-5 h-5" />
-                                        </button>
+                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                                <button
+                                                    key={page}
+                                                    onClick={() => setCurrentPage(page)}
+                                                    className={`w-10 h-10 flex items-center justify-center rounded-xl text-[13px] font-black transition-all ${
+                                                        currentPage === page
+                                                            ? "bg-[#3B82F6] text-white shadow-md shadow-blue-200"
+                                                            : "border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50"
+                                                    }`}
+                                                >
+                                                    {page}
+                                                </button>
+                                            ))}
+
+                                            <button
+                                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                                disabled={currentPage === totalPages}
+                                                className="w-10 h-10 flex items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0] disabled:hover:text-[#475569] disabled:hover:bg-white"
+                                            >
+                                                <ChevronRight className="w-5 h-5" />
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                );
+                            })()}
                         </div>
                     )}
                 </main>
@@ -420,7 +419,7 @@ export default function PatientAppointments() {
                                         Cancel Appointment
                                     </button>
                                 )}
-                                {(selectedApt.status === 'PENDING' || selectedApt.status === 'CONFIRMED') && (
+                                {(selectedApt.status === 'PENDING' || selectedApt.status === 'BOOKED') && (
                                     <button
                                         onClick={() => { setRescheduleApt(selectedApt); setSelectedApt(null); }}
                                         className="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-200 transition-all shadow-md flex items-center justify-center gap-2"
@@ -458,6 +457,32 @@ export default function PatientAppointments() {
                                         className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:bg-white focus:border-red-300 focus:ring-4 focus:ring-red-50 transition-all resize-none"
                                     />
                                 </div>
+
+                                {/* Refund Preference */}
+                                <div className="p-5 bg-emerald-50/50 border border-emerald-100 rounded-3xl mt-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                                                <Pill className="w-5 h-5 text-emerald-600" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[11px] font-black text-[#0F172A] uppercase tracking-widest">Refund Preference</p>
+                                                <p className="text-xs font-bold text-emerald-700">Credit to Wallet</p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => setRefundToWallet(!refundToWallet)}
+                                            className={`relative w-12 h-6 rounded-full transition-all duration-300 ${refundToWallet ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                                        >
+                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 shadow-sm ${refundToWallet ? 'left-7' : 'left-1'}`} />
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] font-bold text-emerald-600/70 mt-3 leading-relaxed">
+                                        {refundToWallet 
+                                            ? "The full amount will be added to your MedixFlow wallet for instant use."
+                                            : "Refund will be processed back to your original payment method (Stripe/Cards)."}
+                                    </p>
+                                </div>
                             </div>
 
                             <div className="mt-8 flex flex-col gap-3">
@@ -483,6 +508,7 @@ export default function PatientAppointments() {
             {rescheduleApt && (
                 <RescheduleModal
                     appointmentId={rescheduleApt.id}
+                    patientId={rescheduleApt.patientId}
                     doctorId={rescheduleApt.doctor.id}
                     role="patient"
                     onSuccess={fetchAppointments}

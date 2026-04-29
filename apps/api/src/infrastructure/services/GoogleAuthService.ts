@@ -1,19 +1,19 @@
 import { OAuth2Client } from "google-auth-library";
 import { IGoogleAuthService, GoogleUser } from "@/application/interfaces/IGoogleAuthService";
-import { config } from "@/infrastructure/services/config";
+import { env as config } from "@/shared/config/env";
 import { MESSAGES } from "@/shared/constants";
 
 export class GoogleAuthService implements IGoogleAuthService {
   private client: OAuth2Client;
 
   constructor() {
-    this.client = new OAuth2Client(config.googleClientId);
+    this.client = new OAuth2Client(config.GOOGLE_CLIENT_ID);
   }
 
   async verifyToken(idToken: string): Promise<GoogleUser> {
     const ticket = await this.client.verifyIdToken({
       idToken,
-      audience: config.googleClientId,
+      audience: config.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();

@@ -36,73 +36,100 @@ export class RescheduleAppointmentUseCase {
         if (callerRole === "doctor" && appointment.doctorId !== callerId) {
             throw new Error("Unauthorized: you can only reschedule appointments assigned to you");
         }
-        // admin has no restriction
 
         // Status guard
-        if (appointment.status === "CANCELLED" || appointment.status === "COMPLETED") {
+        if (!["BOOKED", "PENDING", "PAYMENT_FAILED_HOLD"].includes(appointment.status)) {
             throw new Error(`Cannot reschedule an appointment with status ${appointment.status}`);
         }
 
-        // New slot must not be in the past
+        // 2-hour cutoff rule for patients
         const now = this.dateTimeService.now();
-        const year = newDate.getUTCFullYear();
-        const month = newDate.getUTCMonth();
-        const day = newDate.getUTCDate();
-        const [hours, minutes] = slotStart.split(":").map(Number);
-        const newSlotTime = new Date(year, month, day, hours, minutes, 0, 0);
-
-        if (newSlotTime < now) {
-            throw new Error("Cannot reschedule to a past date/time");
-        }
-
-        // Capacity check — exclude this appointment itself from the count
-        const schedule = await this.appointmentRepo.getDoctorSchedule(appointment.doctorId, newDate.getDay());
-        const capacity = schedule?.slotCapacity ?? (schedule ? this.schedulingPolicy.calculateSlotCapacity(schedule.slotDurationMinutes) : 5);
-
-        const activeBookings = await this.appointmentRepo.countActiveBookings(appointment.doctorId, newDate, slotStart);
-        // The current appointment may already be counted (if same doctor+slot), don't block if only self
-        const effectiveBookings = (
-            appointment.slotStart === slotStart &&
-            new Date(appointment.appointmentDate).toDateString() === newDate.toDateString()
-        ) ? Math.max(0, activeBookings - 1) : activeBookings;
-
-        if (effectiveBookings >= capacity) {
-            throw new Error(`Slot is full (capacity: ${capacity} patients)`);
-        }
-
-        const existingPatientBooking = await this.appointmentRepo.findActiveBookingByPatient(
-            appointment.patientId,
-            newDate,
-            appointment.doctorId,
-            slotStart
-        );
-
-        if (existingPatientBooking && existingPatientBooking.id !== appointmentId) {
-            if (existingPatientBooking.slotStart === slotStart) {
-                throw new Error("You already have an active appointment at this time.");
-            } else {
-                throw new Error("You already have an active appointment with this doctor today.");
+        if (appointment.startTime && callerRole === "patient") {
+            const timeUntilAppointment = new Date(appointment.startTime).getTime() - now.getTime();
+            const twoHoursInMs = 2 * 60 * 60 * 1000;
+            if (timeUntilAppointment < twoHoursInMs) {
+                throw new Error("Rescheduling is only allowed at least 2 hours before the appointment start time.");
             }
         }
 
-        const updatedAppointment = await this.appointmentRepo.rescheduleAppointment(appointmentId, newDate, slotStart, slotEnd);
+        // If Doctor or Admin initiates, we might want to "propose" instead of "forcing" 
+        // unless they explicitly choose to force. For now, let's implement the proposal flow 
+        // if the caller is a Doctor and it's not a direct slot change.
+        
+        if (callerRole === "doctor") {
+            // Create a proposal
+            const proposal = await this.appointmentRepo.createRescheduleProposal({
+                appointmentId,
+                proposedById: callerId,
+                proposedByRole: callerRole.toUpperCase(),
+                newDate,
+                newSlotStart: slotStart,
+                newSlotEnd: slotEnd,
+                reason: "Doctor requested rescheduling",
+                expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000) // 24h expiry
+            });
 
-        // Notify Doctor
-        await this.sendNotificationUseCase.execute({
-            recipientId: appointment.doctorId,
-            title: "Appointment Rescheduled",
-            message: `The appointment with patient ${appointment.patientId} has been rescheduled to ${newDate.toLocaleDateString()} at ${slotStart}.`,
-            type: NotificationType.RESCHEDULED,
-        });
+            // Notify Patient about the proposal
+            await this.sendNotificationUseCase.execute({
+                recipientId: appointment.patientId,
+                title: "Reschedule Proposed",
+                message: `Your doctor has proposed to reschedule your appointment to ${newDate.toLocaleDateString()} at ${slotStart}. Please accept or reject this proposal.`,
+                type: NotificationType.RESCHEDULE_PROPOSAL,
+            });
 
-        // Notify Patient
-        await this.sendNotificationUseCase.execute({
-            recipientId: appointment.patientId,
-            title: "Appointment Rescheduled",
-            message: `Your appointment has been successfully rescheduled to ${newDate.toLocaleDateString()} at ${slotStart}.`,
-            type: NotificationType.RESCHEDULED,
-        });
+            return { status: "PROPOSED", proposalId: proposal.id };
+        }
 
-        return updatedAppointment;
+        // Calculate new startTime/endTime
+        const year = newDate.getUTCFullYear();
+        const month = newDate.getUTCMonth();
+        const day = newDate.getUTCDate();
+        const [startH, startM] = slotStart.split(":").map(Number);
+        const [endH, endM] = slotEnd.split(":").map(Number);
+        
+        const startTime = new Date(year, month, day, startH, startM, 0, 0);
+        const endTime = new Date(year, month, day, endH, endM, 0, 0);
+
+        if (startTime < now) {
+            throw new Error("Cannot reschedule to a past date/time");
+        }
+
+        // Atomic check and update
+        try {
+            const updatedAppointment = await this.appointmentRepo.rescheduleAtomic({
+                appointmentId,
+                newDate,
+                slotStart,
+                slotEnd,
+                startTime,
+                endTime
+            });
+
+            // Notify Doctor
+            await this.sendNotificationUseCase.execute({
+                recipientId: appointment.doctorId,
+                title: "Appointment Rescheduled",
+                message: `The appointment with patient ${appointment.patientId} has been rescheduled to ${newDate.toLocaleDateString()} at ${slotStart}.`,
+                type: NotificationType.RESCHEDULED,
+            });
+
+            // Notify Patient
+            await this.sendNotificationUseCase.execute({
+                recipientId: appointment.patientId,
+                title: "Appointment Rescheduled",
+                message: `Your appointment has been successfully rescheduled to ${newDate.toLocaleDateString()} at ${slotStart}.`,
+                type: NotificationType.RESCHEDULED,
+            });
+
+            return updatedAppointment;
+        } catch (error: any) {
+            if (error.message === "PATIENT_ALREADY_HAS_APPOINTMENT") {
+                throw new Error("You already have another appointment scheduled at this time. Please choose another available slot.");
+            }
+            if (error.message === "SLOT_FULL") {
+                throw new Error("Selected slot is no longer available. Please choose another slot.");
+            }
+            throw error;
+        }
     }
 }

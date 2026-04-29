@@ -5,6 +5,11 @@ export const getAdminAppointments = async (params?: any) => {
     return response.data;
 };
 
+export const getAdminPaymentsList = async (params?: any) => {
+    const response = await axiosInstance.get("/admin/payments", { params });
+    return response.data;
+};
+
 export const rescheduleAppointment = async (
     id: string,
     newDate: string,

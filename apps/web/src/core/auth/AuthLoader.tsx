@@ -36,9 +36,11 @@ export const AuthLoader = ({ children }: AuthLoaderProps) => {
 
                 const { accessToken } = response.data;
                 dispatch(setAccessToken({ role: persistedRole, accessToken }));
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to restore session:", error);
-                dispatch(logout({ role: persistedRole }));
+                if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+                    dispatch(logout({ role: persistedRole }));
+                }
             } finally {
                 setIsRestoring(false);
             }

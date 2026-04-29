@@ -5,7 +5,11 @@ import { Gender } from "../../../domain/value-objects/enums/Gender";
 import { UserRole } from "../../../domain/value-objects/enums/UserRole";
 import { PatientProfile as DomainPatientProfile, PatientListItem } from "../../../domain/value-objects/types/patient.repository.types";
 
-export type PrismaPatientWithUser = PrismaPatientProfile & { user: PrismaUser, emergencyContacts?: PrismaEmergencyContact[] };
+export type PrismaPatientWithUser = PrismaPatientProfile & { 
+  user: PrismaUser, 
+  emergencyContacts?: PrismaEmergencyContact[],
+  wallet?: { id: string, balance: number } | null
+};
 
 export class PatientMapper {
   toDomain(prismaPatient: PrismaPatientWithUser | null | undefined): Patient | null {
@@ -39,7 +43,8 @@ export class PatientMapper {
       prismaPatient.gender as Gender,
       user.passwordHash,
       role,
-      prismaPatient.emergencyContacts || []
+      prismaPatient.emergencyContacts || [],
+      prismaPatient.wallet ? { id: prismaPatient.wallet.id, balance: prismaPatient.wallet.balance } : undefined
     );
   }
 
@@ -66,7 +71,8 @@ export class PatientMapper {
         createdAt: user.createdAt
       },
       createdAt: user.createdAt,
-      emergencyContacts: prismaPatient.emergencyContacts || []
+      emergencyContacts: prismaPatient.emergencyContacts || [],
+      wallet: prismaPatient.wallet ? { id: prismaPatient.wallet.id, balance: prismaPatient.wallet.balance } : undefined
     };
   }
 

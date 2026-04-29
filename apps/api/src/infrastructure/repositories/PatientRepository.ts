@@ -31,7 +31,8 @@ export class PatientRepository implements IPatientRepository {
             where: { id },
             include: {
                 user: true,
-                emergencyContacts: true
+                emergencyContacts: true,
+                wallet: true
             }
         });
         return result ? this.mapper.toDomain(result) : null;

@@ -1,9 +1,6 @@
 import { Router } from "express";
-import { authorize } from "@/presentation/controllers/middleware/authorize.middleware";
 import { UserRole } from "@/domain/value-objects/enums/UserRole";
 import { container } from "@/infrastructure/services/container/CompositionRoot";
-
-
 
 const router = Router();
 const profileController = container.doctorProfileController;
@@ -11,10 +8,9 @@ const appointmentController = container.doctorAppointmentController;
 const clinicalController = container.doctorClinicalController;
 const consultationController = container.consultationController;
 const slotController = container.doctorSlotController;
-const authMiddleware = container.authMiddleware;
+const auth = container.authMiddleware;
 
-router.use(authMiddleware);
-router.use(authorize([UserRole.DOCTOR]));
+router.use(auth.authenticate, auth.authorize([UserRole.DOCTOR]));
 
 router.get("/profile", profileController.getDoctorProfile);
 router.put("/profile", profileController.updateDoctorProfile);
@@ -22,6 +18,8 @@ router.put("/update-password", profileController.updateDoctorPassword);
 router.get("/dashboard-stats", appointmentController.getDoctorDashboardStats);
 router.get("/appointments", appointmentController.getDoctorAppointments);
 router.patch("/appointments/:id/reschedule", appointmentController.rescheduleAppointment);
+router.post("/appointments/:id/reassign", appointmentController.reassignAppointment);
+router.post("/leave/process", appointmentController.processLeave);
 router.put("/schedules", appointmentController.updateDoctorSchedules);
 
 // Consultation routes (must be before /:doctorId wildcard)

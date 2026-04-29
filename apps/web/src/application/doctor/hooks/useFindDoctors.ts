@@ -13,6 +13,10 @@ interface DoctorFilters {
     availableToday: boolean;
     minFee: number;
     maxFee: number;
+    experienceYears?: number;
+    minRating?: number;
+    location?: string;
+    sortBy?: string;
     page: number;
     limit: number;
     [key: string]: any;

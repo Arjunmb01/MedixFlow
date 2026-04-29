@@ -17,6 +17,7 @@ export interface IDoctorProfileRepository {
     updatePassword(userId: string, passwordHash: string): Promise<void>;
     updateSchedules(userId: string, schedules: DoctorSchedule[]): Promise<void>;
     getSchedulesByDay(doctorId: string, dayOfWeek: number): Promise<DoctorSchedule[]>;
+    getBreaksByDay(doctorId: string, dayOfWeek: number): Promise<any[]>;
 }
 
 export interface IDoctorStatsRepository {

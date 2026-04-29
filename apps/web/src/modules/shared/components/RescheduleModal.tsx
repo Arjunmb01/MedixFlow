@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Calendar } from "@/modules/patient/components/booking/Calendar";
 import { SlotPicker, type SlotInfo } from "@/modules/patient/components/booking/SlotPicker";
-import { getAvailableSlots } from "@/infrastructure/api/appointment.api";
+import { getAvailableSlots, checkRescheduleConflict } from "@/infrastructure/api/appointment.api";
 import { rescheduleAppointment as reschedulePatient } from "@/infrastructure/api/patient.api";
 import { rescheduleAppointment as rescheduleDoctor } from "@/infrastructure/api/doctor.api";
 import { rescheduleAppointment as rescheduleAdmin } from "@/infrastructure/api/admin.api";
 import { toast } from "sonner";
-import { X, CalendarClock, Loader2, CheckCircle2 } from "lucide-react";
+import { X, CalendarClock, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 export type RescheduleRole = "patient" | "doctor" | "admin";
 
 interface RescheduleModalProps {
     appointmentId: string;
+    patientId: string;
     doctorId: string;
     availableDays?: number[];
     role: RescheduleRole;
@@ -25,6 +26,7 @@ function toISODate(date: Date): string {
 
 export const RescheduleModal: React.FC<RescheduleModalProps> = ({
     appointmentId,
+    patientId,
     doctorId,
     availableDays = [0, 1, 2, 3, 4, 5, 6],
     role,
@@ -37,11 +39,14 @@ export const RescheduleModal: React.FC<RescheduleModalProps> = ({
     const [selectedSlot, setSelectedSlot] = useState<SlotInfo | null>(null);
     const [loadingSlots, setLoadingSlots] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [conflict, setConflict] = useState<{ hasConflict: boolean, message: string } | null>(null);
+    const [checkingConflict, setCheckingConflict] = useState(false);
 
     const fetchSlots = useCallback(async (date: Date) => {
         setLoadingSlots(true);
         setSlots([]);
         setSelectedSlot(null);
+        setConflict(null);
         try {
             const data = await getAvailableSlots(doctorId, date);
             setSlots(data);
@@ -58,22 +63,60 @@ export const RescheduleModal: React.FC<RescheduleModalProps> = ({
         }
     }, [selectedDate, fetchSlots]);
 
+    const handleSlotSelect = async (slot: SlotInfo) => {
+        setSelectedSlot(slot);
+        setConflict(null);
+        if (selectedDate) {
+            setCheckingConflict(true);
+            try {
+                const result = await checkRescheduleConflict({
+                    appointmentId,
+                    patientId,
+                    doctorId,
+                    newDate: toISODate(selectedDate),
+                    slotStart: slot.start,
+                    slotEnd: slot.end
+                });
+                if (result.hasConflict) {
+                    setConflict({ hasConflict: true, message: result.message });
+                } else {
+                    setConflict({ hasConflict: false, message: "" });
+                }
+            } catch (err: any) {
+                console.error("Conflict check failed:", err);
+            } finally {
+                setCheckingConflict(false);
+            }
+        }
+    };
+
     const handleConfirm = async () => {
         if (!selectedDate || !selectedSlot) {
             toast.error("Please select a date and time slot.");
             return;
         }
+        if (conflict?.hasConflict) {
+            toast.error(conflict.message);
+            return;
+        }
+
         setSubmitting(true);
         try {
             const dateStr = toISODate(selectedDate);
+            let res;
             if (role === "patient") {
-                await reschedulePatient(appointmentId, dateStr, selectedSlot.start, selectedSlot.end);
+                res = await reschedulePatient(appointmentId, dateStr, selectedSlot.start, selectedSlot.end);
             } else if (role === "doctor") {
-                await rescheduleDoctor(appointmentId, dateStr, selectedSlot.start, selectedSlot.end);
+                res = await rescheduleDoctor(appointmentId, dateStr, selectedSlot.start, selectedSlot.end);
             } else {
-                await rescheduleAdmin(appointmentId, dateStr, selectedSlot.start, selectedSlot.end);
+                res = await rescheduleAdmin(appointmentId, dateStr, selectedSlot.start, selectedSlot.end);
             }
-            toast.success("Appointment rescheduled successfully!");
+            
+            if (res?.data?.status === "PROPOSED" || res?.status === "PROPOSED" || res?.data?.data?.status === "PROPOSED") {
+                toast.success("Reschedule proposal sent to patient.");
+            } else {
+                toast.success("Appointment rescheduled successfully!");
+            }
             onSuccess();
             onClose();
         } catch (err: any) {
@@ -147,23 +190,42 @@ export const RescheduleModal: React.FC<RescheduleModalProps> = ({
                                 <SlotPicker
                                     slots={slots}
                                     selectedSlot={selectedSlot}
-                                    onSlotSelect={setSelectedSlot}
+                                    onSlotSelect={handleSlotSelect}
                                 />
                             )}
                         </div>
                     )}
 
                     {selectedDate && selectedSlot && (
-                        <div
-                            className="flex items-center gap-3 px-5 py-4 rounded-2xl border"
-                            style={{ backgroundColor: `${theme.accent}0d`, borderColor: `${theme.accent}30` }}
-                        >
-                            <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: theme.accent }} />
-                            <p className="text-sm font-black" style={{ color: theme.accent }}>
-                                {selectedDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
-                                &nbsp;·&nbsp;
-                                {selectedSlot.start} – {selectedSlot.end}
-                            </p>
+                        <div className="space-y-4">
+                            <div
+                                className="flex items-center gap-3 px-5 py-4 rounded-2xl border"
+                                style={{ backgroundColor: `${theme.accent}0d`, borderColor: `${theme.accent}30` }}
+                            >
+                                <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: theme.accent }} />
+                                <div className="flex-1">
+                                    <p className="text-sm font-black" style={{ color: theme.accent }}>
+                                        {selectedDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                                        &nbsp;·&nbsp;
+                                        {selectedSlot.start} – {selectedSlot.end}
+                                    </p>
+                                    {checkingConflict && (
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                            <Loader2 className="w-3 h-3 animate-spin" style={{ color: theme.accent }} />
+                                            <span className="text-[10px] font-bold opacity-70">Verifying availability...</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {conflict?.hasConflict && (
+                                <div className="flex items-start gap-3 px-5 py-4 rounded-2xl bg-red-50 border border-red-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                                    <p className="text-sm font-bold text-red-900 leading-tight">
+                                        {conflict.message}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -171,7 +233,7 @@ export const RescheduleModal: React.FC<RescheduleModalProps> = ({
                 <div className="px-8 py-6 border-t border-gray-100 flex gap-3 shrink-0">
                     <button
                         onClick={handleConfirm}
-                        disabled={submitting || !selectedDate || !selectedSlot}
+                        disabled={submitting || !selectedDate || !selectedSlot || conflict?.hasConflict || checkingConflict}
                         className={`flex-1 py-4 text-white rounded-2xl text-[14px] font-black uppercase tracking-widest transition-all shadow-lg disabled:opacity-40 flex items-center justify-center gap-2 ${theme.accentBg} ${theme.accentHover} shadow-${theme.shadow}`}
                     >
                         {submitting ? (

@@ -9,6 +9,7 @@ import {
     getPatientsQuerySchema, 
     blockPatientSchema 
 } from "@/presentation/controllers/dto/validation/patient.dtos";
+import { getAdminAppointmentsQuerySchema } from "@/presentation/controllers/dto/validation/staff.dtos";
 import { z } from "zod";
 
 export class AdminPatientController {
@@ -76,15 +77,7 @@ export class AdminPatientController {
 
     getAllAppointments = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { status, fromDate, toDate, isUpcoming, page, limit } = req.query;
-            const filter = {
-                status: status as any,
-                fromDate: fromDate ? new Date(fromDate as string) : undefined,
-                toDate: toDate ? new Date(toDate as string) : undefined,
-                isUpcoming: isUpcoming === "true" ? true : isUpcoming === "false" ? false : undefined,
-                page: page ? parseInt(page as string) : undefined,
-                limit: limit ? parseInt(limit as string) : undefined
-            };
+            const filter = getAdminAppointmentsQuerySchema.parse(req.query);
             const result = await this.getAllAppointmentsUseCase.execute(filter);
             res.json(result);
         } catch (error) {

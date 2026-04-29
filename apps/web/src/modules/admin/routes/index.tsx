@@ -1,13 +1,16 @@
 import { Route } from "react-router-dom"
+import { lazy } from "react"
 import ProtectedRoute from "@/core/routes/ProtectedRoute"
 import { UserRole } from "@/domain/auth/types/auth.types"
-import AdminDashboard from "../pages/AdminDashboard"
-import StaffDirectory from "../pages/StaffDirectory"
-import PatientDirectory from "../pages/PatientDirectory"
-import PatientDetailsPage from "../pages/PatientDetailsPage"
-import AdminAppointments from "../pages/AdminAppointments"
-import AdminSettings from "../pages/AdminSettings"
-import AdminLeaveManagement from "../pages/AdminLeaveManagement"
+
+const AdminDashboard = lazy(() => import("../pages/AdminDashboard"))
+const StaffDirectory = lazy(() => import("../pages/StaffDirectory"))
+const PatientDirectory = lazy(() => import("../pages/PatientDirectory"))
+const PatientDetailsPage = lazy(() => import("../pages/PatientDetailsPage"))
+const AdminAppointments = lazy(() => import("../pages/AdminAppointments"))
+const AdminSettings = lazy(() => import("../pages/AdminSettings"))
+const AdminLeaveManagement = lazy(() => import("../pages/AdminLeaveManagement"))
+const AdminPayments = lazy(() => import("../pages/AdminPayments"))
 
 export const AdminRoutes = (
     <>
@@ -16,6 +19,14 @@ export const AdminRoutes = (
             element={
                 <ProtectedRoute role={UserRole.ADMIN}>
                     <AdminDashboard />
+                </ProtectedRoute>
+            }
+        />
+        <Route
+            path="/admin/payments"
+            element={
+                <ProtectedRoute role={UserRole.ADMIN}>
+                    <AdminPayments />
                 </ProtectedRoute>
             }
         />

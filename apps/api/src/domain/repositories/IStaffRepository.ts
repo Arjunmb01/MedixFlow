@@ -13,5 +13,6 @@ export interface IStaffRepository {
     updateDoctor(doctorId: string, data: UpdateDoctorInput): Promise<StaffDoctorListItem>;
     blockDoctor(userId: string, status: UserStatus): Promise<void>;
     deleteDoctor(userId: string): Promise<void>;
+    getDoctorCount(): Promise<number>;
     setupPassword(token: string, password: string): Promise<{ success: boolean }>;
 }

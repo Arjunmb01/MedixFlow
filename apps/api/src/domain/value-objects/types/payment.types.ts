@@ -6,11 +6,16 @@ export interface CreatePaymentInput {
   patientId: string;
   amount: number;
   currency: string;
-  razorpayOrderId: string;
+  razorpayOrderId?: string;
+  stripeSessionId?: string;
+  paypalOrderId?: string;
+  walletAmount?: number;
   paymentMethod?: PaymentMethod;
   status?: PaymentStatus;
   razorpayPaymentId?: string;
   razorpaySignature?: string;
+  stripePaymentIntentId?: string;
+  paypalCaptureId?: string;
 }
 
 export interface PaymentRecord {

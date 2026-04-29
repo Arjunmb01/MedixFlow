@@ -120,7 +120,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             totalPatients: raw.uniquePatientsCount,
             todayAppointments: sortedTodayAppointments,
             todayAppointmentsCount: raw.todayAppointments.length,
-            pendingToday: raw.todayAppointments.filter(a => ["PENDING", "CONFIRMED"].includes(a.status)).length,
+            pendingToday: raw.todayAppointments.filter(a => ["PENDING", "BOOKED"].includes(a.status)).length,
             completedToday: raw.todayAppointments.filter(a => a.status === "COMPLETED").length,
             totalEarnings: raw.totalEarnings,
             dashboardDate: raw.dashboardDate
@@ -143,7 +143,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
         ] = await Promise.all([
             this._prisma.appointment.count({ where: { doctorId: userId } }),
             this._prisma.appointment.count({ where: { doctorId: userId, status: "COMPLETED" } }),
-            this._prisma.appointment.count({ where: { doctorId: userId, status: { in: ["PENDING", "CONFIRMED"] } } }),
+            this._prisma.appointment.count({ where: { doctorId: userId, status: { in: ["PENDING", "BOOKED"] } } }),
             this._prisma.appointment.groupBy({
                 by: ['patientId'],
                 where: { doctorId: userId },
@@ -177,7 +177,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
                 where: {
                     doctorId: userId,
                     appointmentDate: { gte: tomorrowSearch },
-                    status: { in: ["PENDING", "CONFIRMED"] }
+                    status: { in: ["PENDING", "BOOKED"] }
                 },
                 include: {
                     patient: true,
@@ -369,8 +369,31 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             if (filters.maxFee !== undefined) where.consultationFee.lte = filters.maxFee;
         }
 
+        if (filters.experienceYears !== undefined) {
+            where.experienceYears = { gte: filters.experienceYears };
+        }
+
+        if (filters.minRating !== undefined) {
+            where.rating = { gte: filters.minRating };
+        }
+
+        if (filters.language) {
+            where.languages = { has: filters.language };
+        }
+
         const skip = (filters.page - 1) * filters.limit;
         const take = filters.limit;
+
+        let orderBy: Prisma.DoctorProfileOrderByWithRelationInput = { rating: 'desc' };
+        if (filters.sortBy) {
+            switch (filters.sortBy) {
+                case 'fee_asc': orderBy = { consultationFee: 'asc' }; break;
+                case 'fee_desc': orderBy = { consultationFee: 'desc' }; break;
+                case 'rating_desc': orderBy = { rating: 'desc' }; break;
+                case 'experience_desc': orderBy = { experienceYears: 'desc' }; break;
+                case 'name_asc': orderBy = { firstName: 'asc' }; break;
+            }
+        }
 
         const [doctors, total] = await Promise.all([
             this._prisma.doctorProfile.findMany({
@@ -379,9 +402,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
                     user: true,
                     specialization: true,
                 },
-                orderBy: {
-                    rating: 'desc'
-                },
+                orderBy,
                 skip,
                 take
             }),
@@ -422,6 +443,15 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
         });
 
         return schedules.map(s => this.mapper.toSchedule(s as any));
+    }
+
+    async getBreaksByDay(doctorId: string, dayOfWeek: number): Promise<any[]> {
+        return this._prisma.doctorBreak.findMany({
+            where: {
+                doctorId,
+                dayOfWeek
+            }
+        });
     }
 }
 

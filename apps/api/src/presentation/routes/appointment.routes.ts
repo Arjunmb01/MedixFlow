@@ -5,8 +5,13 @@ const router = Router();
 const controller = container.appointmentController;
 const slotController = container.doctorSlotController;
 
-router.get("/slots", slotController.getSlots.bind(slotController));
+const auth = container.authMiddleware;
 
-router.post("/", controller.book.bind(controller));
+router.get("/slots", slotController.getSlots.bind(slotController));
+router.get("/check-conflict", auth.authenticate, controller.checkConflict.bind(controller));
+
+router.post("/", auth.authenticate, controller.book.bind(controller));
+router.get("/:id", auth.authenticate, controller.getById.bind(controller));
+router.patch("/:id/status", auth.authenticate, auth.authorize(["DOCTOR", "ADMIN", "STAFF"]), controller.updateStatus.bind(controller));
 
 export default router;

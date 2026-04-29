@@ -249,6 +249,16 @@ export class StaffRepository implements IStaffRepository {
         });
     }
 
+    async getDoctorCount(): Promise<number> {
+        return this._prisma.doctorProfile.count({
+            where: {
+                user: {
+                    deletedAt: null
+                }
+            }
+        });
+    }
+
     async setupPassword(token: string, password: string): Promise<{ success: boolean }> {
         const hashedPassword = await this.passwordHasher.hash(password);
         

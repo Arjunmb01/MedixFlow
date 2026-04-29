@@ -27,7 +27,6 @@ function getRoleFromUrl(url?: string): UserRole {
     }
 
     const finalRole = (persistedRole as UserRole) || UserRole.PATIENT;
-    console.log(`[Axios] Detected role for URL ${url}: ${finalRole}`);
     return finalRole;
 }
 
@@ -96,17 +95,20 @@ api.interceptors.response.use(
 
             } catch (refreshError: any) {
                 const role = getRoleFromUrl(originalRequest.url);
-                store.dispatch(logout({ role: role as any }));
+                
+                if (refreshError.response && (refreshError.response.status === 401 || refreshError.response.status === 403)) {
+                    store.dispatch(logout({ role: role as any }));
 
-                if (refreshError.response?.data?.message?.includes("blocked")) {
-                    toast.error("Your account has been blocked by the administrator.");
+                    if (refreshError.response?.data?.message?.includes("blocked")) {
+                        toast.error("Your account has been blocked by the administrator.");
+                    }
+
+                    window.location.href = getLoginPath(role);
                 }
-
-                window.location.href = getLoginPath(role);
             }
         }
         return Promise.reject(error)
     }
 )
 
-export default api
+export default api

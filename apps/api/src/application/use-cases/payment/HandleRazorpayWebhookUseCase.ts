@@ -7,6 +7,8 @@ import { AppointmentStatus } from "../../../domain/value-objects/enums/Appointme
 import { PaymentStatus } from "../../../domain/value-objects/enums/PaymentStatus";
 import { TransactionType } from "../../../domain/value-objects/enums/TransactionType";
 import { NotificationType } from "../../../domain/value-objects/types/notification.types";
+import { IQueueService } from "../../../domain/services/IQueueService";
+import { SocketService } from "../../../infrastructure/services/SocketService";
 
 export class HandleRazorpayWebhookUseCase {
   constructor(
@@ -14,7 +16,9 @@ export class HandleRazorpayWebhookUseCase {
     private readonly paymentRepo: IPaymentRepository,
     private readonly walletRepo: IWalletRepository,
     private readonly appointmentRepo: IAppointmentRepository,
-    private readonly sendNotificationUseCase: SendNotificationUseCase
+    private readonly sendNotificationUseCase: SendNotificationUseCase,
+    private readonly queueService: IQueueService,
+    private readonly socketService: SocketService
   ) {}
 
   async execute(signature: string, payload: any, rawBody: string, webhookSecret: string): Promise<void> {
@@ -96,23 +100,34 @@ export class HandleRazorpayWebhookUseCase {
         return;
       }
 
-      await this.paymentRepo.updateStatus(paymentRecord.id, PaymentStatus.PAID, razorpayPaymentId, razorpaySignature);
+      await this.paymentRepo.updateStatus(paymentRecord.id, PaymentStatus.PAID, { 
+        razorpayPaymentId, 
+        razorpaySignature 
+      });
 
-      await this.appointmentRepo.updateStatus(appointmentId, AppointmentStatus.CONFIRMED);
-
+      await this.appointmentRepo.updateStatus(appointmentId, AppointmentStatus.BOOKED);
+      
       const appointment = await this.appointmentRepo.findById(appointmentId);
       if (appointment) {
+        // Assign Queue Number
+        const queueNumber = await this.queueService.addToQueue(appointment.doctorId, appointment.appointmentDate, appointmentId);
+        await this.appointmentRepo.updateQueuePosition(appointmentId, queueNumber);
+
+        // Notify via Sockets
+        this.socketService.emitAppointmentBooked(appointment.doctorId, { ...appointment, queueNumber, status: AppointmentStatus.BOOKED });
+        const fullQueue = await this.appointmentRepo.getTodaysQueue(appointment.doctorId);
+        this.socketService.emitQueueUpdated(appointment.doctorId, appointment.appointmentDate, fullQueue);
         await this.sendNotificationUseCase.execute({
           recipientId: appointment.doctorId,
-          title: "New Appointment Confirmed",
-          message: `Appointment for ${appointment.appointmentDate.toLocaleDateString()} at ${appointment.slotStart} has been confirmed.`,
+          title: "New Appointment BOOKED",
+          message: `Appointment for ${appointment.appointmentDate.toLocaleDateString()} at ${appointment.slotStart} has been BOOKED.`,
           type: NotificationType.BOOKED,
         });
 
         await this.sendNotificationUseCase.execute({
           recipientId: appointment.patientId,
-          title: "Booking Confirmed",
-          message: `Your payment was successful. Your appointment for ${appointment.appointmentDate.toLocaleDateString()} at ${appointment.slotStart} is now confirmed.`,
+          title: "Booking BOOKED",
+          message: `Your payment was successful. Your appointment for ${appointment.appointmentDate.toLocaleDateString()} at ${appointment.slotStart} is now BOOKED.`,
           type: NotificationType.BOOKED,
         });
       }

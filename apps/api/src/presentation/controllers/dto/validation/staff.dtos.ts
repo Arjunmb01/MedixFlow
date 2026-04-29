@@ -38,12 +38,19 @@ export const getDoctorsQuerySchema = z.object({
 import { AppointmentStatus } from "@/domain/value-objects/enums/AppointmentStatus";
 
 export const getDoctorAppointmentsQuerySchema = z.object({
-  status: z.nativeEnum(AppointmentStatus).optional(),
+  status: z.string().optional(),
+  paymentStatus: z.string().optional(),
   fromDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
   toDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
   type: z.enum(["upcoming", "past"]).optional(),
   page: z.string().transform(val => parseInt(val) || 1).optional(),
-  limit: z.string().transform(val => parseInt(val) || 10).optional()
+  limit: z.string().transform(val => parseInt(val) || 10).optional(),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional()
+});
+
+export const getAdminAppointmentsQuerySchema = getDoctorAppointmentsQuerySchema.extend({
+  doctorId: z.string().optional(),
 });
 
 export const generateSlotsSchema = z.object({

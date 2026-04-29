@@ -13,7 +13,9 @@ export class Doctor {
     public phone?: string,
     public bio?: string,
     public avatarUrl?: string,
-    public passwordHash?: string
+    public passwordHash?: string,
+    public experienceYears: number = 0,
+    public languages: string[] = ["English"]
   ) {}
 
   public updateProfile(data: { firstName?: string; lastName?: string; specialty?: string; consultationFee?: number; phone?: string; licenseNumber?: string; bio?: string; avatarUrl?: string }): void {

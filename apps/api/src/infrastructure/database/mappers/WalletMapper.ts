@@ -23,6 +23,8 @@ export class WalletMapper {
       prismaTransaction.type as TransactionType,
       prismaTransaction.status as TransactionStatus,
       prismaTransaction.reason,
+      prismaTransaction.stripeSessionId,
+      prismaTransaction.metadata,
       prismaTransaction.createdAt
     );
   }

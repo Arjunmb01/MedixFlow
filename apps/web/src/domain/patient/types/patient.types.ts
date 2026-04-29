@@ -13,6 +13,9 @@ export interface PatientProfile {
     gender?: string;
     emergencyContacts: EmergencyContact[];
     profileCompletion: number;
+    wallet?: {
+        balance: number;
+    };
 }
 
 export interface UpdatePatientProfilePayload {

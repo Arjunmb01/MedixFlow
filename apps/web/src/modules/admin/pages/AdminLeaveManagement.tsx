@@ -42,17 +42,29 @@ export default function AdminLeaveManagement() {
     const fetchLeaves = useCallback(async () => {
         try {
             setLoading(true)
-            const data = await getAllLeaves()
-            setLeaves(data)
+            const params = {
+                page,
+                limit: ITEMS_PER_PAGE,
+                status: statusFilter === "ALL" ? undefined : statusFilter,
+                search: search || undefined
+            }
+            const data = await getAllLeaves(params)
+            setLeaves(data.data)
+            setTotal(data.total)
         } catch (err: any) {
             toast.error(err?.response?.data?.message || "Failed to load leave requests.")
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }, [])
+    }, [page, statusFilter, search])
+
+    const [total, setTotal] = useState(0)
 
     useEffect(() => {
-        fetchLeaves()
+        const timer = setTimeout(() => {
+            fetchLeaves()
+        }, 300)
+        return () => clearTimeout(timer)
     }, [fetchLeaves])
 
     const handleReview = async (id: string, status: "APPROVED" | "REJECTED") => {
@@ -68,17 +80,7 @@ export default function AdminLeaveManagement() {
         }
     }
 
-    const filtered = leaves.filter(l => {
-        const name = (l.doctorName ?? "").toLowerCase()
-        const email = (l.doctorEmail ?? "").toLowerCase()
-        const q = search.toLowerCase()
-        const matchesSearch = name.includes(q) || email.includes(q)
-        const matchesStatus = statusFilter === "ALL" || l.status === statusFilter
-        return matchesSearch && matchesStatus
-    })
-
-    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
-    const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+    const paginated = leaves;
 
     const counts = {
         PENDING: leaves.filter(l => l.status === "PENDING").length,
@@ -115,7 +117,7 @@ export default function AdminLeaveManagement() {
                     <div>
                         <h2 className="text-2xl font-bold text-gray-900">All Leave Requests</h2>
                         <p className="text-sm text-gray-500 mt-1">
-                            {loading ? "Loading..." : `Showing ${filtered.length} request${filtered.length !== 1 ? "s" : ""}`}
+                            {loading ? "Loading..." : `Showing ${leaves.length} request${leaves.length !== 1 ? "s" : ""} of ${total}`}
                         </p>
                     </div>
 
@@ -296,8 +298,11 @@ export default function AdminLeaveManagement() {
                     </div>
 
                     {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
+                    {(() => {
+                        const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
+                        if (totalPages <= 1) return null;
+                        return (
+                            <div className="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                                 Page <span className="text-gray-900">{page}</span> of <span className="text-gray-900">{totalPages}</span>
                             </p>
@@ -318,7 +323,8 @@ export default function AdminLeaveManagement() {
                                 </button>
                             </div>
                         </div>
-                    )}
+                    )
+                })()}
                 </div>
             </main>
         </div>

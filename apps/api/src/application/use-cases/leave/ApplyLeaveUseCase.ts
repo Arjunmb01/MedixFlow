@@ -29,11 +29,11 @@ export class ApplyLeaveUseCase {
     }
 
     // Check for conflicting appointments
-    // We filter for CONFIRMED or PENDING appointments in the date range
+    // We filter for BOOKED or PENDING appointments in the date range
     const { appointments, total } = await this.appointmentRepository.getAppointmentsByDoctorId(doctorId, {
       fromDate: startDate,
       toDate: endDate,
-      status: AppointmentStatus.CONFIRMED,
+      status: AppointmentStatus.BOOKED,
       limit: 100 // Fetch a reasonable amount for cancellation
     });
 

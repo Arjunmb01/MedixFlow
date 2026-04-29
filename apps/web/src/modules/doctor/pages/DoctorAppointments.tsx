@@ -19,7 +19,7 @@ import {
     Pill,
     CalendarClock
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import Badge from "../../patient/components/ui/Badge";
 import { RescheduleModal } from "@/modules/shared/components/RescheduleModal";
 
@@ -34,33 +34,26 @@ export default function DoctorAppointments() {
     const [selectedPrescription, setSelectedPrescription] = useState<any | null>(null);
     const [rescheduleApt, setRescheduleApt] = useState<any | null>(null);
 
-    const apiFilters = useMemo(() => ({
+    const apiFilters = {
         status: (statusFilter === "ALL" || statusFilter === "UPCOMING") ? undefined : statusFilter,
         isUpcoming: statusFilter === "UPCOMING" ? true : undefined,
         fromDate: fromDate || undefined,
         toDate: toDate || undefined,
+        search: searchTerm || undefined,
         page: currentPage,
         limit: 4
-    }), [statusFilter, fromDate, toDate, currentPage]);
+    };
 
-    const { appointments, loading, meta, refreshAppointments } = useDoctorAppointments(apiFilters);
-
-    const filteredAppointments = useMemo(() => {
-        return appointments.filter(apt => {
-            const patientName = `${apt.patient.firstName} ${apt.patient.lastName}`.toLowerCase();
-            const matchesSearch = patientName.includes(searchTerm.toLowerCase());
-            // Frontend filter remains for search, but status is now mostly server-side
-            return matchesSearch;
-        });
-    }, [appointments, searchTerm]);
+    const { appointments: paginatedAppointments, loading, meta, refreshAppointments } = useDoctorAppointments(apiFilters);
 
     const getStatusVariant = (status: string): "success" | "warning" | "error" | "info" | "gray" => {
         switch (status.toUpperCase()) {
             case 'COMPLETED': return 'success';
             case 'CANCELLED': return 'error';
             case 'PENDING': return 'warning';
-            case 'CONFIRMED': return 'info';
-            case 'NOT_ATTENDED': return 'gray';
+            case 'CONFIRMED':
+            case 'BOOKED': return 'info';
+            case 'NO_SHOW': return 'gray';
             default: return 'info';
         }
     };
@@ -142,7 +135,7 @@ export default function DoctorAppointments() {
                             { id: 'UPCOMING', label: 'Upcoming' },
                             { id: 'COMPLETED', label: 'Completed' },
                             { id: 'CANCELLED', label: 'Cancelled' },
-                            { id: 'NOT_ATTENDED', label: 'Not Attended' },
+                            { id: 'NO_SHOW', label: 'Not Attended' },
                             { id: 'ALL', label: 'All Appointments' }
                         ].map((tab) => (
                             <button
@@ -166,8 +159,8 @@ export default function DoctorAppointments() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-4">
-                            {filteredAppointments.length > 0 ? (
-                                filteredAppointments.map((apt) => (
+                            {!loading && paginatedAppointments.length > 0 ? (
+                                paginatedAppointments.map((apt: any) => (
                                     <div 
                                         key={apt.id}
                                         className="bg-white p-6 rounded-[2rem] border border-gray-100 hover:border-teal-600 hover:shadow-xl hover:shadow-teal-50/50 transition-all group flex flex-col md:flex-row md:items-center justify-between gap-6"
@@ -213,7 +206,7 @@ export default function DoctorAppointments() {
                                                 </button>
                                             )}
 
-                                            {(apt.status === 'PENDING' || apt.status === 'CONFIRMED') && new Date(apt.appointmentDate) >= new Date(new Date().setHours(0,0,0,0)) && (
+                                            {(apt.status === 'PENDING' || apt.status === 'BOOKED') && new Date(apt.appointmentDate) >= new Date(new Date().setHours(0,0,0,0)) && (
                                                 <button
                                                     onClick={() => setRescheduleApt(apt)}
                                                     className="px-6 py-3 bg-teal-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-teal-700 transition-all shadow-lg shadow-teal-100 active:scale-95 flex items-center gap-2"
@@ -336,7 +329,7 @@ export default function DoctorAppointments() {
                             )}
 
                             <div className="mt-10 flex gap-3">
-                                {(selectedApt.status === 'PENDING' || selectedApt.status === 'CONFIRMED') && (
+                                {(selectedApt.status === 'PENDING' || selectedApt.status === 'BOOKED') && (
                                     <button
                                         onClick={() => { setRescheduleApt(selectedApt); setSelectedApt(null); }}
                                         className="flex-1 py-4 bg-teal-600 text-white rounded-2xl text-[14px] font-black uppercase tracking-widest hover:bg-teal-700 transition-all shadow-lg shadow-teal-100 flex items-center justify-center gap-2"
@@ -438,6 +431,7 @@ export default function DoctorAppointments() {
             {rescheduleApt && (
                 <RescheduleModal
                     appointmentId={rescheduleApt.id}
+                    patientId={rescheduleApt.patient?.id || rescheduleApt.patientId}
                     doctorId={rescheduleApt.doctorId ?? rescheduleApt.doctor?.id}
                     role="doctor"
                     onSuccess={refreshAppointments}

@@ -52,7 +52,8 @@ type PrismaAppointmentWithDoctorAndPatient = Prisma.AppointmentGetPayload<{
         },
         patient: {
             include: { user: true }
-        }
+        },
+        payment: true
     }
 }>;
 
@@ -81,14 +82,20 @@ export class AppointmentMapper {
             appointmentDate: prismaApp.appointmentDate,
             slotStart: prismaApp.slotStart,
             slotEnd: prismaApp.slotEnd,
+            startTime: prismaApp.startTime,
+            endTime: prismaApp.endTime,
             status: prismaApp.status,
             paymentStatus: prismaApp.paymentStatus || undefined,
             paymentMethod: prismaApp.paymentMethod || undefined,
             reason: prismaApp.reason,
             notes: prismaApp.notes,
-            createdAt: prismaApp.createdAt,
             paymentAmount: prismaApp.payment?.amount,
             transactionId: prismaApp.payment?.razorpayPaymentId || prismaApp.payment?.id,
+            queueNumber: prismaApp.queueNumber,
+            createdAt: prismaApp.createdAt,
+            rescheduledToId: prismaApp.rescheduledToId,
+            lastStatusChangedAt: prismaApp.lastStatusChangedAt,
+            parentAppointmentId: prismaApp.parentAppointmentId,
         };
     }
 
@@ -159,11 +166,13 @@ export class AppointmentMapper {
             ...this.toWithDoctor(prismaApp),
             patient: {
                 id: prismaApp.patient.id,
-                patientId: prismaApp.patient.patientId,                firstName: prismaApp.patient.firstName,
+                patientId: prismaApp.patient.patientId,
+                firstName: prismaApp.patient.firstName,
                 lastName: prismaApp.patient.lastName,
                 email: prismaApp.patient.user.email,
                 phone: prismaApp.patient.phone,
-            }
+            },
+            payment: prismaApp.payment
         };
     }
 

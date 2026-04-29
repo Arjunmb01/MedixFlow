@@ -265,7 +265,7 @@ export class SmtpEmailService implements IEmailService {
   }
 }
 
-import { config as globalConfig } from "@/infrastructure/services/config";
+import { env as globalConfig } from "@/shared/config/env";
 
 export default new SmtpEmailService({
   host: globalConfig.smtp.host,
@@ -273,6 +273,6 @@ export default new SmtpEmailService({
   user: globalConfig.smtp.user,
   pass: globalConfig.smtp.pass,
   from: globalConfig.smtp.from,
-  frontendUrl: globalConfig.frontendUrl
+  frontendUrl: globalConfig.FRONTEND_URL
 });
 

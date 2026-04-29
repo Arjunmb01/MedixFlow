@@ -8,11 +8,11 @@ export class GetUpcomingAppointmentsUseCase {
     ) {}
 
     async execute (patientId: string) {
-        await this.appointmentRepo.markPastAppointmentsAsNotAttended();
-        const appointments = await this.appointmentRepo.getAppointmentsByPatientId(patientId);
+        await this.appointmentRepo.markPastAppointmentsAsNotAttended(patientId);
+        const { appointments: patientAppointments } = await this.appointmentRepo.getAppointmentsByPatientId(patientId);
         const now = this.dateTimeService.now();
 
-        return appointments.filter(app => 
+        return patientAppointments.filter((app: any) => 
             this.dateTimeService.isUpcoming(app.appointmentDate, app.slotStart) &&
             app.status !== "CANCELLED" &&
             app.status !== "COMPLETED"

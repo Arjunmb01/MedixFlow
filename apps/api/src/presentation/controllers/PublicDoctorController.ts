@@ -11,7 +11,7 @@ export class PublicDoctorController {
 
     public getAllDoctors = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { specialty, search, availableToday, minFee, maxFee, page = "1", limit = "10" } = req.query;
+            const { specialty, search, availableToday, minFee, maxFee, experienceYears, minRating, language, sortBy, page = "1", limit = "10" } = req.query;
 
             const result = await this.getAllDoctorsUseCase.execute({
                 specialty: specialty as string,
@@ -19,6 +19,10 @@ export class PublicDoctorController {
                 availableToday: availableToday === "true",
                 minFee: minFee ? Number(minFee) : undefined,
                 maxFee: maxFee ? Number(maxFee) : undefined,
+                experienceYears: experienceYears ? Number(experienceYears) : undefined,
+                minRating: minRating ? Number(minRating) : undefined,
+                language: language as string,
+                sortBy: sortBy as any,
                 page: Number(page),
                 limit: Number(limit)
             });

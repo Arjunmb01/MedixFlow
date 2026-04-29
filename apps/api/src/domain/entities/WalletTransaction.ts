@@ -9,6 +9,8 @@ export class WalletTransaction {
     public readonly type: TransactionType,
     public readonly status: TransactionStatus,
     public readonly reason: string | null,
+    public readonly stripeSessionId: string | null,
+    public readonly metadata: any | null,
     public readonly createdAt: Date
   ) {}
 }

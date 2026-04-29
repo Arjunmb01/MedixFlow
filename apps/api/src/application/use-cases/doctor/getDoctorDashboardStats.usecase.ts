@@ -52,7 +52,7 @@ export class GetDoctorDashboardStatsUseCase {
             consultationStatus: apt.consultation?.status
         })),
         todayAppointmentsCount: raw.todayAppointments.length,
-        pendingToday: raw.todayAppointments.filter((a: any) => ["PENDING", "CONFIRMED"].includes(a.status)).length,
+        pendingToday: raw.todayAppointments.filter((a: any) => ["PENDING", "BOOKED"].includes(a.status)).length,
         completedToday: raw.todayAppointments.filter((a: any) => a.status === "COMPLETED").length,
         totalEarnings: raw.totalEarnings,
         dashboardDate: raw.dashboardDate

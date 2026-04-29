@@ -41,10 +41,26 @@ export class SlotController {
 
     bookSlot = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { slotId } = req.body;
-            const patientId = req.user.id;
-            await this.bookSlotUseCase.execute({ slotId, patientId });
-            res.status(StatusCode.OK).json({ message: "Slot booked successfully" });
+            const { doctorId, startTime, endTime, reason } = req.body;
+            const patientId = (req as any).user.id;
+            
+            if (!doctorId || !startTime || !endTime) {
+                res.status(StatusCode.BAD_REQUEST).json({ message: "Doctor ID, start time, and end time are required" });
+                return;
+            }
+
+            const appointment = await this.bookSlotUseCase.execute({ 
+                doctorId, 
+                patientId, 
+                startTime: new Date(startTime), 
+                endTime: new Date(endTime),
+                reason 
+            });
+
+            res.status(StatusCode.CREATED).json({ 
+                message: "Slot booked successfully",
+                appointment 
+            });
         } catch (error) {
             next(error);
         }

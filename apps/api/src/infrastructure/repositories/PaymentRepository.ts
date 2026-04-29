@@ -17,6 +17,9 @@ export class PaymentRepository implements IPaymentRepository {
                 amount: data.amount,
                 currency: data.currency,
                 razorpayOrderId: data.razorpayOrderId,
+                stripeSessionId: data.stripeSessionId,
+                paypalOrderId: data.paypalOrderId,
+                walletAmount: data.walletAmount || 0,
                 paymentMethod: data.paymentMethod || PaymentMethod.RAZORPAY,
                 status: data.status || PaymentStatus.PENDING,
             }
@@ -32,6 +35,22 @@ export class PaymentRepository implements IPaymentRepository {
         return PaymentMapper.toDomain(payment);
     }
 
+    async findByStripeSessionId(sessionId: string): Promise<Payment | null> {
+        const payment = await this.prisma.payment.findUnique({
+            where: { stripeSessionId: sessionId }
+        });
+        if (!payment) return null;
+        return PaymentMapper.toDomain(payment);
+    }
+
+    async findByPayPalOrderId(orderId: string): Promise<Payment | null> {
+        const payment = await this.prisma.payment.findUnique({
+            where: { paypalOrderId: orderId }
+        });
+        if (!payment) return null;
+        return PaymentMapper.toDomain(payment);
+    }
+
     async findByAppointmentId(appointmentId: string): Promise<Payment | null> {
         const payment = await this.prisma.payment.findUnique({
             where: { appointmentId }
@@ -40,13 +59,24 @@ export class PaymentRepository implements IPaymentRepository {
         return PaymentMapper.toDomain(payment);
     }
 
-    async updateStatus(id: string, status: PaymentStatus, razorpayPaymentId?: string, razorpaySignature?: string): Promise<Payment> {
+    async updateStatus(id: string, status: PaymentStatus, gatewayData?: {
+        razorpayPaymentId?: string;
+        razorpaySignature?: string;
+        stripePaymentIntentId?: string;
+        stripeSessionId?: string;
+        paypalOrderId?: string;
+        paypalCaptureId?: string;
+    }): Promise<Payment> {
         const payment = await this.prisma.payment.update({
             where: { id },
             data: {
                 status: status as any,
-                ...(razorpayPaymentId && { razorpayPaymentId }),
-                ...(razorpaySignature && { razorpaySignature }),
+                ...(gatewayData?.razorpayPaymentId && { razorpayPaymentId: gatewayData.razorpayPaymentId }),
+                ...(gatewayData?.razorpaySignature && { razorpaySignature: gatewayData.razorpaySignature }),
+                ...(gatewayData?.stripePaymentIntentId && { stripePaymentIntentId: gatewayData.stripePaymentIntentId }),
+                ...(gatewayData?.stripeSessionId && { stripeSessionId: gatewayData.stripeSessionId }),
+                ...(gatewayData?.paypalOrderId && { paypalOrderId: gatewayData.paypalOrderId }),
+                ...(gatewayData?.paypalCaptureId && { paypalCaptureId: gatewayData.paypalCaptureId }),
             }
         });
         return PaymentMapper.toDomain(payment);
@@ -62,13 +92,58 @@ export class PaymentRepository implements IPaymentRepository {
         return payments.map(PaymentMapper.toDomain);
     }
 
-    async findAll(filters?: { status?: PaymentStatus }): Promise<Payment[]> {
-        const payments = await this.prisma.payment.findMany({
-            where: {
-                ...(filters?.status && { status: filters.status })
-            },
-            orderBy: { createdAt: 'desc' }
-        });
-        return payments.map(PaymentMapper.toDomain);
+    async findAll(filters?: { status?: PaymentStatus; paymentMethod?: PaymentMethod; page?: number; limit?: number; search?: string }): Promise<{ payments: any[]; total: number }> {
+        const { status, paymentMethod, page = 1, limit = 10, search } = filters || {};
+        const skip = (page - 1) * limit;
+
+        const where: any = {
+            ...(status && { status: status as any }),
+            ...(paymentMethod && { paymentMethod: paymentMethod as any })
+        };
+
+        if (search) {
+            where.OR = [
+                { patient: { firstName: { contains: search, mode: 'insensitive' } } },
+                { patient: { lastName: { contains: search, mode: 'insensitive' } } },
+                { patient: { patientId: { contains: search, mode: 'insensitive' } } },
+                { id: { contains: search, mode: 'insensitive' } },
+                { razorpayOrderId: { contains: search, mode: 'insensitive' } },
+                { stripeSessionId: { contains: search, mode: 'insensitive' } },
+                { paypalOrderId: { contains: search, mode: 'insensitive' } }
+            ];
+        }
+
+        const [payments, total] = await Promise.all([
+            this.prisma.payment.findMany({
+                where,
+                include: { 
+                    patient: true,
+                    appointment: { 
+                        include: { 
+                            doctor: {
+                                include: {
+                                    specialization: true
+                                }
+                            } 
+                        } 
+                    } 
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit
+            }),
+            this.prisma.payment.count({ where })
+        ]);
+
+        // We return the raw prisma objects (which include relations) but we can still map the base payment fields if needed.
+        // For admin list, it's often better to just return the enriched object.
+        return {
+            payments: payments.map(p => ({
+                ...PaymentMapper.toDomain(p),
+                patient: p.patient,
+                doctor: p.appointment?.doctor
+            })),
+            total
+        };
     }
 }

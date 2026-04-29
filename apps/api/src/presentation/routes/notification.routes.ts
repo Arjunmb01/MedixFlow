@@ -3,9 +3,9 @@ import { container } from "@/infrastructure/services/container/CompositionRoot";
 
 const router = Router();
 const controller = container.notificationController;
-const authMiddleware = container.authMiddleware;
+const auth = container.authMiddleware;
 
-router.use(authMiddleware);
+router.use(auth.authenticate);
 
 router.get("/", (req, res) => controller.getNotifications(req, res));
 router.get("/unread-count", (req, res) => controller.getUnreadCount(req, res));

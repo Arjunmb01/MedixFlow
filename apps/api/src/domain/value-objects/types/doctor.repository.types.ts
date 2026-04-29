@@ -12,7 +12,8 @@ export interface DoctorProfile {
     status: string;
     bio?: string;
     avatarUrl?: string;
-    address?: string;
+    experienceYears?: number;
+    languages?: string[];
     schedules?: DoctorSchedule[];
 }
 
@@ -87,6 +88,12 @@ export interface DoctorFilters {
     availableToday?: boolean;
     minFee?: number;
     maxFee?: number;
+    experienceYears?: number;
+    minRating?: number;
+    language?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: 'fee_asc' | 'fee_desc' | 'rating_desc' | 'experience_desc' | 'name_asc';
 }
 
 export interface PaginatedDoctors {

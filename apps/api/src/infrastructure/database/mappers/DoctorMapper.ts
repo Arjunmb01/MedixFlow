@@ -47,7 +47,9 @@ export class DoctorMapper {
       prismaDoctor.phone || "",
       prismaDoctor.bio || undefined,
       prismaDoctor.avatarUrl || undefined,
-      user.passwordHash
+      user.passwordHash,
+      prismaDoctor.experienceYears,
+      prismaDoctor.languages
     );
   }
 
@@ -66,7 +68,8 @@ export class DoctorMapper {
         status: prismaDoctor.user.status,
         bio: prismaDoctor.bio || undefined,
         avatarUrl: prismaDoctor.avatarUrl || undefined,
-        address: (prismaDoctor as { address?: string }).address || undefined,
+        experienceYears: prismaDoctor.experienceYears,
+        languages: prismaDoctor.languages,
         schedules: prismaDoctor.schedules?.map((s) => this.toSchedule(s)) || [],
     };
   }

@@ -22,7 +22,7 @@ export class SignUpUseCase {
 
   async execute(data: SignupData) {
     const user = await this.authRepository.findUserByEmail(data.email);
-    if (user) throw new Error(MESSAGES.EMAIL_ALREADY_EXISTS);
+    if (user) throw new Error(MESSAGES.USER_ALREADY_EXISTS);
 
     const passwordHash = data.password
       ? await this.passwordHasher.hash(data.password)

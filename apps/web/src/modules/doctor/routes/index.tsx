@@ -1,14 +1,16 @@
 import { Route } from "react-router-dom"
+import { lazy } from "react"
 import ProtectedRoute from "@/core/routes/ProtectedRoute"
 import { UserRole } from "@/domain/auth/types/auth.types"
-import DoctorDashboard from "../pages/DoctorDashboard"
-import DoctorProfile from "../pages/DoctorProfile"
-import DoctorAppointments from "../pages/DoctorAppointments"
-import DoctorQueue from "../pages/DoctorQueue"
-import ConsultationWorkspace from "../pages/ConsultationWorkspace"
-import DoctorPatients from "../pages/DoctorPatients"
-import DoctorPrescriptions from "../pages/DoctorPrescriptions"
-import DoctorLeave from "../pages/DoctorLeave"
+
+const DoctorDashboard = lazy(() => import("../pages/DoctorDashboard"))
+const DoctorProfile = lazy(() => import("../pages/DoctorProfile"))
+const DoctorAppointments = lazy(() => import("../pages/DoctorAppointments"))
+const DoctorQueue = lazy(() => import("../pages/DoctorQueue"))
+const ConsultationWorkspace = lazy(() => import("../pages/ConsultationWorkspace"))
+const DoctorPatients = lazy(() => import("../pages/DoctorPatients"))
+const DoctorPrescriptions = lazy(() => import("../pages/DoctorPrescriptions"))
+const DoctorLeave = lazy(() => import("../pages/DoctorLeave"))
 
 export const DoctorRoutes = (
     <>

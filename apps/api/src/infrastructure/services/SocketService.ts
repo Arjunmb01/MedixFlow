@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import { Server as HttpServer } from "http";
-import { config } from "./config";
+import { env as config } from "@/shared/config/env";
 
 export class SocketService {
   private io: Server | null = null;
@@ -8,7 +8,7 @@ export class SocketService {
   initialize(server: HttpServer) {
     this.io = new Server(server, {
       cors: {
-        origin: config.allowedOrigins,
+        origin: config.ALLOWED_ORIGINS,
         methods: ["GET", "POST"],
         credentials: true
       },
@@ -18,11 +18,9 @@ export class SocketService {
     this.io.on("connection", (socket) => {
       const userId = socket.handshake.query.userId as string;
       
-      console.log(`[SocketService] New connection attempt: socketId=${socket.id}, userId=${userId}`);
 
       if (userId && userId !== "undefined") {
         socket.join(userId);
-        console.log(`[SocketService] User joined room: ${userId}`);
       } else {
         console.warn(`[SocketService] Socket connected (id=${socket.id}) but no valid userId provided in query`);
       }
@@ -34,7 +32,6 @@ export class SocketService {
   }
 
   sendNotification(userId: string, data: any) {
-    console.log(`[SocketService] Attempting to send notification to userId=${userId}, type=${data?.type}`);
     if (this.io) {
       this.io.to(userId).emit("notification_received", data);
       console.log(`[SocketService] Notification emitted to room=${userId}`);
@@ -44,12 +41,30 @@ export class SocketService {
   }
 
   sendUnreadCountUpdate(userId: string, count: number) {
-    console.log(`[SocketService] Attempting to send unread count update to userId=${userId}, count=${count}`);
     if (this.io) {
       this.io.to(userId).emit("unread_count_updated", { count });
       console.log(`[SocketService] Unread count update emitted to room=${userId}`);
     } else {
       console.error("[SocketService] Cannot send unread count update: io server not initialized");
+    }
+  }
+
+  emitQueueUpdated(doctorId: string, date: Date, queue: any[]) {
+    if (this.io) {
+      const dateStr = date.toISOString().split("T")[0];
+      this.io.to(doctorId).emit("queue_updated", { doctorId, date: dateStr, queue });
+    }
+  }
+
+  emitAppointmentBooked(doctorId: string, appointment: any) {
+    if (this.io) {
+      this.io.to(doctorId).emit("appointment_booked", appointment);
+    }
+  }
+
+  emitStatusChanged(userId: string, appointmentId: string, status: string) {
+    if (this.io) {
+      this.io.to(userId).emit("appointment_status_changed", { appointmentId, status });
     }
   }
 }

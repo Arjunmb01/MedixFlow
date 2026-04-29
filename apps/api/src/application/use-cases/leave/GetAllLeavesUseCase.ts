@@ -4,7 +4,7 @@ import { DoctorLeave } from "@/domain/entities/DoctorLeave";
 export class GetAllLeavesUseCase {
   constructor(private readonly leaveRepository: IDoctorLeaveRepository) {}
 
-  async execute(): Promise<DoctorLeave[]> {
-    return this.leaveRepository.findAll();
+  async execute(filters?: { status?: any; search?: string; page?: number; limit?: number }): Promise<{ leaves: DoctorLeave[]; total: number }> {
+    return this.leaveRepository.findAll(filters);
   }
 }

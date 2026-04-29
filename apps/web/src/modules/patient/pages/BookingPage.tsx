@@ -15,6 +15,7 @@ import { Calendar } from "../components/booking/Calendar";
 import { SlotPicker } from "../components/booking/SlotPicker";
 import type { SlotInfo } from "../components/booking/SlotPicker";
 import { getAvailableSlots, bookAppointment, getWalletBalance } from "@/infrastructure/api/appointment.api";
+import { toast } from "sonner";
 
 export default function BookingPage() {
     const { id = "" } = useParams();
@@ -34,8 +35,22 @@ export default function BookingPage() {
     // Booking state
     const [isBooking, setIsBooking] = useState(false);
     const [bookingSuccess, setBookingSuccess] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState<"RAZORPAY" | "WALLET">("RAZORPAY");
+    const [paymentMethod, setPaymentMethod] = useState<"RAZORPAY" | "WALLET" | "STRIPE" | "PAYPAL">("STRIPE");
     const [walletBalance, setWalletBalance] = useState<number | null>(null);
+    const [pendingAppointmentId, setPendingAppointmentId] = useState<string | null>(null);
+    const [useWallet, setUseWallet] = useState(false);
+
+    const remainingAmount = useMemo(() => {
+        if (!doctor) return 0;
+        const fee = doctor.consultationFee;
+        if (!useWallet || walletBalance === null) return fee;
+        return Math.max(0, fee - walletBalance);
+    }, [doctor, useWallet, walletBalance]);
+
+    const walletContribution = useMemo(() => {
+        if (!doctor || !useWallet || walletBalance === null) return 0;
+        return Math.min(doctor.consultationFee, walletBalance);
+    }, [doctor, useWallet, walletBalance]);
 
     // Load Razorpay Script
     useEffect(() => {
@@ -345,60 +360,116 @@ export default function BookingPage() {
                             </section>
                         </div>
 
-                        {/* Summary Footer */}
                         <div className="p-10 bg-white border-t border-[#F1F5F9] space-y-8">
-                            {/* Payment Method Selector */}
-                            <section>
-                                <h3 className="text-[10px] font-black text-[#0F172A] uppercase tracking-[0.2em] mb-4">Select Payment Method</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <button
-                                        onClick={() => setPaymentMethod("RAZORPAY")}
-                                        className={`p-6 rounded-2xl border-2 flex items-center justify-between transition-all ${
-                                            paymentMethod === "RAZORPAY"
-                                            ? "border-[#3B82F6] bg-blue-50/50"
-                                            : "border-[#F1F5F9] hover:border-[#E2E8F0]"
-                                        }`}
-                                    >
+                            {/* Wallet Deduction Option */}
+                            {walletBalance !== null && walletBalance > 0 && (
+                                <section className="p-6 bg-[#ECFDF5] rounded-2xl border border-[#D1FAE5]">
+                                    <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                                <svg className="w-5 h-5 text-[#3B82F6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                                </svg>
-                                            </div>
-                                            <div className="text-left">
-                                                <p className="text-sm font-black text-[#0F172A]">Razorpay / Cards / UPI</p>
-                                                <p className="text-[11px] text-[#64748B] font-bold">Secure Online Payment</p>
-                                            </div>
-                                        </div>
-                                        {paymentMethod === "RAZORPAY" && <div className="w-5 h-5 bg-[#3B82F6] rounded-full flex items-center justify-center">
-                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                                        </div>}
-                                    </button>
-
-                                    <button
-                                        onClick={() => setPaymentMethod("WALLET")}
-                                        className={`p-6 rounded-2xl border-2 flex items-center justify-between transition-all ${
-                                            paymentMethod === "WALLET"
-                                            ? "border-[#3B82F6] bg-blue-50/50"
-                                            : "border-[#F1F5F9] hover:border-[#E2E8F0]"
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                                                <svg className="w-5 h-5 text-[#10B981]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <div className="w-10 h-10 rounded-xl bg-[#10B981] flex items-center justify-center">
+                                                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                 </svg>
                                             </div>
-                                            <div className="text-left">
-                                                <p className="text-sm font-black text-[#0F172A]">Patient Wallet</p>
-                                                <p className="text-[11px] text-[#64748B] font-bold">Balance: ₹{walletBalance !== null ? walletBalance : '...'}</p>
+                                            <div>
+                                                <p className="text-sm font-black text-[#065F46]">Use Wallet Balance</p>
+                                                <p className="text-[11px] text-[#047857] font-bold">Current Balance: ₹{walletBalance}</p>
                                             </div>
                                         </div>
-                                        {paymentMethod === "WALLET" && <div className="w-5 h-5 bg-[#3B82F6] rounded-full flex items-center justify-center">
-                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
-                                        </div>}
-                                    </button>
-                                </div>
+                                        <button 
+                                            onClick={() => setUseWallet(!useWallet)}
+                                            className={`relative w-14 h-7 rounded-full transition-all duration-300 ${useWallet ? 'bg-[#10B981]' : 'bg-[#D1FAE5]'}`}
+                                        >
+                                            <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-sm ${useWallet ? 'left-8' : 'left-1'}`} />
+                                        </button>
+                                    </div>
+                                </section>
+                            )}
+
+                            {/* Payment Method Selector */}
+                            <section>
+                                <h3 className="text-[10px] font-black text-[#0F172A] uppercase tracking-[0.2em] mb-4">
+                                    {remainingAmount === 0 ? "Payment covered by Wallet" : "Select Payment Method for Remaining Amount"}
+                                </h3>
+                                {remainingAmount > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <button
+                                            onClick={() => setPaymentMethod("STRIPE")}
+                                            className={`p-6 rounded-2xl border-2 flex items-center justify-between transition-all ${
+                                                paymentMethod === "STRIPE"
+                                                ? "border-[#3B82F6] bg-blue-50/50"
+                                                : "border-[#F1F5F9] hover:border-[#E2E8F0]"
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                                                    <svg className="w-5 h-5 text-indigo-600" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M13.911 10.053l-3.334 1.488c-.602.269-.745.549-.745.895 0 .524.492.834 1.258.834 1.107 0 2.215-.405 3.238-.976l.167 1.631c-.88.428-1.928.714-3.155.714-2.143 0-3.417-1.119-3.417-2.738 0-1.762 1.357-2.619 3.5-3.572l3.357-1.5c.667-.286.738-.595.738-.881 0-.476-.405-.738-1.214-.738-.857 0-1.833.31-2.667.738l-.214-1.619c.952-.476 2.095-.738 3.238-.738 2.048 0 3.19.976 3.19 2.5 0 1.548-1.19 2.405-3.619 3.5zM22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z"/>
+                                                    </svg>
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-sm font-black text-[#0F172A]">Stripe / Cards</p>
+                                                    <p className="text-[11px] text-[#64748B] font-bold">Secure Global Payments</p>
+                                                </div>
+                                            </div>
+                                            {paymentMethod === "STRIPE" && <div className="w-5 h-5 bg-[#3B82F6] rounded-full flex items-center justify-center">
+                                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                            </div>}
+                                        </button>
+
+                                        {/* <button
+                                            onClick={() => setPaymentMethod("PAYPAL")}
+                                            className={`p-6 rounded-2xl border-2 flex items-center justify-between transition-all ${
+                                                paymentMethod === "PAYPAL"
+                                                ? "border-[#3B82F6] bg-blue-50/50"
+                                                : "border-[#F1F5F9] hover:border-[#E2E8F0]"
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                    <svg className="w-5 h-5 text-blue-800" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M20.067 8.178c-.652 4.966-4.286 6.087-8.171 6.087h-1.682l-.687 4.385c-.052.333-.341.579-.679.579H5.705a.434.434 0 01-.429-.501l2.421-15.421a1.233 1.233 0 011.221-1.04h5.682c3.483 0 5.438 1.63 4.887 5.289l-.043.272c-.081.545-.308 1.054-.677 1.35z"/>
+                                                    </svg>
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-sm font-black text-[#0F172A]">PayPal</p>
+                                                    <p className="text-[11px] text-[#64748B] font-bold">Fast and Secure</p>
+                                                </div>
+                                            </div>
+                                            {paymentMethod === "PAYPAL" && <div className="w-5 h-5 bg-[#3B82F6] rounded-full flex items-center justify-center">
+                                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                            </div>}
+                                        </button> */}
+
+                                        <button
+                                            onClick={() => setPaymentMethod("RAZORPAY")}
+                                            className={`p-6 rounded-2xl border-2 flex items-center justify-between transition-all ${
+                                                paymentMethod === "RAZORPAY"
+                                                ? "border-[#3B82F6] bg-blue-50/50"
+                                                : "border-[#F1F5F9] hover:border-[#E2E8F0]"
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                    <svg className="w-5 h-5 text-[#3B82F6]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="text-left">
+                                                    <p className="text-sm font-black text-[#0F172A]">Razorpay / Cards / UPI</p>
+                                                    <p className="text-[11px] text-[#64748B] font-bold">Secure Online Payment</p>
+                                                </div>
+                                            </div>
+                                            {paymentMethod === "RAZORPAY" && <div className="w-5 h-5 bg-[#3B82F6] rounded-full flex items-center justify-center">
+                                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                            </div>}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="p-8 bg-emerald-50 rounded-2xl border-2 border-emerald-200 border-dashed text-center">
+                                        <p className="text-[#065F46] font-black tracking-tight">Full amount will be deducted from your wallet balance.</p>
+                                    </div>
+                                )}
                             </section>
 
                             <div className="flex flex-col md:flex-row justify-between items-center gap-8">
@@ -417,37 +488,56 @@ export default function BookingPage() {
                                     </div>
                                 </div>
                                 <div className="text-center md:text-right">
-                                    <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.2em]">Estimated Fee</p>
-                                    <p className="text-[34px] font-black text-[#0F172A] tracking-tighter mt-1">₹{doctor.consultationFee}.00</p>
+                                    <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.2em]">Summary</p>
+                                    <div className="flex flex-col gap-1 mt-1">
+                                        {walletContribution > 0 && (
+                                            <p className="text-xs font-bold text-[#10B981]">- ₹{walletContribution} (Wallet)</p>
+                                        )}
+                                        <p className="text-[34px] font-black text-[#0F172A] tracking-tighter">
+                                            {remainingAmount === 0 ? "FREE" : `₹${remainingAmount}.00`}
+                                        </p>
+                                        <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">
+                                            Total Fee: ₹{doctor.consultationFee}
+                                        </p>
+                                    </div>
                                 </div>
                                 <button
-                                    disabled={!selectedDate || !selectedSlot || isBooking || (paymentMethod === 'WALLET' && walletBalance !== null && walletBalance < doctor.consultationFee)}
+                                    disabled={!selectedDate || !selectedSlot || isBooking || (useWallet && remainingAmount === 0 && walletBalance !== null && walletBalance < doctor.consultationFee)}
                                     onClick={async () => {
                                         if (!selectedDate || !selectedSlot || !profile?.id || !id) return;
                                         setIsBooking(true);
+                                        let isRedirecting = false;
                                         try {
                                             const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-                                            const response = await bookAppointment({
+                                            // When wallet covers the full amount, send WALLET as paymentMethod
+                                            const effectivePaymentMethod = (useWallet && remainingAmount === 0) ? "WALLET" as const : paymentMethod;
+                                            const apiResponse = await bookAppointment({
                                                 patientId: profile.id,
                                                 doctorId: id,
                                                 date: dateStr,
                                                 slotStart: selectedSlot.start,
                                                 slotEnd: selectedSlot.end,
-                                                paymentMethod
+                                                paymentMethod: effectivePaymentMethod,
+                                                useWallet
                                             });
+                                            console.log("Booking API Response:", apiResponse);
+                                            
+                                            const bookingData = apiResponse.data;
+                                            setPendingAppointmentId(bookingData.id);
 
-                                            if (response.razorpayOrderId) {
+                                            if (bookingData.razorpayOrderId) {
                                                 // Razorpay flow - open modal
                                                 const options = {
-                                                    key: response.razorpayKeyId,
-                                                    amount: response.amount * 100, // already in paise from backend ideally, but backup
-                                                    currency: response.currency || "INR",
+                                                    key: bookingData.razorpayKeyId,
+                                                    amount: bookingData.amount * 100, 
+                                                    currency: bookingData.currency || "INR",
                                                     name: "MedixFlow",
                                                     description: `Appointment with Dr. ${doctor.firstName}`,
-                                                    order_id: response.razorpayOrderId,
+                                                    order_id: bookingData.razorpayOrderId,
                                                     handler: function (_res: any) {
                                                         // Payment succeeded
                                                         setBookingSuccess(true);
+                                                        setIsBooking(false);
                                                     },
                                                     prefill: {
                                                         name: profile.name,
@@ -464,26 +554,38 @@ export default function BookingPage() {
                                                 };
                                                 const rzp = new (window as any).Razorpay(options);
                                                 rzp.open();
+                                                return; 
+                                            } else if (bookingData.stripeUrl) {
+                                                isRedirecting = true;
+                                                console.log("Redirecting to Stripe:", bookingData.stripeUrl);
+                                                window.location.href = bookingData.stripeUrl;
+                                                return; 
+                                            } else if (bookingData.paypalUrl) {
+                                                isRedirecting = true;
+                                                window.location.href = bookingData.paypalUrl;
+                                                return; 
                                             } else {
-                                                // Wallet flow - confirmed immediately
+
                                                 setBookingSuccess(true);
                                             }
                                         } catch (error: any) {
                                             console.error("Booking failed:", error);
-                                            const errorMsg = error.response?.data?.message || "Failed to book appointment. Please try again.";
-                                            alert(errorMsg);
+                                            const errorMsg = error.response?.data?.message || error.message || "Failed to book appointment. Please try again.";
+                                            toast.error(errorMsg);
                                         } finally {
-                                            setIsBooking(false);
+                                            if (!isRedirecting) {
+                                                setIsBooking(false);
+                                            }
                                         }
                                     }}
                                     className={`w-full md:w-auto px-16 py-5 rounded-2xl text-[13px] font-black uppercase tracking-[0.2em] shadow-2xl transition-all active:scale-95 flex justify-center items-center ${
-                                        selectedDate && selectedSlot && !isBooking && (paymentMethod !== 'WALLET' || (walletBalance !== null && walletBalance >= doctor.consultationFee))
+                                        selectedDate && selectedSlot && !isBooking && (remainingAmount === 0 || (walletBalance !== null && walletBalance >= walletContribution))
                                         ? "bg-[#3B82F6] text-white shadow-blue-100 hover:bg-[#2563EB]"
                                         : "bg-[#F1F5F9] text-[#CBD5E1] cursor-not-allowed shadow-none"
                                     }`}
                                 >
                                     {isBooking ? <Loader2 className="w-5 h-5 animate-spin" /> : 
-                                     (paymentMethod === 'WALLET' && walletBalance !== null && walletBalance < doctor.consultationFee) ? "Insufficient Balance" : "Confirm Appointment"}
+                                     (useWallet && walletBalance !== null && walletBalance < doctor.consultationFee && remainingAmount === 0) ? "Insufficient Balance" : "Confirm Appointment"}
                                 </button>
                             </div>
                         </div>
@@ -497,6 +599,63 @@ export default function BookingPage() {
             <button className="fixed bottom-10 right-10 w-16 h-16 bg-[#3B82F6] text-white rounded-full flex items-center justify-center shadow-2xl shadow-blue-200 hover:scale-110 active:scale-95 transition-all text-2xl">
                 ✨
             </button>
+
+            {/* Payment Simulation Controls (Test Mode Only) */}
+            {isBooking && paymentMethod === "STRIPE" && (
+                <div className="fixed bottom-32 right-10 flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest text-right px-2">Simulate Payment (Stripe)</p>
+                    <button 
+                        onClick={async () => {
+                            if (!pendingAppointmentId) return;
+                            try {
+                                const response = await fetch(`${import.meta.env.VITE_API_URL}/payments/simulate`, {
+                                    method: 'POST',
+                                    headers: { 
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}` 
+                                    },
+                                    body: JSON.stringify({ appointmentId: pendingAppointmentId, status: 'success' })
+                                });
+                                if (response.ok) {
+                                    setBookingSuccess(true);
+                                    setIsBooking(false);
+                                }
+                            } catch (err) {
+                                console.error("Simulation failed", err);
+                            }
+                        }}
+                        className="px-6 py-3 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all flex items-center gap-2"
+                    >
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                        Simulate Success
+                    </button>
+                    <button 
+                        onClick={async () => {
+                            if (!pendingAppointmentId) return;
+                            try {
+                                const response = await fetch(`${import.meta.env.VITE_API_URL}/payments/simulate`, {
+                                    method: 'POST',
+                                    headers: { 
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}` 
+                                    },
+                                    body: JSON.stringify({ appointmentId: pendingAppointmentId, status: 'failure' })
+                                });
+                                if (response.ok) {
+                                    // On failure, redirect to billing
+                                    window.location.href = `/patient/billing?status=failed&appointmentId=${pendingAppointmentId}`;
+                                }
+                            } catch (err) {
+                                console.error("Simulation failed", err);
+                            }
+                        }}
+                        className="px-6 py-3 bg-rose-500 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-rose-200 hover:bg-rose-600 transition-all flex items-center gap-2"
+                    >
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                        Simulate Failure
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

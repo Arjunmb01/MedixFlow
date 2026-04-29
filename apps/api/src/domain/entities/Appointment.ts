@@ -15,14 +15,30 @@ export class Appointment {
     public readonly status: AppointmentStatus,
     public readonly reason: string | null = null,
     public readonly notes: string | null = null,
-    public readonly createdAt: Date = new Date()
+    public readonly createdAt: Date = new Date(),
+    public readonly expiresAt: Date | null = null,
+    public readonly rescheduledToId: string | null = null,
+    public readonly lastStatusChangedAt: Date = new Date(),
+    public readonly parentAppointmentId: string | null = null
   ) {}
 
-  public isUpcoming(now: Date): boolean {
-    return this.appointmentDate >= now && this.status !== AppointmentStatus.CANCELLED;
+  public static canReschedule(status: AppointmentStatus): boolean {
+    return [
+      AppointmentStatus.BOOKED,
+      AppointmentStatus.PENDING,
+      AppointmentStatus.PAYMENT_FAILED_HOLD
+    ].includes(status);
   }
 
   public canBeCancelled(): boolean {
-    return this.status !== AppointmentStatus.CANCELLED && this.status !== AppointmentStatus.COMPLETED;
+    return [
+      AppointmentStatus.BOOKED,
+      AppointmentStatus.PENDING,
+      AppointmentStatus.PAYMENT_FAILED_HOLD
+    ].includes(this.status);
+  }
+
+  public isUpcoming(now: Date): boolean {
+    return this.appointmentDate >= now && this.status !== AppointmentStatus.CANCELLED;
   }
 }

@@ -1,14 +1,16 @@
 import { Route } from "react-router-dom"
+import { lazy } from "react"
 import GuestRoute from "@/core/routes/GuestRoute"
 import { UserRole } from "../types/auth.types"
-import Register from "../pages/Register"
-import VerifyOtp from "../pages/VerifyOtp"
-import PatientLogin from "../pages/PatientLogin"
-import AdminLogin from "../pages/AdminLogin"
-import DoctorLogin from "../pages/DoctorLogin"
-import SetPassword from "../pages/SetPassword"
-import ForgotPassword from "../pages/ForgotPassword"
-import ResetPassword from "../pages/ResetPassword"
+
+const Register = lazy(() => import("../pages/Register"))
+const VerifyOtp = lazy(() => import("../pages/VerifyOtp"))
+const PatientLogin = lazy(() => import("../pages/PatientLogin"))
+const AdminLogin = lazy(() => import("../pages/AdminLogin"))
+const DoctorLogin = lazy(() => import("../pages/DoctorLogin"))
+const SetPassword = lazy(() => import("../pages/SetPassword"))
+const ForgotPassword = lazy(() => import("../pages/ForgotPassword"))
+const ResetPassword = lazy(() => import("../pages/ResetPassword"))
 
 export const AuthRoutes = (
     <>

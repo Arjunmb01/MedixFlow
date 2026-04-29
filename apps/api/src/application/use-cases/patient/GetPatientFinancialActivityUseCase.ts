@@ -4,20 +4,21 @@ export interface UnifiedActivity {
     id: string;
     amount: number;
     type: "TOP_UP" | "PAYMENT" | "REFUND";
-    status: "SUCCESS" | "PENDING" | "FAILED";
-    method: "WALLET" | "RAZORPAY";
+    status: "PAID" | "PENDING" | "FAILED";
+    method: string;
     createdAt: Date;
     description: string;
     referenceId?: string;
+    appointmentId?: string;
+    appointmentStatus?: string;
 }
 
 export class GetPatientFinancialActivityUseCase {
     constructor(private readonly prisma: PrismaClient) {}
 
-    async execute(patientId: string): Promise<UnifiedActivity[]> {
-        console.log(`[GetPatientFinancialActivityUseCase] Fetching activity for patient: ${patientId}`);
+    async execute(patientId: string, filters: { page?: number; limit?: number; search?: string; status?: string; startDate?: string; endDate?: string; method?: string } = {}): Promise<{ data: UnifiedActivity[], total: number }> {
+        const { page = 1, limit = 10, search, status: statusFilter, startDate, endDate, method: methodFilter } = filters;
 
-        // 1. Fetch Wallet Transactions
         const wallet = await this.prisma.wallet.findUnique({
             where: { patientId },
             include: {
@@ -27,11 +28,10 @@ export class GetPatientFinancialActivityUseCase {
             }
         });
 
-        // 2. Fetch Direct Payments (Razorpay)
         const payments = await this.prisma.payment.findMany({
             where: { 
                 patientId,
-                paymentMethod: "RAZORPAY"
+                paymentMethod: { in: ["RAZORPAY", "STRIPE", "PAYPAL"] }
             },
             include: {
                 appointment: {
@@ -44,13 +44,25 @@ export class GetPatientFinancialActivityUseCase {
         });
 
         const activity: UnifiedActivity[] = [];
+        const startDateTime = startDate ? new Date(startDate) : null;
+        if (startDateTime) startDateTime.setHours(0, 0, 0, 0);
+        
+        const endDateTime = endDate ? new Date(endDate) : null;
+        if (endDateTime) endDateTime.setHours(23, 59, 59, 999);
 
-        // Map Wallet Transactions
         if (wallet) {
             wallet.transactions.forEach(tx => {
-                let status: "SUCCESS" | "PENDING" | "FAILED" = "PENDING";
-                if (tx.status === "COMPLETED" || (tx.status as string) === "SUCCESS") status = "SUCCESS";
+                let status: "PAID" | "PENDING" | "FAILED" = "PENDING";
+                if (tx.status === "COMPLETED" || (tx.status as string) === "SUCCESS" || (tx.status as string) === "PAID") status = "PAID";
                 if (tx.status === "FAILED") status = "FAILED";
+
+                const description = tx.reason || (tx.type === "TOP_UP" ? "Wallet Top Up" : "Appointment Payment");
+
+                if (statusFilter && status !== statusFilter) return;
+                if (search && !description.toLowerCase().includes(search.toLowerCase()) && !tx.id.toLowerCase().includes(search.toLowerCase())) return;
+                if (methodFilter && methodFilter !== "WALLET") return;
+                if (startDateTime && tx.createdAt < startDateTime) return;
+                if (endDateTime && tx.createdAt > endDateTime) return;
 
                 activity.push({
                     id: tx.id,
@@ -59,37 +71,50 @@ export class GetPatientFinancialActivityUseCase {
                     status,
                     method: "WALLET",
                     createdAt: tx.createdAt,
-                    description: tx.reason || (tx.type === "TOP_UP" ? "Wallet Top Up" : "Appointment Payment"),
+                    description,
                     referenceId: tx.id
                 });
             });
         }
 
-        // Map Direct Payments
         payments.forEach(p => {
-            let status: "SUCCESS" | "PENDING" | "FAILED" = "PENDING";
-            if (p.status === "PAID" || (p.status as string) === "SUCCESS") status = "SUCCESS";
+            let status: "PAID" | "PENDING" | "FAILED" = "PENDING";
+            if (p.status === "PAID" || (p.status as string) === "SUCCESS") status = "PAID";
             if (p.status === "FAILED") status = "FAILED";
 
             const doctorName = p.appointment?.doctor 
                 ? `Dr. ${p.appointment.doctor.firstName} ${p.appointment.doctor.lastName}`
                 : "Medical Consultant";
+            
+            const description = `Consultation with ${doctorName}`;
+
+            // Apply filters
+            if (statusFilter && status !== statusFilter) return;
+            if (search && !description.toLowerCase().includes(search.toLowerCase()) && !p.id.toLowerCase().includes(search.toLowerCase())) return;
+            if (methodFilter && methodFilter !== p.paymentMethod) return;
+            if (startDateTime && p.createdAt < startDateTime) return;
+            if (endDateTime && p.createdAt > endDateTime) return;
 
             activity.push({
                 id: p.id,
                 amount: p.amount,
                 type: "PAYMENT",
                 status,
-                method: "RAZORPAY",
+                method: p.paymentMethod as any,
                 createdAt: p.createdAt,
-                description: `Consultation with ${doctorName}`,
-                referenceId: p.razorpayPaymentId || p.razorpayOrderId || p.id
+                description,
+                referenceId: p.stripeSessionId || p.razorpayPaymentId || p.razorpayOrderId || p.id,
+                appointmentId: p.appointmentId,
+                appointmentStatus: p.appointment?.status
             });
         });
 
         // Sort by date descending
-        const result = activity.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-        console.log(`[GetPatientFinancialActivityUseCase] Returning ${result.length} unified activity records`);
-        return result;
+        const sorted = activity.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        const total = sorted.length;
+        const start = (page - 1) * limit;
+        const data = sorted.slice(start, start + limit);
+
+        return { data, total };
     }
 }

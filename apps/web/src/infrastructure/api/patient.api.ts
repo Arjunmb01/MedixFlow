@@ -83,13 +83,13 @@ export const getUpcomingAppointments = async () => {
     return response.data;
 };
 
-export const getPatientAppointments = async () => {
-    const response = await axiosInstance.get("/patient/appointments");
+export const getPatientAppointments = async (params: any = {}) => {
+    const response = await axiosInstance.get("/patient/appointments", { params });
     return response.data;
 };
 
-export const cancelAppointment = async (id: string, reason: string) => {
-    const response = await axiosInstance.patch(`/patient/appointments/${id}/cancel`, { reason });
+export const cancelAppointment = async (id: string, reason: string, refundToWallet: boolean = false) => {
+    const response = await axiosInstance.patch(`/patient/appointments/${id}/cancel`, { reason, refundToWallet });
     return response.data;
 };
 

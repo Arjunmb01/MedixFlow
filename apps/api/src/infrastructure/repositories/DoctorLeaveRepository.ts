@@ -39,26 +39,48 @@ export class DoctorLeaveRepository implements IDoctorLeaveRepository {
     return rows.map(mapToDomain);
   }
 
-  async findAll(): Promise<DoctorLeave[]> {
-    const rows = await this.prisma.doctorLeave.findMany({
-      include: {
-        doctor: {
-          select: {
-            firstName: true,
-            lastName: true,
-            user: { select: { email: true } },
+  async findAll(filters?: { status?: LeaveStatus; search?: string; page?: number; limit?: number }): Promise<{ leaves: DoctorLeave[]; total: number }> {
+    const { status, search, page = 1, limit = 10 } = filters || {};
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      ...(status && { status }),
+      ...(search && {
+        OR: [
+          { doctor: { firstName: { contains: search, mode: "insensitive" } } },
+          { doctor: { lastName: { contains: search, mode: "insensitive" } } },
+          { doctor: { user: { email: { contains: search, mode: "insensitive" } } } },
+        ],
+      }),
+    };
+
+    const [rows, total] = await Promise.all([
+      this.prisma.doctorLeave.findMany({
+        where,
+        include: {
+          doctor: {
+            select: {
+              firstName: true,
+              lastName: true,
+              user: { select: { email: true } },
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-    return rows.map((row) => {
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      this.prisma.doctorLeave.count({ where }),
+    ]);
+
+    const leaves = rows.map((row) => {
       const leave = mapToDomain(row);
-      // Attach doctor info for admin view
       (leave as any).doctorName = `${row.doctor.firstName} ${row.doctor.lastName}`;
       (leave as any).doctorEmail = row.doctor.user.email;
       return leave;
     });
+
+    return { leaves, total };
   }
 
   async findById(id: string): Promise<DoctorLeave | null> {

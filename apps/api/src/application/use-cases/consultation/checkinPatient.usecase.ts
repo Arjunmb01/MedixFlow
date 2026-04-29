@@ -24,7 +24,7 @@ export class CheckinPatientUseCase {
         const existing = await this.consultationRepo.findByAppointmentId(appointmentId)
         if(existing) throw new Error ("Already Checked in")
 
-        await this.appointmentRepo.updateStatus(appointmentId, "CONFIRMED")
+        await this.appointmentRepo.updateStatus(appointmentId, "BOOKED")
 
         return this.consultationRepo.create({
             appointmentId,

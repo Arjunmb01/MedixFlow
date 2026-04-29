@@ -7,12 +7,16 @@ import { NotificationType } from "@/domain/value-objects/types/notification.type
 import { IPaymentRepository } from "../../../domain/repositories/IPaymentRepository";
 import { IWalletRepository } from "../../../domain/repositories/IWalletRepository";
 import { IRazorpayService } from "../../../domain/services/IRazorpayService";
+import { IPatientRepository } from "../../../domain/repositories/IPatientRepository";
 import { IDoctorProfileRepository } from "../../../domain/repositories/IDoctorRepository";
 import { PaymentMethod } from "../../../domain/value-objects/enums/PaymentMethod";
 import { PaymentStatus } from "../../../domain/value-objects/enums/PaymentStatus";
 import { TransactionType } from "../../../domain/value-objects/enums/TransactionType";
 import { AppointmentStatus } from "../../../domain/value-objects/enums/AppointmentStatus";
-import { config } from "../../../infrastructure/services/config";
+import { env as config } from "../../../shared/config/env";
+import { IQueueService } from "../../../domain/services/IQueueService";
+import { SocketService } from "../../../infrastructure/services/SocketService";
+import { PaymentGatewayFactory } from "../../../infrastructure/services/PaymentGatewayFactory";
 
 export class BookAppointmentUseCase {
     constructor(
@@ -23,10 +27,22 @@ export class BookAppointmentUseCase {
         private readonly paymentRepo: IPaymentRepository,
         private readonly walletRepo: IWalletRepository,
         private readonly razorpayService: IRazorpayService,
-        private readonly doctorRepo: IDoctorProfileRepository
+        private readonly doctorRepo: IDoctorProfileRepository,
+        private readonly patientRepo: IPatientRepository,
+        private readonly queueService: IQueueService,
+        private readonly socketService: SocketService
     ) { }
 
-    async execute(data: CreateAppointmentInput): Promise<AppointmentRecord & { razorpayOrderId?: string; razorpayKeyId?: string; amount?: number; currency?: string }> {
+    async execute(data: CreateAppointmentInput): Promise<AppointmentRecord & { 
+        razorpayOrderId?: string; 
+        razorpayKeyId?: string; 
+        amount?: number; 
+        currency?: string;
+        stripeSessionId?: string;
+        stripeUrl?: string;
+        paypalOrderId?: string;
+        paypalUrl?: string;
+    }> {
         if (!data.patientId || !data.doctorId) {
             throw new Error("Invalid patient or doctor");
         }
@@ -80,74 +96,152 @@ export class BookAppointmentUseCase {
             }
         }
 
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins hold
+
         const appointment = await this.appointmentRepo.createWithTransaction({
             ...data,
-            status: AppointmentStatus.PENDING
+            status: AppointmentStatus.PENDING,
+            expiresAt
         } as any);
 
-        const amount = doctorProfile.consultationFee;
+        const totalAmount = doctorProfile.consultationFee;
         const currency = "inr";
-        const paymentMethod = data.paymentMethod || PaymentMethod.RAZORPAY;
+        let walletContribution = 0;
+        let remainingAmount = totalAmount;
 
-        if (paymentMethod === PaymentMethod.WALLET) {
+        if (data.useWallet) {
             const wallet = await this.walletRepo.findByPatientId(data.patientId);
-            if (!wallet || !wallet.hasSufficientBalance(amount)) {
-                // If wallet doesn't exist or insufficient, we could delete the pending appointment or just fail
-                // For now, fail.
-                throw new Error("Insufficient wallet balance");
+            if (wallet && wallet.balance > 0) {
+                walletContribution = Math.min(wallet.balance, totalAmount);
+                remainingAmount = totalAmount - walletContribution;
+                
+                // Deduct from wallet immediately
+                await this.walletRepo.updateBalance(
+                    wallet.id, 
+                    -walletContribution, 
+                    TransactionType.PAYMENT, 
+                    `Wallet contribution for Appointment ${appointment.id}`
+                );
             }
+        }
 
-            // Deduct from wallet
-            await this.walletRepo.updateBalance(wallet.id, -amount, TransactionType.PAYMENT, `Payment for Appointment ${appointment.id}`);
+        if (remainingAmount === 0) {
+            // Full Wallet Payment
+            await this.appointmentRepo.updateStatus(appointment.id, AppointmentStatus.BOOKED);
+            
+            const queueNumber = await this.queueService.addToQueue(data.doctorId, data.appointmentDate, appointment.id);
+            await this.appointmentRepo.updateQueuePosition(appointment.id, queueNumber);
 
-            // Update Appointment to CONFIRMED
-            await this.appointmentRepo.updateStatus(appointment.id, AppointmentStatus.CONFIRMED);
-
-            // Create Payment record as PAID
             await this.paymentRepo.create({
                 appointmentId: appointment.id,
                 patientId: data.patientId,
-                amount,
+                amount: totalAmount,
                 currency,
-                razorpayOrderId: `wallet_${appointment.id}`, // Placeholder
+                walletAmount: totalAmount,
                 paymentMethod: PaymentMethod.WALLET,
                 status: PaymentStatus.PAID
             });
 
-            // Notify Doctor & Patient (Immediate for Wallet)
+            this.socketService.emitAppointmentBooked(data.doctorId, { ...appointment, queueNumber, status: AppointmentStatus.BOOKED });
+            const fullQueue = await this.appointmentRepo.getTodaysQueue(data.doctorId);
+            this.socketService.emitQueueUpdated(data.doctorId, data.appointmentDate, fullQueue);
+            
             await this.sendNotifications(data, appointment);
 
-            return { ...appointment, status: AppointmentStatus.CONFIRMED };
-        } else {
-            // RAZORPAY FLOW
-            const razorpayOrder = await this.razorpayService.createOrder({
-                amount,
+            return appointment;
+        }
+
+        // Mixed or Full Gateway Payment
+        const paymentMethod = data.paymentMethod || PaymentMethod.STRIPE;
+
+        if (paymentMethod === PaymentMethod.STRIPE) {
+            const patient = await this.patientRepo.findById(data.patientId);
+            const gateway = PaymentGatewayFactory.getGateway(PaymentMethod.STRIPE);
+            
+            const session = await gateway.createSession({
+                appointmentId: appointment.id,
+                amount: remainingAmount,
                 currency,
-                receipt: appointment.id,
-                notes: {
-                    appointmentId: appointment.id,
-                    patientId: data.patientId,
-                },
+                customerEmail: patient?.email || undefined,
+                successUrl: `${config.FRONTEND_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}&appointment_id=${appointment.id}`,
+                cancelUrl: `${config.FRONTEND_URL}/patient/billing?status=failed&appointment_id=${appointment.id}`,
+                metadata: { appointmentId: appointment.id, patientId: data.patientId }
             });
 
-            // Create Payment record as PENDING
             await this.paymentRepo.create({
                 appointmentId: appointment.id,
                 patientId: data.patientId,
-                amount,
+                amount: remainingAmount,
                 currency,
+                walletAmount: walletContribution,
+                stripeSessionId: session.id,
+                paymentMethod: PaymentMethod.STRIPE,
+                status: PaymentStatus.PENDING
+            });
+
+            return {
+                ...appointment,
+                stripeSessionId: session.id,
+                stripeUrl: session.url,
+                amount: remainingAmount,
+                currency
+            };
+        } else if (paymentMethod === PaymentMethod.RAZORPAY) {
+            const razorpayOrder = await this.razorpayService.createOrder({
+                amount: remainingAmount,
+                currency,
+                receipt: appointment.id,
+                notes: { appointmentId: appointment.id, patientId: data.patientId },
+            });
+
+            await this.paymentRepo.create({
+                appointmentId: appointment.id,
+                patientId: data.patientId,
+                amount: remainingAmount,
+                currency,
+                walletAmount: walletContribution,
                 razorpayOrderId: razorpayOrder.id,
                 paymentMethod: PaymentMethod.RAZORPAY,
                 status: PaymentStatus.PENDING
-            } as any);
+            });
 
             return {
                 ...appointment,
                 razorpayOrderId: razorpayOrder.id,
-                razorpayKeyId: config.razorpayKeyId,
+                razorpayKeyId: config.RAZORPAY_KEY_ID,
                 amount: razorpayOrder.amount,
                 currency: razorpayOrder.currency
             };
+        } else if (paymentMethod === PaymentMethod.PAYPAL) {
+            const gateway = PaymentGatewayFactory.getGateway(PaymentMethod.PAYPAL);
+            const order = await gateway.createSession({
+                appointmentId: appointment.id,
+                amount: remainingAmount,
+                currency: "USD",
+                successUrl: `${config.FRONTEND_URL}/payment/success?token={TOKEN}&appointment_id=${appointment.id}`,
+                cancelUrl: `${config.FRONTEND_URL}/payment/cancel?appointment_id=${appointment.id}`
+            });
+
+            await this.paymentRepo.create({
+                appointmentId: appointment.id,
+                patientId: data.patientId,
+                amount: remainingAmount,
+                currency: "USD",
+                walletAmount: walletContribution,
+                paypalOrderId: order.id,
+                paymentMethod: PaymentMethod.PAYPAL,
+                status: PaymentStatus.PENDING
+            });
+
+            return {
+                ...appointment,
+                paypalOrderId: order.id,
+                paypalUrl: order.url,
+                amount: remainingAmount,
+                currency: "USD"
+            };
+        } else {
+            throw new Error(`Unsupported payment method: ${paymentMethod}`);
         }
     }
 
@@ -163,8 +257,8 @@ export class BookAppointmentUseCase {
         // Notify Patient
         await this.sendNotificationUseCase.execute({
             recipientId: data.patientId,
-            title: "Booking Confirmed",
-            message: `Your appointment with the doctor is confirmed for ${data.appointmentDate.toLocaleDateString()} at ${data.slotStart}.`,
+            title: "Booking BOOKED",
+            message: `Your appointment with the doctor is BOOKED for ${data.appointmentDate.toLocaleDateString()} at ${data.slotStart}.`,
             type: NotificationType.BOOKED,
         });
     }

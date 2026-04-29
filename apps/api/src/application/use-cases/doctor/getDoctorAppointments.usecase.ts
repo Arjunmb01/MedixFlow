@@ -51,6 +51,8 @@ async execute(doctorId: string, filter?: DoctorAppointmentFilter) {
               : null
           }
         : null,
+      paymentStatus: appt.paymentStatus,
+      queueNumber: appt.queueNumber,
       createdAt: appt.createdAt,
     })),
     meta: {

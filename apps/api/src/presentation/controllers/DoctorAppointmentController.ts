@@ -6,6 +6,8 @@ import { UpdateDoctorSchedulesUseCase } from "@/application/use-cases/doctor/upd
 import { GenerateSlotsUseCase } from "@/application/use-cases/slot/generateSlots.usecase";
 import { DoctorAppointmentFilter } from "@/domain/value-objects/types/appointment.types";
 import { RescheduleAppointmentUseCase } from "@/application/use-cases/appointment/rescheduleAppointment.usecase";
+import { ReassignAppointmentUseCase } from "@/application/use-cases/appointment/ReassignAppointmentUseCase";
+import { ProcessDoctorLeaveUseCase } from "@/application/use-cases/doctor/ProcessDoctorLeaveUseCase";
 import { 
     getDoctorAppointmentsQuerySchema, 
     generateSlotsSchema
@@ -24,7 +26,9 @@ export class DoctorAppointmentController {
         private getDoctorAppointmentsUseCase: GetDoctorAppointmentsUseCase,
         private updateDoctorSchedulesUseCase: UpdateDoctorSchedulesUseCase,
         private generateSlotsUseCase: GenerateSlotsUseCase,
-        private rescheduleAppointmentUseCase: RescheduleAppointmentUseCase
+        private rescheduleAppointmentUseCase: RescheduleAppointmentUseCase,
+        private reassignAppointmentUseCase: ReassignAppointmentUseCase,
+        private processDoctorLeaveUseCase: ProcessDoctorLeaveUseCase
     ) { }
 
     getDoctorDashboardStats = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -44,11 +48,14 @@ export class DoctorAppointmentController {
 
             const filter: DoctorAppointmentFilter = {
                 status: validatedQuery.status,
+                paymentStatus: validatedQuery.paymentStatus,
                 fromDate: validatedQuery.fromDate,
                 toDate: validatedQuery.toDate,
                 isUpcoming: validatedQuery.type === "upcoming" ? true : validatedQuery.type === "past" ? false : undefined,
                 page: validatedQuery.page,
                 limit: validatedQuery.limit,
+                sortBy: validatedQuery.sortBy,
+                sortOrder: validatedQuery.sortOrder,
             };
 
             const appointments = await this.getDoctorAppointmentsUseCase.execute(userId, filter);
@@ -93,6 +100,42 @@ export class DoctorAppointmentController {
                 slotEnd,
             });
             res.json({ message: "Appointment rescheduled successfully", data: result });
+        } catch (error: any) {
+            next(error);
+        }
+    }
+
+    reassignAppointment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        try {
+            const reassignedBy = req.user.id;
+            const appointmentId = req.params.id;
+            const { newDoctorId, reason, newDate, newSlotStart, newSlotEnd } = req.body;
+            const result = await this.reassignAppointmentUseCase.execute({
+                appointmentId: appointmentId as string,
+                newDoctorId: newDoctorId as string,
+                reassignedBy: reassignedBy as string,
+                reason: reason as string,
+                newDate: newDate ? new Date(newDate as string) : undefined,
+                newSlotStart: newSlotStart as string,
+                newSlotEnd: newSlotEnd as string,
+            });
+            res.json({ message: "Appointment reassigned successfully", data: result });
+        } catch (error: any) {
+            next(error);
+        }
+    }
+
+    processLeave = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        try {
+            const doctorId = req.user.id;
+            const { startDate, endDate, reason } = req.body;
+            const result = await this.processDoctorLeaveUseCase.execute(
+                doctorId,
+                new Date(startDate as string),
+                new Date(endDate as string),
+                reason as string
+            );
+            res.json({ message: "Leave processed and patients notified", data: result });
         } catch (error: any) {
             next(error);
         }

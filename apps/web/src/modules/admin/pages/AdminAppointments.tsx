@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import AdminSidebar from "../components/AdminSidebar"
 import AdminTopNav from "../components/AdminTopNav"
 import { Search, Calendar, User, Stethoscope, ChevronLeft, ChevronRight, Clock, CalendarClock } from "lucide-react"
@@ -19,8 +19,11 @@ export default function AdminAppointments() {
     const itemsPerPage = 8
 
     useEffect(() => {
-        fetchData()
-    }, [page, statusFilter])
+        const timer = setTimeout(() => {
+            fetchData()
+        }, 300)
+        return () => clearTimeout(timer)
+    }, [page, statusFilter, search])
 
     const fetchData = async () => {
         try {
@@ -28,6 +31,7 @@ export default function AdminAppointments() {
             const params = {
                 status: (statusFilter === "ALL" || statusFilter === "UPCOMING") ? undefined : statusFilter,
                 isUpcoming: statusFilter === "UPCOMING" ? true : undefined,
+                search: search || undefined,
                 page,
                 limit: itemsPerPage
             }
@@ -41,15 +45,7 @@ export default function AdminAppointments() {
         }
     }
 
-    const filteredAppointments = useMemo(() => {
-        return appointments.filter(apt => {
-            const matchesSearch =
-                `${apt.patient.firstName} ${apt.patient.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
-                `${apt.doctor.firstName} ${apt.doctor.lastName}`.toLowerCase().includes(search.toLowerCase()) ||
-                apt.id.toLowerCase().includes(search.toLowerCase())
-            return matchesSearch
-        })
-    }, [appointments, search])
+    const paginatedAppointments = appointments;
 
 
     const totalPages = Math.ceil(totalAppointments / itemsPerPage)
@@ -65,10 +61,11 @@ export default function AdminAppointments() {
 
     const statusBadge = (s: string) => {
         const map: Record<string, string> = {
-            CONFIRMED: 'bg-green-50 text-green-700 border-green-100',
+            BOOKED: 'bg-green-50 text-green-700 border-green-100',
             PENDING: 'bg-amber-50 text-amber-700 border-amber-100',
             COMPLETED: 'bg-blue-50 text-blue-700 border-blue-100',
             CANCELLED: 'bg-red-50 text-red-700 border-red-100',
+            NO_SHOW: 'bg-slate-50 text-slate-500 border-slate-100',
             NOT_ATTENDED: 'bg-slate-50 text-slate-500 border-slate-100',
         }
         return map[s] ?? 'bg-gray-50 text-gray-600 border-gray-100'
@@ -147,8 +144,8 @@ export default function AdminAppointments() {
                                             <td colSpan={7} className="px-8 py-6 h-20 bg-gray-50/30"></td>
                                         </tr>
                                     ))
-                                ) : filteredAppointments.length > 0 ? (
-                                    filteredAppointments.map((apt) => (
+                                ) : paginatedAppointments.length > 0 ? (
+                                    paginatedAppointments.map((apt) => (
                                         <tr key={apt.id} className="group hover:bg-teal-50/30 transition-all">
                                             <td className="px-8 py-6">
                                                 <p className="font-black text-gray-900 text-sm">#{apt.id.slice(-6).toUpperCase()}</p>
@@ -203,7 +200,7 @@ export default function AdminAppointments() {
                                                 </span>
                                             </td>
                                             <td className="px-8 py-6">
-                                                {(apt.status === "PENDING" || apt.status === "CONFIRMED") ? (
+                                                {(apt.status === "PENDING" || apt.status === "BOOKED") ? (
                                                     <button
                                                         onClick={() => setRescheduleApt(apt)}
                                                         className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 text-violet-700 border border-violet-100 rounded-xl text-xs font-black hover:bg-violet-100 transition-all"
@@ -271,6 +268,7 @@ export default function AdminAppointments() {
             {rescheduleApt && (
                 <RescheduleModal
                     appointmentId={rescheduleApt.id}
+                    patientId={rescheduleApt.patient?.id || rescheduleApt.patientId}
                     doctorId={rescheduleApt.doctor?.id ?? rescheduleApt.doctorId}
                     role="admin"
                     onSuccess={fetchData}

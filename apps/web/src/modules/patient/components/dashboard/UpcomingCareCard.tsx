@@ -18,6 +18,7 @@ export default function UpcomingCareCard({ appointment }: Props) {
     const [showModal, setShowModal] = useState(false);
     const [reason, setReason] = useState("");
     const [isCancelling, setIsCancelling] = useState(false);
+    const [refundToWallet, setRefundToWallet] = useState(true);
     const [isCheckingIn, setIsCheckingIn] = useState(false);
     const [hasCheckedIn, setHasCheckedIn] = useState(false);
 
@@ -43,7 +44,7 @@ export default function UpcomingCareCard({ appointment }: Props) {
         if (!appointment?.id || !reason) return;
         setIsCancelling(true);
         try {
-            await cancelAppointment(appointment.id, reason);
+            await cancelAppointment(appointment.id, reason, refundToWallet);
             window.location.reload();
         } catch (error) {
             console.error("Cancellation failed", error);
@@ -61,7 +62,7 @@ export default function UpcomingCareCard({ appointment }: Props) {
                 <h3 className="text-[20px] font-black tracking-tight text-gray-900 leading-tight">No Active Schedules</h3>
                 <p className="text-[13px] mt-2 font-bold uppercase tracking-widest">Book a consultation to begin</p>
                 <button
-                    onClick={() => window.location.href = '/patient/find-doctors'}
+                    onClick={() => window.location.href = '/find-doctors'}
                     className="mt-8 bg-primary-600 text-white px-10 py-4 rounded-2xl font-black text-[14px] flex items-center gap-2 hover:bg-primary-700 transition-all shadow-xl shadow-primary-100"
                 >
                     Book Appointment
@@ -178,14 +179,40 @@ export default function UpcomingCareCard({ appointment }: Props) {
 
                         <div className="space-y-6">
                             <div>
-                                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Reason for Cancellation</label>
-                                <textarea
-                                    value={reason}
-                                    onChange={(e) => setReason(e.target.value)}
-                                    placeholder="Explain the requirement for cancellation..."
-                                    className="w-full h-32 px-5 py-4 rounded-3xl bg-gray-50 border-2 border-gray-50 focus:bg-white focus:border-red-500/20 focus:ring-8 focus:ring-red-50/30 text-[14px] font-bold text-gray-900 outline-none resize-none transition-all placeholder:text-gray-300"
-                                />
-                            </div>
+                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-1">Reason for Cancellation</label>
+                                    <textarea
+                                        value={reason}
+                                        onChange={(e) => setReason(e.target.value)}
+                                        placeholder="Explain the requirement for cancellation..."
+                                        className="w-full h-32 px-5 py-4 rounded-3xl bg-gray-50 border-2 border-gray-50 focus:bg-white focus:border-red-500/20 focus:ring-8 focus:ring-red-50/30 text-[14px] font-bold text-gray-900 outline-none resize-none transition-all placeholder:text-gray-300"
+                                    />
+                                </div>
+
+                                {/* Refund Preference Toggle */}
+                                <div className="p-6 bg-emerald-50 rounded-[2rem] border border-emerald-100/50">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                                                <CheckCircle className="w-5 h-5 text-white" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[11px] font-black text-emerald-900 uppercase tracking-widest leading-none">Refund Method</p>
+                                                <p className="text-[15px] font-black text-emerald-600 mt-1">Credit to Wallet</p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => setRefundToWallet(!refundToWallet)}
+                                            className={`relative w-14 h-7 rounded-full transition-all duration-300 ${refundToWallet ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                                        >
+                                            <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all duration-300 shadow-sm ${refundToWallet ? 'left-8' : 'left-1'}`} />
+                                        </button>
+                                    </div>
+                                    <p className="mt-4 text-[11px] font-bold text-emerald-600/60 leading-relaxed uppercase tracking-wider">
+                                        {refundToWallet 
+                                            ? "Funds will be available instantly in your MedixFlow wallet"
+                                            : "Refund will be processed back to original source (Stripe/PayPal)"}
+                                    </p>
+                                </div>
 
                             <div className="flex gap-4 pt-4">
                                 <button

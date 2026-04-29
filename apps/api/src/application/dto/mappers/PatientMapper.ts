@@ -25,7 +25,8 @@ export class PatientMapper {
       },
       createdAt: new Date(), 
       avatarUrl: "", 
-      emergencyContacts: patient.emergencyContacts
+      emergencyContacts: patient.emergencyContacts,
+      wallet: (patient as any).wallet
     };
   }
 }

@@ -6,16 +6,17 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import { ZodError } from "zod";
 import router from "./presentation/routes";
-import { config } from "./infrastructure/services/config";
+import { env } from "./shared/config/env";
+import { errorMiddleware } from "./shared/middlewares/error.middleware";
 
 const app = express();
 
 app.use(
   cors({
-    origin: config.allowedOrigins,
+    origin: env.ALLOWED_ORIGINS,
     credentials: true
   })
-)
+);
 
 app.use(helmet({ 
   crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -23,38 +24,22 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 app.use(cookieParser());
+
+// Stripe webhook needs raw body BEFORE express.json()
+app.post("/api/payments/webhook/stripe", express.raw({ type: 'application/json' }), (req, res, next) => {
+  (req as any).rawBody = req.body;
+  next();
+});
+
 app.use(express.json({
   verify: (req: any, res, buf) => {
-    req.rawBody = buf.toString();
+    req.rawBody = buf;
   }
 }));
 
 app.use("/api", router);
 
 
-app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
-  if (err instanceof ZodError) {
-    return res.status(400).json({
-      success: false,
-      message: "Validation Error",
-      errors: err.issues.map((issue) => ({
-        path: issue.path.join("."),
-        message: issue.message,
-      })),
-    });
-  }
-
-  const status = (err as { status?: number })?.status || 500;
-  const message = (err as Error)?.message || "Internal Server Error";
-
-  if (status === 500) {
-    console.error(err);
-  }
-
-  res.status(status).json({
-    success: false,
-    message,
-  });
-});
+app.use(errorMiddleware);
 
 export default app;

@@ -7,7 +7,8 @@ export interface BookAppointmentPayload {
     date: string; 
     slotStart: string;
     slotEnd: string;
-    paymentMethod?: "RAZORPAY" | "WALLET";
+    paymentMethod?: "RAZORPAY" | "WALLET" | "STRIPE" | "PAYPAL";
+    useWallet?: boolean;
 }
 
 export const getAvailableSlots = async (
@@ -27,10 +28,10 @@ export const getAvailableSlots = async (
         return {
             start: `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`,
             end: `${String(endDate.getHours()).padStart(2, "0")}:${String(endDate.getMinutes()).padStart(2, "0")}`,
-            capacity: slot.capacity,
-            booked: slot.bookedCount,
-            available: Math.max(0, slot.capacity - slot.bookedCount),
-            isFull: slot.bookedCount >= slot.capacity,
+            capacity: 1,
+            booked: slot.available ? 0 : 1,
+            available: slot.available ? 1 : 0,
+            isFull: !slot.available,
             isPast: startDate < now && dateStr === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
         } as SlotInfo;
     });
@@ -61,7 +62,19 @@ export const verifyWalletTopUp = async (payload: {
     return data;
 };
 
-export const getFinancialActivity = async () => {
-    const { data } = await api.get("/patient/wallet/activity");
+export const getFinancialActivity = async (params?: any) => {
+    const { data } = await api.get("/patient/wallet/activity", { params });
     return data;
+};
+
+export const checkRescheduleConflict = async (params: {
+    appointmentId: string;
+    patientId: string;
+    doctorId: string;
+    newDate: string;
+    slotStart: string;
+    slotEnd: string;
+}) => {
+    const { data } = await api.get("/appointments/check-conflict", { params });
+    return data.data;
 };

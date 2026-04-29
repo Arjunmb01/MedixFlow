@@ -37,14 +37,14 @@ export class GetPatientStatsUseCase {
   ) {}
 
   async execute() {
-    const [patientStats, staffStats] = await Promise.all([
+    const [patientStats, doctorCount] = await Promise.all([
       this.patientRepository.getStats(),
-      this.staffRepository.getDoctors({ page: 1, limit: 1 })
+      this.staffRepository.getDoctorCount()
     ]);
 
     return {
       patientCount: patientStats.total,
-      doctorCount: staffStats.stats.total
+      doctorCount
     };
   }
 }

@@ -3,7 +3,7 @@ export interface Appointment {
     appointmentDate: string | Date;
     slotStart: string;
     slotEnd: string;
-    status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NOT_ATTENDED";
+    status: "PENDING" | "BOOKED" | "COMPLETED" | "CANCELLED" | "NOT_ATTENDED";
     patient: {
         id: string;
         patientId: string;
