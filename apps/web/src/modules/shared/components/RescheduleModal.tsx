@@ -43,6 +43,10 @@ export const RescheduleModal: React.FC<RescheduleModalProps> = ({
     const [checkingConflict, setCheckingConflict] = useState(false);
 
     const fetchSlots = useCallback(async (date: Date) => {
+        if (!doctorId) {
+            console.warn("fetchSlots called without doctorId");
+            return;
+        }
         setLoadingSlots(true);
         setSlots([]);
         setSelectedSlot(null);
@@ -58,10 +62,12 @@ export const RescheduleModal: React.FC<RescheduleModalProps> = ({
     }, [doctorId]);
 
     useEffect(() => {
-        if (selectedDate) {
+        if (selectedDate && doctorId) {
             fetchSlots(selectedDate);
+        } else if (selectedDate && !doctorId) {
+            toast.error("Doctor information missing. Cannot load slots.");
         }
-    }, [selectedDate, fetchSlots]);
+    }, [selectedDate, doctorId, fetchSlots]);
 
     const handleSlotSelect = async (slot: SlotInfo) => {
         setSelectedSlot(slot);

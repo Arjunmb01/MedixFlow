@@ -27,6 +27,9 @@ export const errorMiddleware = (
             });
         }
         
+        // Use the error message if it exists, otherwise default to INTERNAL_ERROR
+        message = err.message || MESSAGES.INTERNAL_ERROR;
+        
         // Log unexpected errors
         console.error(`[Error] ${err.stack}`);
     }

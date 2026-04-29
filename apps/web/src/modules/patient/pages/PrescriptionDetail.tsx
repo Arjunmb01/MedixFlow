@@ -147,7 +147,8 @@ export default function PrescriptionDetail() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const appointments = await getPatientAppointments();
+            const response = await getPatientAppointments();
+            const appointments = response.appointments || [];
             const apt = appointments.find((a: { id: string }) => a.id === appointmentId);
             if (apt && apt.consultation) {
                 setData(apt);

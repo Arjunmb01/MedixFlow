@@ -119,6 +119,10 @@ export class StaffRepository implements IStaffRepository {
                             },
                             consultationFee: data.consultationFee,
                             licenseNumber: data.licenseNumber,
+                            bio: data.bio,
+                            avatarUrl: data.avatarUrl,
+                            experienceYears: data.experienceYears,
+                            languages: data.languages,
                             schedules: {
                                 create: data.schedules.map(s => ({
                                     dayOfWeek: s.dayOfWeek,
@@ -178,7 +182,11 @@ export class StaffRepository implements IStaffRepository {
                         }
                     } : undefined,
                     licenseNumber: data.licenseNumber,
-                    consultationFee: data.consultationFee
+                    consultationFee: data.consultationFee,
+                    bio: data.bio,
+                    avatarUrl: data.avatarUrl,
+                    experienceYears: data.experienceYears,
+                    languages: data.languages,
                 },
                 include: { 
                     user: true,

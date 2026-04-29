@@ -15,6 +15,15 @@ export const getAvailableSlots = async (
     doctorId: string,
     date: Date
 ): Promise<SlotInfo[]> => {
+    if (!doctorId) {
+        console.error("getAvailableSlots: doctorId is required");
+        throw new Error("Doctor ID is required to fetch slots.");
+    }
+    if (!date) {
+        console.error("getAvailableSlots: date is required");
+        throw new Error("Date is required to fetch slots.");
+    }
+
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const { data } = await api.get("/appointments/slots", {
         params: { doctorId, date: dateStr },

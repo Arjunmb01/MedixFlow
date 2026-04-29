@@ -11,6 +11,7 @@ import { SimulatePaymentUseCase } from "../../application/use-cases/payment/Simu
 import { RetryPaymentUseCase } from "../../application/use-cases/payment/RetryPaymentUseCase";
 import { VerifyStripePaymentUseCase } from "../../application/use-cases/payment/VerifyStripePaymentUseCase";
 import { VerifyPayPalPaymentUseCase } from "../../application/use-cases/payment/VerifyPayPalPaymentUseCase";
+import { VerifyRazorpayPaymentUseCase } from "../../application/use-cases/payment/VerifyRazorpayPaymentUseCase";
 import { StatusCode } from "../../shared/constants";
 import { env as config } from "../../shared/config/env";
 
@@ -27,7 +28,8 @@ export class PaymentController {
     private readonly simulatePaymentUseCase: SimulatePaymentUseCase,
     private readonly retryPaymentUseCase: RetryPaymentUseCase,
     private readonly verifyStripePaymentUseCase: VerifyStripePaymentUseCase,
-    private readonly verifyPayPalPaymentUseCase: VerifyPayPalPaymentUseCase
+    private readonly verifyPayPalPaymentUseCase: VerifyPayPalPaymentUseCase,
+    private readonly verifyRazorpayPaymentUseCase: VerifyRazorpayPaymentUseCase
   ) {}
 
   async getAllPayments(req: Request, res: Response): Promise<void> {
@@ -200,6 +202,20 @@ export class PaymentController {
     try {
       const { orderId } = req.params;
       const result = await this.verifyPayPalPaymentUseCase.execute(orderId as string);
+      res.status(StatusCode.OK).json(result);
+    } catch (error: any) {
+      res.status(StatusCode.BAD_REQUEST).json({ message: error.message });
+    }
+  }
+
+  async verifyRazorpayPayment(req: Request, res: Response): Promise<void> {
+    try {
+      const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+      const result = await this.verifyRazorpayPaymentUseCase.execute({
+        razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature
+      });
       res.status(StatusCode.OK).json(result);
     } catch (error: any) {
       res.status(StatusCode.BAD_REQUEST).json({ message: error.message });

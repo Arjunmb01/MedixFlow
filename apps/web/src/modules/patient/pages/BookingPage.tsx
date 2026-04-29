@@ -16,6 +16,7 @@ import { SlotPicker } from "../components/booking/SlotPicker";
 import type { SlotInfo } from "../components/booking/SlotPicker";
 import { getAvailableSlots, bookAppointment, getWalletBalance } from "@/infrastructure/api/appointment.api";
 import { toast } from "sonner";
+import api from "@/core/api/axios";
 
 export default function BookingPage() {
     const { id = "" } = useParams();
@@ -126,7 +127,7 @@ export default function BookingPage() {
 
     // Fetch slots from API whenever the selected date or doctorId changes
     useEffect(() => {
-        if (!selectedDate || !id) {
+        if (!selectedDate || !id || id === "undefined") {
             setSlots([]);
             return;
         }
@@ -534,10 +535,21 @@ export default function BookingPage() {
                                                     name: "MedixFlow",
                                                     description: `Appointment with Dr. ${doctor.firstName}`,
                                                     order_id: bookingData.razorpayOrderId,
-                                                    handler: function (_res: any) {
-                                                        // Payment succeeded
-                                                        setBookingSuccess(true);
-                                                        setIsBooking(false);
+                                                    handler: async function (res: any) {
+                                                        try {
+                                                            // Verify with backend
+                                                            await api.post("/payments/verify/razorpay", {
+                                                                razorpayOrderId: res.razorpay_order_id,
+                                                                razorpayPaymentId: res.razorpay_payment_id,
+                                                                razorpaySignature: res.razorpay_signature
+                                                            });
+                                                            setBookingSuccess(true);
+                                                        } catch (err: any) {
+                                                            console.error("Razorpay verification failed:", err);
+                                                            toast.error("Payment verification failed. Please check your billing history.");
+                                                        } finally {
+                                                            setIsBooking(false);
+                                                        }
                                                     },
                                                     prefill: {
                                                         name: profile.name,

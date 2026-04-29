@@ -9,6 +9,10 @@ const baseDoctorSchema = z.object({
   specialty: z.string(),
   licenseNumber: z.string(),
   consultationFee: z.number().nonnegative(),
+  bio: z.string().optional(),
+  avatarUrl: z.string().optional(),
+  experienceYears: z.number().optional(),
+  languages: z.array(z.string()).optional(),
   schedules: z.array(z.object({
       dayOfWeek: z.number().min(0).max(6),
       startTime: z.string(),

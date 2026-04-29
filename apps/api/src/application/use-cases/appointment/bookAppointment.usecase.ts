@@ -17,6 +17,8 @@ import { env as config } from "../../../shared/config/env";
 import { IQueueService } from "../../../domain/services/IQueueService";
 import { SocketService } from "../../../infrastructure/services/SocketService";
 import { PaymentGatewayFactory } from "../../../infrastructure/services/PaymentGatewayFactory";
+import { AppError } from "@/shared/errors/AppError";
+import { StatusCode } from "@/shared/constants/statusCodes";
 
 export class BookAppointmentUseCase {
     constructor(
@@ -44,15 +46,15 @@ export class BookAppointmentUseCase {
         paypalUrl?: string;
     }> {
         if (!data.patientId || !data.doctorId) {
-            throw new Error("Invalid patient or doctor");
+            throw new AppError("Invalid patient or doctor", StatusCode.BAD_REQUEST);
         }
 
         if (!data.appointmentDate) {
-            throw new Error("Invalid date");
+            throw new AppError("Invalid date", StatusCode.BAD_REQUEST);
         }
 
         if (!data.slotStart || !data.slotEnd) {
-            throw new Error("Invalid slot");
+            throw new AppError("Invalid slot", StatusCode.BAD_REQUEST);
         }
 
         const now = this.dateTimeService.now();
@@ -64,12 +66,12 @@ export class BookAppointmentUseCase {
         const appointmentTime = new Date(year, month, day, hours, minutes, 0, 0);
 
         if (appointmentTime < now) {
-            throw new Error("Cannot book an appointment in the past");
+            throw new AppError("Cannot book an appointment in the past", StatusCode.BAD_REQUEST);
         }
 
         const doctorProfile = await this.doctorRepo.findProfileById(data.doctorId);
         if (!doctorProfile) {
-            throw new Error("Doctor not found");
+            throw new AppError("Doctor not found", StatusCode.NOT_FOUND);
         }
 
         const schedule = await this.appointmentRepo.getDoctorSchedule(data.doctorId, data.appointmentDate.getDay());
@@ -78,21 +80,22 @@ export class BookAppointmentUseCase {
         const activeBookings = await this.appointmentRepo.countActiveBookings(data.doctorId, data.appointmentDate, data.slotStart);
 
         if (activeBookings >= capacity) {
-            throw new Error(`Slot is full (capacity: ${capacity} patients)`);
+            throw new AppError(`Slot is full (capacity: ${capacity} patients)`, StatusCode.BAD_REQUEST);
         }
 
-        const existingPatientBooking = await this.appointmentRepo.findActiveBookingByPatient(
+        const existingBooking = await this.appointmentRepo.findActiveBookingByPatient(
             data.patientId,
             data.appointmentDate,
             data.doctorId,
             data.slotStart
         );
 
-        if (existingPatientBooking) {
-            if (existingPatientBooking.slotStart === data.slotStart) {
-                throw new Error("You already have an active appointment at this time.");
-            } else {
-                throw new Error("You already have an active appointment with this doctor today.");
+        if (existingBooking) {
+            if (existingBooking.slotStart === data.slotStart) {
+                throw new AppError("You already have an active appointment at this time.", StatusCode.BAD_REQUEST);
+            }
+            if (existingBooking.doctorId === data.doctorId) {
+                throw new AppError("You already have an appointment with this doctor on this date.", StatusCode.BAD_REQUEST);
             }
         }
 
@@ -241,7 +244,7 @@ export class BookAppointmentUseCase {
                 currency: "USD"
             };
         } else {
-            throw new Error(`Unsupported payment method: ${paymentMethod}`);
+            throw new AppError(`Unsupported payment method: ${paymentMethod}`, StatusCode.BAD_REQUEST);
         }
     }
 

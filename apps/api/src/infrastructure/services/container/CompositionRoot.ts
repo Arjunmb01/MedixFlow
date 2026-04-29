@@ -147,6 +147,7 @@ import { GetAllLeavesUseCase } from "@/application/use-cases/leave/GetAllLeavesU
 import { ReviewLeaveUseCase } from "@/application/use-cases/leave/ReviewLeaveUseCase";
 import { VerifyStripePaymentUseCase } from "@/application/use-cases/payment/VerifyStripePaymentUseCase";
 import { VerifyPayPalPaymentUseCase } from "@/application/use-cases/payment/VerifyPayPalPaymentUseCase";
+import { VerifyRazorpayPaymentUseCase } from "@/application/use-cases/payment/VerifyRazorpayPaymentUseCase";
 
 // Controllers
 import { AdminAuthController } from "@/presentation/controllers/AdminAuthController";
@@ -436,6 +437,7 @@ export class CompositionRoot {
 
         const verifyStripePaymentUseCase = new VerifyStripePaymentUseCase(paymentRepository, confirmPaymentUseCase);
         const verifyPayPalPaymentUseCase = new VerifyPayPalPaymentUseCase(paymentRepository, confirmPaymentUseCase);
+        const verifyRazorpayPaymentUseCase = new VerifyRazorpayPaymentUseCase(paymentRepository, razorpayService, confirmPaymentUseCase);
 
         const paymentController = new PaymentController(
             handleRazorpayWebhookUseCase,
@@ -449,7 +451,8 @@ export class CompositionRoot {
             simulatePaymentUseCase,
             retryPaymentUseCase,
             verifyStripePaymentUseCase,
-            verifyPayPalPaymentUseCase
+            verifyPayPalPaymentUseCase,
+            verifyRazorpayPaymentUseCase
         );
 
         return {

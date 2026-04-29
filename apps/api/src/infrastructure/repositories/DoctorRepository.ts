@@ -75,6 +75,8 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
                 consultationFee: data.consultationFee,
                 bio: data.bio,
                 avatarUrl: data.avatarUrl,
+                experienceYears: data.experienceYears,
+                languages: data.languages,
             },
             include: {
                 user: true,

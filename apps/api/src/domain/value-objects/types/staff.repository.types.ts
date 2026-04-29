@@ -38,6 +38,10 @@ export interface CreateDoctorInput {
     specialty: string;
     consultationFee: number;
     licenseNumber: string;
+    bio?: string;
+    avatarUrl?: string;
+    experienceYears?: number;
+    languages?: string[];
     schedules: {
         dayOfWeek: number;
         startTime: string;

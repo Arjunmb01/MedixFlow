@@ -48,4 +48,9 @@ router.get(
     paymentController.verifyPayPalPayment.bind(paymentController)
 );
 
+router.post(
+    "/verify/razorpay",
+    paymentController.verifyRazorpayPayment.bind(paymentController)
+);
+
 export default router;
