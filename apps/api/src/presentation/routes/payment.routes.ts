@@ -26,7 +26,7 @@ router.post(
 );
 
 // Protected routes
-router.use(auth.authenticate);
+router.use(auth.authenticatePatient);
 
 router.post(
     "/simulate",

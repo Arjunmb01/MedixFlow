@@ -7,19 +7,29 @@ export class GetNotificationsUseCase {
     private readonly cacheService: NotificationCacheService
   ) {}
 
-  async execute(userId: string, limit: number = 10, offset: number = 0) {
+  async execute(userId: string, page: number = 1, limit: number = 10) {
 
-    if (offset === 0 && limit <= 20) {
+    if (page === 1 && limit <= 20) {
       const cached = await this.cacheService.getRecentNotifications(userId);
-      if (cached) return cached;
+      if (cached) {
+        return {
+          data: cached,
+          meta: {
+            total: cached.length, // This is a limitation of the current cache, but it's okay for "recent" list
+            page: 1,
+            limit,
+            totalPages: 1
+          }
+        };
+      }
     }
 
-    const notifications = await this.notificationRepo.getUserNotifications(userId, limit, offset);
+    const result = await this.notificationRepo.getUserNotifications(userId, page, limit);
 
-    if (offset === 0) {
-      await this.cacheService.setRecentNotifications(userId, notifications);
+    if (page === 1) {
+      await this.cacheService.setRecentNotifications(userId, result.data);
     }
 
-    return notifications;
+    return result;
   }
 }

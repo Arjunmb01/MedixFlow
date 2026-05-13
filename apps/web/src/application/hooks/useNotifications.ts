@@ -20,10 +20,14 @@ export const useNotifications = () => {
       return;
     }
     try {
-      const [notifs, count] = await Promise.all([
+      const [response, count] = await Promise.all([
         getNotifications(10, 0),
         getUnreadCount()
       ]);
+      
+      // Handle both paginated and direct array responses for backward compatibility
+      const notifs = Array.isArray(response) ? response : (response?.data || []);
+      
       setNotifications(notifs);
       setUnreadCount(count);
     } catch (error) {

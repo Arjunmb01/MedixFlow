@@ -33,4 +33,23 @@ export class SystemDateTimeService implements IDateTimeService {
 
     return diff <= 30 && diff >= -10;
   }
+
+  getDaysDifference(date1: Date, date2: Date): number {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    d1.setUTCHours(0, 0, 0, 0);
+    d2.setUTCHours(0, 0, 0, 0);
+    const diffTime = Math.abs(d2.getTime() - d1.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  addDays(date: Date, days: number): Date {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  }
+
+  combineDateAndTimeString(date: Date, time: string): Date {
+    return this.toDateTime(date, time);
+  }
 }

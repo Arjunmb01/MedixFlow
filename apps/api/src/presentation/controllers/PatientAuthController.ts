@@ -11,6 +11,8 @@ import { ResendOtpUseCase } from "@/application/use-cases/auth/resendOtp.usecase
 import { ForgotPasswordUseCase } from "@/application/use-cases/auth/forgotPassword.usecase";
 import { ResetPasswordUseCase } from "@/application/use-cases/auth/resetPassword.usecase";
 import { signupSchema, verifyOtpSchema, forgotPasswordSchema, resetPasswordSchema, loginSchema } from "@/presentation/controllers/dto/validation/auth.dtos";
+import { AUTH_COOKIES, COOKIE_OPTIONS, ACCESS_TOKEN_COOKIE_OPTIONS } from "@/shared/constants/auth";
+import { AuthenticatedRequest } from "@/shared/middlewares/auth.middleware";
 
 export class PatientAuthController {
     constructor(
@@ -52,12 +54,8 @@ export class PatientAuthController {
 
             const { accessToken, refreshToken, patientId } = result;
 
-            res.cookie("patient_refreshToken", refreshToken, {
-                httpOnly: true,
-                secure: false, 
-                sameSite: "strict",
-                maxAge: 7 * 24 * 60 * 60 * 1000
-            });
+            res.cookie(AUTH_COOKIES.PATIENT.ACCESS, accessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
+            res.cookie(AUTH_COOKIES.PATIENT.REFRESH, refreshToken, COOKIE_OPTIONS);
 
             res.json({ accessToken, patientId, user: result.user });
         } catch (error) {
@@ -72,20 +70,24 @@ export class PatientAuthController {
     
     refreshToken = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const refreshToken = req.cookies.patient_refreshToken;
+            const refreshToken = req.cookies[AUTH_COOKIES.PATIENT.REFRESH];
             const result = await this.refreshTokenUseCase.execute(refreshToken, UserRole.PATIENT);
+            
+            res.cookie(AUTH_COOKIES.PATIENT.ACCESS, result.accessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
+            
             res.json(result);
         } catch (error) {
             res.status(StatusCode.UNAUTHORIZED).json({ message: error instanceof Error ? error.message : "An unexpected error occurred" });
         }
     }
 
-    logout = async (req: Request, res: Response, next: NextFunction) => {
+    logout = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
-            const userId = req.user.id;
-            await this.logoutUseCase.execute(userId);
+            const { id: userId, sessionId } = req.user;
+            await this.logoutUseCase.execute(userId, UserRole.PATIENT, sessionId);
 
-            res.clearCookie("patient_refreshToken");
+            res.clearCookie(AUTH_COOKIES.PATIENT.ACCESS);
+            res.clearCookie(AUTH_COOKIES.PATIENT.REFRESH);
             res.json({ message: MESSAGES.LOGOUT_SUCCESS });
         } catch (error) {
             next(error);
@@ -115,12 +117,8 @@ export class PatientAuthController {
             const result = await this.googleAuthUseCase.execute(idToken);
             const { accessToken, refreshToken, patientId } = result;
 
-            res.cookie("patient_refreshToken", refreshToken, {
-                httpOnly: true,
-                secure: false, 
-                sameSite: "strict",
-                maxAge: 7 * 24 * 60 * 60 * 1000
-            });
+            res.cookie(AUTH_COOKIES.PATIENT.ACCESS, accessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
+            res.cookie(AUTH_COOKIES.PATIENT.REFRESH, refreshToken, COOKIE_OPTIONS);
 
             res.json({ accessToken, patientId, user: result.user });
         } catch (error) {

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { AuthenticatedRequest } from "@/shared/middlewares/auth.middleware";
 import { StatusCode } from "@/shared/constants";
 import { ApplyLeaveUseCase } from "@/application/use-cases/leave/ApplyLeaveUseCase";
 import { GetMyLeavesUseCase } from "@/application/use-cases/leave/GetMyLeavesUseCase";
@@ -28,9 +29,9 @@ export class LeaveController {
     private readonly reviewLeaveUseCase: ReviewLeaveUseCase
   ) {}
 
-  applyLeave = async (req: Request, res: Response, next: NextFunction) => {
+  applyLeave = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const doctorId = (req as any).user?.id;
+      const doctorId = req.user.id;
       const body = applyLeaveSchema.parse(req.body);
       const result = await this.applyLeaveUseCase.execute(doctorId, {
         startDate: new Date(body.startDate),
@@ -44,9 +45,9 @@ export class LeaveController {
     }
   };
 
-  getMyLeaves = async (req: Request, res: Response, next: NextFunction) => {
+  getMyLeaves = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const doctorId = (req as any).user?.id;
+      const doctorId = req.user.id;
       const result = await this.getMyLeavesUseCase.execute(doctorId);
       res.json(result);
     } catch (error) {
@@ -54,9 +55,9 @@ export class LeaveController {
     }
   };
 
-  cancelLeave = async (req: Request, res: Response, next: NextFunction) => {
+  cancelLeave = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const doctorId = (req as any).user?.id;
+      const doctorId = req.user.id;
       const leaveId = z.string().uuid().parse(req.params.id);
       const result = await this.cancelLeaveUseCase.execute(leaveId, doctorId);
       res.json({ message: "Leave cancelled successfully.", leave: result });
@@ -69,7 +70,7 @@ export class LeaveController {
     try {
       const { status, search, page, limit } = req.query;
       const result = await this.getAllLeavesUseCase.execute({
-        status: status as any,
+        status: status as LeaveStatus,
         search: search as string,
         page: page ? parseInt(page as string) : 1,
         limit: limit ? parseInt(limit as string) : 10,

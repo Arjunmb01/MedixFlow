@@ -23,10 +23,10 @@ import {
 import { getPatientAppointments, cancelAppointment } from "@/infrastructure/api/patient.api";
 import Badge from "../components/ui/Badge";
 import { toast } from "sonner";
-import type { Appointment } from "@/domain/appointment/types";
+import type { Appointment, PaginationMeta } from "@/domain/appointment/types";
 import { RescheduleModal } from "@/modules/shared/components/RescheduleModal";
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 4;
 
 export default function PatientAppointments() {
     const { profile } = usePatientProfile();
@@ -37,22 +37,25 @@ export default function PatientAppointments() {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("UPCOMING");
     const [currentPage, setCurrentPage] = useState(1);
+    const [sortBy, setSortBy] = useState("lastStatusChangedAt");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+    const [meta, setMeta] = useState<PaginationMeta | null>(null);
     const [dateRange] = useState({ from: "", to: "" });
 
     // Modal states
-    const [selectedApt, setSelectedApt] = useState<any | null>(null);
+    const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [cancelReason, setCancelReason] = useState("");
-    const [refundToWallet, setRefundToWallet] = useState(true); // Default to true for convenience
+    const [refundToWallet, setRefundToWallet] = useState(true); 
     const [isCancelling, setIsCancelling] = useState(false);
-    const [rescheduleApt, setRescheduleApt] = useState<any | null>(null);
+    const [rescheduleApt, setRescheduleApt] = useState<Appointment | null>(null);
 
     useEffect(() => {
         const timer = setTimeout(() => {
             fetchAppointments();
         }, 300);
         return () => clearTimeout(timer);
-    }, [statusFilter, searchTerm, currentPage, dateRange]);
+    }, [statusFilter, searchTerm, currentPage, dateRange, sortBy, sortOrder]);
 
     const fetchAppointments = async () => {
         try {
@@ -64,14 +67,14 @@ export default function PatientAppointments() {
                 fromDate: dateRange.from || undefined,
                 toDate: dateRange.to || undefined,
                 page: currentPage,
-                limit: ITEMS_PER_PAGE
+                limit: ITEMS_PER_PAGE,
+                sortBy,
+                sortOrder
             });
             
-            // Backend returns { appointments, total } or just appointments?
-            // Let's check the backend repository return. 
-            // getAppointmentsByPatientId returns { appointments, total }
-            setAppointments(response.appointments || []);
-            setTotalAppointments(response.total || 0);
+            setAppointments(response.data || []);
+            setTotalAppointments(response.meta?.total || 0);
+            setMeta(response.meta);
         } catch (error) {
             console.error("Failed to fetch appointments:", error);
             toast.error("Failed to load appointments");
@@ -81,6 +84,8 @@ export default function PatientAppointments() {
     };
 
     const handleCancel = async () => {
+        if (!selectedApt) return;
+
         if (!cancelReason.trim()) {
             toast.error("Please provide a reason for cancellation");
             return;
@@ -136,7 +141,7 @@ export default function PatientAppointments() {
                             <p className="text-[#64748B] font-medium mt-1">Manage and track all your medical consultations.</p>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
                             <div className="relative group">
                                 <Search className="w-5 h-5 text-[#94A3B8] absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-[#3B82F6] transition-colors" />
                                 <input 
@@ -150,6 +155,24 @@ export default function PatientAppointments() {
                                     className="pl-12 pr-6 py-3.5 bg-white border border-[#E2E8F0] rounded-2xl text-sm font-medium focus:outline-none focus:border-[#3B82F6] focus:ring-4 focus:ring-blue-50 transition-all w-full md:w-[280px]"
                                 />
                             </div>
+
+                            <select
+                                value={`${sortBy}-${sortOrder}`}
+                                onChange={(e) => {
+                                    const [newSortBy, newSortOrder] = e.target.value.split("-");
+                                    setSortBy(newSortBy);
+                                    setSortOrder(newSortOrder as "asc" | "desc");
+                                    setCurrentPage(1);
+                                }}
+                                className="px-6 py-3.5 bg-white border border-[#E2E8F0] rounded-2xl text-sm font-bold text-[#475569] focus:outline-none focus:border-[#3B82F6] transition-all cursor-pointer shadow-sm appearance-none pr-10 relative"
+                                style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748B\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.25rem' }}
+                            >
+                                <option value="lastStatusChangedAt-desc">Latest Updates</option>
+                                <option value="appointmentDate-desc">Newest First</option>
+                                <option value="appointmentDate-asc">Oldest First</option>
+                                <option value="status-asc">Status (A-Z)</option>
+                                <option value="status-desc">Status (Z-A)</option>
+                            </select>
                         </div>
                     </header>
 
@@ -277,48 +300,44 @@ export default function PatientAppointments() {
                             </div>
 
                             {/* Pagination Controls */}
-                            {(() => {
-                                const totalPages = Math.ceil(totalAppointments / ITEMS_PER_PAGE);
-                                if (totalAppointments <= ITEMS_PER_PAGE) return null;
-                                return (
-                                    <div className="flex items-center justify-between mt-8 px-2">
-                                        <p className="text-sm font-bold text-[#64748B]">
-                                            Showing <span className="text-[#0F172A]">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span>–<span className="text-[#0F172A]">{Math.min(currentPage * ITEMS_PER_PAGE, totalAppointments)}</span> of <span className="text-[#0F172A]">{totalAppointments}</span> appointments
-                                        </p>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                                disabled={currentPage === 1}
-                                                className="w-10 h-10 flex items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0] disabled:hover:text-[#475569] disabled:hover:bg-white"
-                                            >
-                                                <ChevronLeft className="w-5 h-5" />
-                                            </button>
+                            {meta && meta.totalPages > 1 && (
+                                <div className="flex items-center justify-between mt-8 px-2">
+                                    <p className="text-sm font-bold text-[#64748B]">
+                                        Showing <span className="text-[#0F172A]">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span>–<span className="text-[#0F172A]">{Math.min(currentPage * ITEMS_PER_PAGE, totalAppointments)}</span> of <span className="text-[#0F172A]">{totalAppointments}</span> appointments
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                            disabled={currentPage === 1}
+                                            className="w-10 h-10 flex items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0] disabled:hover:text-[#475569] disabled:hover:bg-white"
+                                        >
+                                            <ChevronLeft className="w-5 h-5" />
+                                        </button>
 
-                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                                <button
-                                                    key={page}
-                                                    onClick={() => setCurrentPage(page)}
-                                                    className={`w-10 h-10 flex items-center justify-center rounded-xl text-[13px] font-black transition-all ${
-                                                        currentPage === page
-                                                            ? "bg-[#3B82F6] text-white shadow-md shadow-blue-200"
-                                                            : "border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50"
-                                                    }`}
-                                                >
-                                                    {page}
-                                                </button>
-                                            ))}
-
+                                        {Array.from({ length: meta.totalPages }, (_, i) => i + 1).map((p) => (
                                             <button
-                                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                                disabled={currentPage === totalPages}
-                                                className="w-10 h-10 flex items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0] disabled:hover:text-[#475569] disabled:hover:bg-white"
+                                                key={p}
+                                                onClick={() => setCurrentPage(p)}
+                                                className={`w-10 h-10 flex items-center justify-center rounded-xl text-[13px] font-black transition-all ${
+                                                    currentPage === p
+                                                        ? "bg-[#3B82F6] text-white shadow-md shadow-blue-200"
+                                                        : "border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50"
+                                                }`}
                                             >
-                                                <ChevronRight className="w-5 h-5" />
+                                                {p}
                                             </button>
-                                        </div>
+                                        ))}
+
+                                        <button
+                                            onClick={() => setCurrentPage(p => Math.min(meta.totalPages, p + 1))}
+                                            disabled={currentPage === meta.totalPages}
+                                            className="w-10 h-10 flex items-center justify-center rounded-xl border border-[#E2E8F0] bg-white text-[#475569] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-blue-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0] disabled:hover:text-[#475569] disabled:hover:bg-white"
+                                        >
+                                            <ChevronRight className="w-5 h-5" />
+                                        </button>
                                     </div>
-                                );
-                            })()}
+                                </div>
+                            )}
                         </div>
                     )}
                 </main>
@@ -508,7 +527,7 @@ export default function PatientAppointments() {
             {rescheduleApt && (
                 <RescheduleModal
                     appointmentId={rescheduleApt.id}
-                    patientId={rescheduleApt.patientId}
+                    patientId={rescheduleApt.patient.id}
                     doctorId={rescheduleApt.doctor.id}
                     role="patient"
                     onSuccess={fetchAppointments}

@@ -22,13 +22,34 @@ export interface IDoctorProfileRepository {
 
 export interface IDoctorStatsRepository {
     getDashboardStats(userId: string, date?: Date): Promise<DoctorDashboardStats>;
-    getDoctorsFiltered(filters: DoctorFilters & { page: number; limit: number }): Promise<PaginatedDoctors>;
+    getDoctorsFiltered(filters: DoctorFilters): Promise<PaginatedDoctors>;
     getRawStats(userId: string, date: Date): Promise<{
         totalAppointments: number;
         completedAppointments: number;
         pendingAppointments: number;
         uniquePatientsCount: number;
-        todayAppointments: any[];
+        todayAppointments: Array<{
+            id: string;
+            patientId: string;
+            patient: {
+                id: string;
+                patientId: string;
+                firstName: string;
+                lastName: string;
+                gender: string | null;
+            };
+            slotStart: string;
+            slotEnd: string;
+            status: string;
+            appointmentDate: Date;
+            doctorId: string;
+            createdAt: Date;
+            lastStatusChangedAt?: Date;
+            consultation?: {
+                id: string;
+                status: string;
+            };
+        }>;
         totalEarnings: number;
         dashboardDate: Date;
     }>;

@@ -3,7 +3,7 @@ import AdminSidebar from "../components/AdminSidebar"
 import AdminTopNav from "../components/AdminTopNav"
 import { Search, Calendar, User, Stethoscope, ChevronLeft, ChevronRight, Clock, CalendarClock } from "lucide-react"
 import { getAdminAppointments } from "@/infrastructure/api/admin.api"
-import type { Appointment } from "@/domain/appointment/types"
+import type { Appointment, PaginationMeta } from "@/domain/appointment/types"
 import { RescheduleModal } from "@/modules/shared/components/RescheduleModal"
 
 
@@ -14,8 +14,11 @@ export default function AdminAppointments() {
     const [search, setSearch] = useState("")
     const [statusFilter, setStatusFilter] = useState("ALL")
     const [page, setPage] = useState(1)
+    const [sortBy, setSortBy] = useState("appointmentDate")
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
+    const [meta, setMeta] = useState<PaginationMeta | null>(null)
     const [totalAppointments, setTotalAppointments] = useState(0)
-    const [rescheduleApt, setRescheduleApt] = useState<any | null>(null)
+    const [rescheduleApt, setRescheduleApt] = useState<Appointment | null>(null)
     const itemsPerPage = 8
 
     useEffect(() => {
@@ -23,7 +26,7 @@ export default function AdminAppointments() {
             fetchData()
         }, 300)
         return () => clearTimeout(timer)
-    }, [page, statusFilter, search])
+    }, [page, statusFilter, search, sortBy, sortOrder])
 
     const fetchData = async () => {
         try {
@@ -33,11 +36,14 @@ export default function AdminAppointments() {
                 isUpcoming: statusFilter === "UPCOMING" ? true : undefined,
                 search: search || undefined,
                 page,
-                limit: itemsPerPage
+                limit: itemsPerPage,
+                sortBy,
+                sortOrder
             }
-            const data = await getAdminAppointments(params)
-            setAppointments(data.appointments)
-            setTotalAppointments(data.total)
+            const response = await getAdminAppointments(params)
+            setAppointments(response.data)
+            setTotalAppointments(response.meta.total)
+            setMeta(response.meta)
         } catch (error) {
             console.error("Failed to fetch appointments:", error)
         } finally {
@@ -46,9 +52,6 @@ export default function AdminAppointments() {
     }
 
     const paginatedAppointments = appointments;
-
-
-    const totalPages = Math.ceil(totalAppointments / itemsPerPage)
 
 
     const formatDate = (date: string | Date) => {
@@ -86,7 +89,7 @@ export default function AdminAppointments() {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         <div className="relative group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-teal-600 transition-colors" />
                             <input
@@ -97,6 +100,23 @@ export default function AdminAppointments() {
                                 className="pl-12 pr-6 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-medium focus:outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-50 transition-all w-80 shadow-sm"
                             />
                         </div>
+
+                        <select
+                            value={`${sortBy}-${sortOrder}`}
+                            onChange={(e) => {
+                                const [newSortBy, newSortOrder] = e.target.value.split("-");
+                                setSortBy(newSortBy);
+                                setSortOrder(newSortOrder as "asc" | "desc");
+                                setPage(1);
+                            }}
+                            className="px-6 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 focus:outline-none focus:border-teal-600 transition-all cursor-pointer shadow-sm appearance-none pr-10 relative"
+                            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2394A3B8\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.25rem' }}
+                        >
+                            <option value="appointmentDate-desc">Newest First</option>
+                            <option value="appointmentDate-asc">Oldest First</option>
+                            <option value="status-asc">Status (A-Z)</option>
+                            <option value="status-desc">Status (Z-A)</option>
+                        </select>
                     </div>
                 </div>
 
@@ -238,10 +258,10 @@ export default function AdminAppointments() {
                         </table>
                     </div>
 
-                    {totalPages > 1 && (
+                    {meta && meta.totalPages > 1 && (
                         <div className="px-8 py-5 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                Page <span className="text-gray-900">{page}</span> of <span className="text-gray-900">{totalPages}</span>
+                                Page <span className="text-gray-900">{page}</span> of <span className="text-gray-900">{meta.totalPages}</span>
                             </p>
                             <div className="flex items-center gap-2">
                                 <button
@@ -251,9 +271,26 @@ export default function AdminAppointments() {
                                 >
                                     <ChevronLeft className="w-5 h-5" />
                                 </button>
+
+                                <div className="flex items-center gap-1">
+                                    {Array.from({ length: meta.totalPages }, (_, i) => i + 1).map((p) => (
+                                        <button
+                                            key={p}
+                                            onClick={() => setPage(p)}
+                                            className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${
+                                                page === p
+                                                    ? 'bg-teal-600 text-white shadow-sm'
+                                                    : 'text-gray-400 hover:text-gray-600 hover:bg-white'
+                                            }`}
+                                        >
+                                            {p}
+                                        </button>
+                                    ))}
+                                </div>
+
                                 <button
-                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={page === totalPages}
+                                    onClick={() => setPage(p => Math.min(meta.totalPages, p + 1))}
+                                    disabled={page === meta.totalPages}
                                     className="p-2 bg-white border border-gray-100 rounded-xl text-gray-400 hover:text-teal-600 disabled:opacity-30 transition-all shadow-sm"
                                 >
                                     <ChevronRight className="w-5 h-5" />
@@ -268,8 +305,8 @@ export default function AdminAppointments() {
             {rescheduleApt && (
                 <RescheduleModal
                     appointmentId={rescheduleApt.id}
-                    patientId={rescheduleApt.patient?.id || rescheduleApt.patientId}
-                    doctorId={rescheduleApt.doctor?.id ?? rescheduleApt.doctorId}
+                    patientId={rescheduleApt.patient?.id || (rescheduleApt as any).patientId}
+                    doctorId={(rescheduleApt as any).doctorId ?? rescheduleApt.doctor?.id}
                     role="admin"
                     onSuccess={fetchData}
                     onClose={() => setRescheduleApt(null)}

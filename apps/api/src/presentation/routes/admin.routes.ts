@@ -7,7 +7,7 @@ const adminController = container.adminPatientController;
 const paymentController = container.paymentController;
 const auth = container.authMiddleware;
 
-router.use(auth.authenticate, auth.authorize([UserRole.ADMIN]));
+router.use(auth.authenticateAdmin);
 
 router.get("/patients", adminController.getAllPatients);
 router.get("/patients/:id", adminController.getPatientById);

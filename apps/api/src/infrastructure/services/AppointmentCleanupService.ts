@@ -1,9 +1,13 @@
 import cron from "node-cron";
 import { IAppointmentRepository } from "../../domain/repositories/IAppointmentRepository";
 import { socketService } from "./SocketService";
+import { ILockService } from "@/application/interfaces/ILockService";
 
 export class AppointmentCleanupService {
-    constructor(private readonly appointmentRepo: IAppointmentRepository) {}
+    constructor(
+        private readonly appointmentRepo: IAppointmentRepository,
+        private readonly lockService: ILockService
+    ) {}
 
     public start(): void {
         // Run every minute
@@ -14,6 +18,12 @@ export class AppointmentCleanupService {
     }
 
     private async cleanup(): Promise<void> {
+        // FIX [SCALABILITY]: Prevent multiple instances from running the cleanup simultaneously
+        const lockKey = "cron:appointment_cleanup";
+        const acquired = await this.lockService.acquireLock(lockKey, 55000); // Lock for 55s (cron runs every 60s)
+        
+        if (!acquired) return;
+
         try {
             const now = new Date();
             const expired = await this.appointmentRepo.findExpiredPending(now);
@@ -22,17 +32,17 @@ export class AppointmentCleanupService {
                 const ids = expired.map(e => e.id);
                 await this.appointmentRepo.cancelMany(ids);
                 
-                // Notify via socket to refresh slots if needed
-                // We could emit a global event or per doctor
                 const doctorIds = Array.from(new Set(expired.map(e => e.doctorId)));
                 doctorIds.forEach(doctorId => {
-                    // Logic to find which dates were affected
-                    const affectedDates = expired
-                        .filter(e => e.doctorId === doctorId)
-                        .map(e => e.appointmentDate);
+                    // FIX [LOGICAL]: Map to ISO string before Set to ensure unique dates
+                    const affectedDates = Array.from(new Set(
+                        expired
+                            .filter(e => e.doctorId === doctorId)
+                            .map(e => e.appointmentDate.toISOString().split('T')[0])
+                    ));
                     
-                    // Emit update for each date
-                    affectedDates.forEach(date => {
+                    affectedDates.forEach(dateStr => {
+                        const date = new Date(dateStr);
                         // socketService.emitSlotsUpdated(doctorId, date);
                     });
                 });
@@ -41,6 +51,10 @@ export class AppointmentCleanupService {
             }
         } catch (error) {
             console.error("[Cleanup] Error during appointment cleanup:", error);
+        } finally {
+            // No need to release immediately if we want to ensure only one runs per minute
+            // but for safety we release or let it expire.
+            await this.lockService.releaseLock(lockKey);
         }
     }
 }

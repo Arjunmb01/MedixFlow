@@ -67,6 +67,13 @@ export class SocketService {
       this.io.to(userId).emit("appointment_status_changed", { appointmentId, status });
     }
   }
+
+  emitToUser(userId: string, event: string, data: any) {
+    if (this.io) {
+      this.io.to(userId).emit(event, data);
+      console.log(`[SocketService] Event '${event}' emitted to user=${userId}`);
+    }
+  }
 }
 
 export const socketService = new SocketService();

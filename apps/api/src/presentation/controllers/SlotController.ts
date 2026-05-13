@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { AuthenticatedRequest } from "@/shared/middlewares/auth.middleware";
 import { BookSlotUseCase } from "@/application/use-cases/slot/bookSlot.usecase";
 import { GenerateSlotsUseCase } from "@/application/use-cases/slot/generateSlots.usecase";
 import { GetAvailableSlotCase } from "@/application/use-cases/slot/getAvailableSlots.usecase";
@@ -39,10 +40,10 @@ export class SlotController {
         }
     }
 
-    bookSlot = async (req: Request, res: Response, next: NextFunction) => {
+    bookSlot = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const { doctorId, startTime, endTime, reason } = req.body;
-            const patientId = (req as any).user.id;
+            const patientId = req.user.id;
             
             if (!doctorId || !startTime || !endTime) {
                 res.status(StatusCode.BAD_REQUEST).json({ message: "Doctor ID, start time, and end time are required" });

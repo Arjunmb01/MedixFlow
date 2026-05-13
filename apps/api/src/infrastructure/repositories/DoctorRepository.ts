@@ -113,7 +113,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
                 if (priorityA !== priorityB) return priorityB - priorityA;
                 return a.slotStart.localeCompare(b.slotStart);
             })
-            .map((apt: any) => this.mapper.toAppointmentPreview(apt as PrismaAppointmentWithPatient));
+            .map((apt: any) => this.mapper.toAppointmentPreview(apt));
 
         return {
             totalAppointments: raw.totalAppointments,
@@ -141,7 +141,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             pendingAppointments, 
             uniquePatientsCount,
             todayAppointmentsResult,
-            completedAptsForEarnings
+            earningsResult
         ] = await Promise.all([
             this._prisma.appointment.count({ where: { doctorId: userId } }),
             this._prisma.appointment.count({ where: { doctorId: userId, status: "COMPLETED" } }),
@@ -165,9 +165,13 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
                     slotStart: "asc"
                 }
             }),
-            this._prisma.appointment.findMany({
-                where: { doctorId: userId, status: "COMPLETED" },
-                include: { doctor: { select: { consultationFee: true } } }
+            // FIX [PERFORMANCE]: Using database aggregate instead of fetching all records
+            this._prisma.payment.aggregate({
+                where: {
+                    appointment: { doctorId: userId, status: "COMPLETED" },
+                    status: "PAID"
+                },
+                _sum: { amount: true }
             })
         ]);
 
@@ -199,41 +203,72 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             }
         }
 
-        const totalEarnings = completedAptsForEarnings.reduce((acc, apt) => acc + (apt.doctor.consultationFee || 0), 0);
+        const totalEarnings = earningsResult._sum.amount || 0;
 
         return {
             totalAppointments,
             completedAppointments,
             pendingAppointments,
             uniquePatientsCount,
-            todayAppointments: finalTodayAppointments,
+            todayAppointments: finalTodayAppointments.map(apt => ({
+                id: apt.id,
+                patientId: apt.patientId,
+                patient: {
+                    id: apt.patient.id,
+                    patientId: apt.patient.patientId,
+                    firstName: apt.patient.firstName,
+                    lastName: apt.patient.lastName,
+                    gender: apt.patient.gender
+                },
+                slotStart: apt.slotStart,
+                slotEnd: apt.slotEnd,
+                status: apt.status,
+                appointmentDate: apt.appointmentDate,
+                doctorId: apt.doctorId,
+                createdAt: apt.createdAt,
+                lastStatusChangedAt: apt.lastStatusChangedAt,
+                consultation: apt.consultation ? {
+                    id: apt.consultation.id,
+                    status: apt.consultation.status
+                } : undefined
+            })),
             totalEarnings,
             dashboardDate
         };
     }
 
     async getConsultedPatients(doctorId: string): Promise<ConsultedPatientRecord[]> {
-        const appointments = await this._prisma.appointment.findMany({
+        // FIX [PERFORMANCE]: Query PatientProfile directly using EXISTS (some) to avoid OOM with large datasets
+        const patients = await this._prisma.patientProfile.findMany({
             where: {
-                doctorId,
-                status: "COMPLETED",
+                appointments: {
+                    some: {
+                        doctorId,
+                        status: "COMPLETED",
+                    }
+                }
             },
             include: {
-                patient: true,
-            },
-            orderBy: {
-                appointmentDate: "desc",
-            },
+                appointments: {
+                    where: {
+                        doctorId,
+                        status: "COMPLETED"
+                    },
+                    orderBy: {
+                        appointmentDate: "desc"
+                    },
+                    take: 1
+                }
+            }
         });
 
-        const patientMap = new Map<string, PrismaConsultedPatient>();
-        for (const apt of appointments) {
-            if (!patientMap.has(apt.patientId)) {
-                patientMap.set(apt.patientId, apt as PrismaConsultedPatient);
-            }
-        }
-
-        return Array.from(patientMap.values()).map((apt) => this.mapper.toConsultedPatient(apt));
+        return patients.map(p => ({
+            id: p.appointments[0]?.id || "",
+            firstName: p.firstName,
+            lastName: p.lastName,
+            patientId: p.patientId,
+            lastConsultationDate: p.appointments[0]?.appointmentDate || new Date()
+        }));
     }
 
     async getDoctorPrescriptions(doctorId: string): Promise<PrescriptionRecord[]> {
@@ -251,6 +286,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
                 patient: true,
                 consultation: {
                     include: {
+                        medicalRecord: true,
                         prescription: {
                             include: {
                                 medicines: true,
@@ -337,7 +373,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
         ]);
     }
 
-    async getDoctorsFiltered(filters: DoctorFilters & { page: number; limit: number }): Promise<PaginatedDoctors> {
+    async getDoctorsFiltered(filters: DoctorFilters): Promise<PaginatedDoctors> {
         const where: Prisma.DoctorProfileWhereInput = {
             user: {
                 status: (filters.status as UserStatus) || UserStatus.ACTIVE
@@ -383,8 +419,10 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             where.languages = { has: filters.language };
         }
 
-        const skip = (filters.page - 1) * filters.limit;
-        const take = filters.limit;
+        const page = filters.page || 1;
+        const limit = filters.limit || 10;
+        const skip = (page - 1) * limit;
+        const take = limit;
 
         let orderBy: Prisma.DoctorProfileOrderByWithRelationInput = { rating: 'desc' };
         if (filters.sortBy) {
@@ -415,9 +453,9 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             data: doctors.map(d => this.mapper.toDomain(d as PrismaDoctorWithUserAndSpec)!).filter(Boolean), 
             meta: {
                 total,
-                page: filters.page,
-                limit: filters.limit,
-                totalPages: Math.ceil(total / filters.limit)
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
             }
         };
     }
@@ -438,13 +476,9 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
 
     async getSchedulesByDay(doctorId: string, dayOfWeek: number): Promise<DoctorSchedule[]> {
         const schedules = await this._prisma.doctorSchedule.findMany({
-            where: {
-                doctorId: doctorId,
-                dayOfWeek: dayOfWeek
-            }
+            where: { doctorId, dayOfWeek }
         });
-
-        return schedules.map(s => this.mapper.toSchedule(s as any));
+        return schedules.map(s => this.mapper.toSchedule(s));
     }
 
     async getBreaksByDay(doctorId: string, dayOfWeek: number): Promise<any[]> {

@@ -22,7 +22,7 @@ export class WalletRepository implements IWalletRepository {
     return WalletMapper.toDomain(wallet);
   }
 
-  async updateBalance(walletId: string, amount: number, type: TransactionType, reason?: string, stripeSessionId?: string, metadata?: any): Promise<Wallet> {
+  async updateBalance(walletId: string, amount: number, type: TransactionType, reason?: string, stripeSessionId?: string, metadata?: Record<string, unknown>): Promise<Wallet> {
     const updatedWallet = await this.prisma.$transaction(async (tx) => {
       const current = await tx.wallet.findUnique({ where: { id: walletId } });
       const isBalanceValid = current && !isNaN(current.balance);
@@ -43,9 +43,9 @@ export class WalletRepository implements IWalletRepository {
           amount,
           type,
           status: "COMPLETED",
-          reason: reason || null,
-          stripeSessionId: stripeSessionId || null,
-          metadata: metadata || null
+          reason: reason || undefined,
+          stripeSessionId: stripeSessionId || undefined,
+          metadata: metadata as any
         }
       });
 

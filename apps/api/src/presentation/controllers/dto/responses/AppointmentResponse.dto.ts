@@ -20,12 +20,14 @@ export interface AppointmentResponseDTO {
         id: string;
         firstName: string;
         lastName: string;
-        phone: string;
+        phone: string | null | undefined;
     };
 }
 
+import { AppointmentWithDoctorAndPatient } from "@/domain/repositories/IAppointmentRepository";
+
 export class AppointmentResponseMapper {
-    static toResponse(domain: any): AppointmentResponseDTO {
+    static toResponse(domain: AppointmentWithDoctorAndPatient): AppointmentResponseDTO {
         return {
             id: domain.id,
             patientId: domain.patientId,
@@ -51,7 +53,7 @@ export class AppointmentResponseMapper {
         };
     }
 
-    static toResponseList(domains: any[]): AppointmentResponseDTO[] {
+    static toResponseList(domains: AppointmentWithDoctorAndPatient[]): AppointmentResponseDTO[] {
         return domains.map(d => this.toResponse(d));
     }
 }

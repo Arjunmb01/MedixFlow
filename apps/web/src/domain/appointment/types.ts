@@ -39,4 +39,11 @@ export interface Appointment {
             }>;
         } | null;
     } | null;
-}
+}
+
+export interface PaginationMeta {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+}

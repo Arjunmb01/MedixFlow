@@ -83,12 +83,12 @@ export default function AdminLeaveManagement() {
     const paginated = leaves;
 
     const counts = {
-        PENDING: leaves.filter(l => l.status === "PENDING").length,
+        PENDING: leaves.filter(l => l.status === 'PENDING').length,
         APPROVED: leaves.filter(l => l.status === "APPROVED").length,
-        REJECTED: leaves.filter(l => l.status === "REJECTED").length,
+        REJECTED: leaves.filter(l => l.status === "REJECTED").length
     }
 
-    return (
+    return ( 
         <div className="flex min-h-screen bg-gray-50/50">
             <AdminSidebar />
 

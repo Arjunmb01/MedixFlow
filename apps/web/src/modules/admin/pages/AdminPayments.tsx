@@ -25,15 +25,15 @@ export default function AdminPayments() {
     const fetchPayments = async () => {
         try {
             setLoading(true)
-            const data = await getAdminPaymentsList({
+            const response = await getAdminPaymentsList({
                 page,
                 limit,
                 status: statusFilter || undefined,
                 paymentMethod: methodFilter || undefined,
                 search: searchTerm || undefined
             })
-            setPayments(data.payments)
-            setTotal(data.total)
+            setPayments(response.data)
+            setTotal(response.meta.total)
         } catch (error) {
             console.error("Failed to fetch payments:", error)
         } finally {

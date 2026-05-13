@@ -30,12 +30,14 @@ export class ApplyLeaveUseCase {
 
     // Check for conflicting appointments
     // We filter for BOOKED or PENDING appointments in the date range
-    const { appointments, total } = await this.appointmentRepository.getAppointmentsByDoctorId(doctorId, {
+    const result = await this.appointmentRepository.getAppointmentsByDoctorId(doctorId, {
       fromDate: startDate,
       toDate: endDate,
       status: AppointmentStatus.BOOKED,
       limit: 100 // Fetch a reasonable amount for cancellation
     });
+    const appointments = result.data;
+    const total = result.meta.total;
 
     if (total > 0 && !input.suppressConflicts) {
       throw new Error(`Appointment conflict: You have ${total} appointment(s) scheduled between ${startDate.toLocaleDateString()} and ${endDate.toLocaleDateString()}. Please reschedule them before applying for leave.`);

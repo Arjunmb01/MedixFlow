@@ -7,7 +7,7 @@ const paymentController = container.paymentController;
 const auth = container.authMiddleware;
 
 // All wallet routes require patient authorization
-router.use(auth.authenticate, auth.authorize([UserRole.PATIENT]));
+router.use(auth.authenticatePatient);
 
 router.get(
   "/",

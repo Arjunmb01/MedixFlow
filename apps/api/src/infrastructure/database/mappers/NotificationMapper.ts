@@ -10,6 +10,7 @@ export class NotificationMapper {
       message: p.message,
       type: p.type as NotificationType,
       isRead: p.isRead,
+      metadata: p.metadata ?? undefined,
       createdAt: p.createdAt,
     };
   }

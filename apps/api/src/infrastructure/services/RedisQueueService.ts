@@ -16,6 +16,12 @@ export class RedisQueueService implements IQueueService {
     const counterKey = this.getCounterKey(doctorId, date);
     const queueKey = this.getQueueKey(doctorId, date);
 
+    // IDEMPOTENCY: Check if appointment already has a score
+    const existingScore = await redisClient.zScore(queueKey, appointmentId);
+    if (existingScore !== null) {
+        return existingScore;
+    }
+
     // Increment counter to get next queue number
     const queueNumber = await redisClient.incr(counterKey);
 

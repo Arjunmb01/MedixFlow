@@ -1,4 +1,5 @@
 import { Doctor } from "../../entities/Doctor";
+import { PaginatedResponse, PaginationQuery } from "./pagination.types";
 
 export interface DoctorProfile {
     id: string;
@@ -17,7 +18,7 @@ export interface DoctorProfile {
     schedules?: DoctorSchedule[];
 }
 
-export interface AppointmentPreview {
+export interface DoctorAppointmentPreview {
     id: string;
     patientId: string;
     patient: {
@@ -42,7 +43,7 @@ export interface DoctorDashboardStats {
     completedAppointments: number;
     pendingAppointments: number;
     totalPatients: number;
-    todayAppointments: AppointmentPreview[];
+    todayAppointments: DoctorAppointmentPreview[];
     todayAppointmentsCount: number;
     pendingToday: number;
     completedToday: number;
@@ -81,8 +82,7 @@ export interface PrescriptionRecord {
     instructions?: string;
 }
 
-export interface DoctorFilters {
-    search?: string;
+export interface DoctorFilters extends PaginationQuery {
     specialty?: string;
     status?: string;
     availableToday?: boolean;
@@ -91,17 +91,6 @@ export interface DoctorFilters {
     experienceYears?: number;
     minRating?: number;
     language?: string;
-    page?: number;
-    limit?: number;
-    sortBy?: 'fee_asc' | 'fee_desc' | 'rating_desc' | 'experience_desc' | 'name_asc';
 }
 
-export interface PaginatedDoctors {
-    data: Doctor[];
-    meta: {
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-    };
-}
+export interface PaginatedDoctors extends PaginatedResponse<Doctor> {}

@@ -10,7 +10,7 @@ const consultationController = container.consultationController;
 const slotController = container.doctorSlotController;
 const auth = container.authMiddleware;
 
-router.use(auth.authenticate, auth.authorize([UserRole.DOCTOR]));
+router.use(auth.authenticateDoctor);
 
 router.get("/profile", profileController.getDoctorProfile);
 router.put("/profile", profileController.updateDoctorProfile);
@@ -30,6 +30,14 @@ router.patch("/consultations/:id/complete", consultationController.complete);
 router.get("/consultations/:id", consultationController.getDetails);
 router.post("/consultations/:id/lab-tests", consultationController.requestLabTest);
 router.get("/consultations/:id/lab-tests", consultationController.getLabTests);
+router.patch("/consultations/:id/lab-tests/:labTestId/review", consultationController.reviewLabTest);
+
+// New Workspace Routes
+router.post("/consultations/:id/draft", consultationController.saveDraft);
+router.get("/consultations/:id/draft", consultationController.getDraft);
+router.post("/consultations/:id/follow-up", consultationController.createFollowUp);
+router.post("/consultations/follow-ups/schedule", consultationController.scheduleFollowUp);
+router.get("/consultations/:id/pdf", consultationController.generatePDF);
 
 router.get("/patients", clinicalController.getConsultedPatients);
 router.get("/prescriptions", clinicalController.getDoctorPrescriptions);

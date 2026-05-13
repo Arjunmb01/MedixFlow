@@ -10,6 +10,7 @@ import { env } from "./shared/config/env";
 import { errorMiddleware } from "./shared/middlewares/error.middleware";
 
 const app = express();
+app.set("trust proxy", 1); // Enable accurate IP identification behind proxies (Render/Nginx)
 
 app.use(
   cors({
@@ -25,7 +26,6 @@ app.use(helmet({
 }));
 app.use(cookieParser());
 
-// Stripe webhook needs raw body BEFORE express.json()
 app.post("/api/payments/webhook/stripe", express.raw({ type: 'application/json' }), (req, res, next) => {
   (req as any).rawBody = req.body;
   next();

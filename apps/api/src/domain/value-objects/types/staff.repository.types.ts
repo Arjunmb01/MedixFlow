@@ -1,5 +1,6 @@
 import { UserStatus } from "../enums/UserStatus";
 import { DoctorProfile, DoctorSchedule as DomainDoctorSchedule } from "./doctor.repository.types";
+import { PaginatedResponse, PaginationQuery } from "./pagination.types";
 
 export interface StaffDoctorListItem {
     id: string;
@@ -20,15 +21,7 @@ export interface StaffDoctorListItem {
     schedules?: DomainDoctorSchedule[];
 }
 
-export interface PaginatedStaffDoctors {
-    doctors: StaffDoctorListItem[];
-    stats: {
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
-    };
-}
+export interface PaginatedStaffDoctors extends PaginatedResponse<StaffDoctorListItem> {}
 
 export interface CreateDoctorInput {
     email: string;
@@ -57,8 +50,7 @@ export interface UpdateDoctorInput extends Partial<CreateDoctorInput> {
     email?: string;
 }
 
-export interface StaffDoctorFilters {
-    search?: string;
+export interface StaffDoctorFilters extends PaginationQuery {
     specialty?: string;
     status?: UserStatus;
 }

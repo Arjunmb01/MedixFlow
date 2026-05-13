@@ -4,13 +4,7 @@ import { GetDoctorPrescriptionsUseCase } from "@/application/use-cases/doctor/ge
 import { UpdatePrescriptionUseCase } from "@/application/use-cases/doctor/updatePrescription.usecase";
 import { updatePrescriptionSchema } from "@/presentation/controllers/dto/validation/staff.dtos";
 import { z } from "zod";
-
-interface AuthenticatedRequest extends Request {
-    user: {
-        id: string;
-        role: string;
-    };
-}
+import { AuthenticatedRequest } from "@/shared/middlewares/auth.middleware";
 
 export class DoctorClinicalController {
     constructor(
@@ -32,7 +26,9 @@ export class DoctorClinicalController {
     getDoctorPrescriptions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
+            console.log("User ID :  ===============",userId)
             const prescriptions = await this.getDoctorPrescriptionsUseCase.execute(userId);
+            console.log("Prescriptions :  ===============",prescriptions)
             res.json(prescriptions);
         } catch (error) {
             next(error);

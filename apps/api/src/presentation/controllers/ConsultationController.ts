@@ -7,16 +7,30 @@ import { GetPatientHistoryUseCase } from "../../application/use-cases/consultati
 import { GetConsultationDetailsUseCase } from "../../application/use-cases/consultation/getConsultationDetails.usecase";
 import { RequestLabTestUseCase } from "../../application/use-cases/consultation/requestLabTest.usecase";
 import { UploadLabTestUseCase } from "../../application/use-cases/consultation/uploadLabTest.usecase";
+import { ReviewLabTestUseCase } from "../../application/use-cases/consultation/reviewLabTest.usecase";
 import { GetLabTestsUseCase } from "../../application/use-cases/consultation/getLabTests.usecase";
+import { SaveConsultationDraftUseCase } from "../../application/use-cases/consultation/saveConsultationDraft.usecase";
+import { GetConsultationDraftUseCase } from "../../application/use-cases/consultation/getConsultationDraft.usecase";
+import { CreateFollowUpConsultationUseCase } from "../../application/use-cases/consultation/createFollowUpConsultation.usecase";
+import { ScheduleFollowUpUseCase } from "../../application/use-cases/consultation/scheduleFollowUp.usecase";
+import { GenerateConsultationPDFUseCase } from "../../application/use-cases/consultation/generateConsultationPDF.usecase";
 import { ConsultationResponseMapper } from "./dto/responses/ConsultationResponse.dto";
 import { 
     appointmentIdParamSchema, 
     getQueueQuerySchema, 
-    consultationIdSchema, 
+    consultationIdSchema,
     completeConsultationSchema,
-    getHistoryQuerySchema 
+    getHistoryQuerySchema,
+    saveConsultationDraftSchema,
+    createFollowUpSchema,
+    scheduleFollowUpSchema,
+    requestLabTestSchema,
+    uploadLabTestSchema,
+    reviewLabTestSchema,
+    labTestIdParamSchema
 } from "./dto/validation/consultation.dtos";
 import { z } from "zod";
+import { AuthenticatedRequest } from "@/shared/middlewares/auth.middleware";
 
 export class ConsultationController {
     constructor(
@@ -28,43 +42,49 @@ export class ConsultationController {
         private getConsultationDetailsUseCase: GetConsultationDetailsUseCase,
         private requestLabTestUseCase: RequestLabTestUseCase,
         private uploadLabTestUseCase: UploadLabTestUseCase,
-        private getLabTestsUseCase: GetLabTestsUseCase
+        private getLabTestsUseCase: GetLabTestsUseCase,
+        private saveDraftUseCase: SaveConsultationDraftUseCase,
+        private getDraftUseCase: GetConsultationDraftUseCase,
+        private createFollowUpUseCase: CreateFollowUpConsultationUseCase,
+        private scheduleFollowUpUseCase: ScheduleFollowUpUseCase,
+        private generatePDFUseCase: GenerateConsultationPDFUseCase,
+        private reviewLabTestUseCase: ReviewLabTestUseCase
     ) {}
 
-    checkin = async (req: Request, res: Response, next: NextFunction) => {
+    checkin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
             const { appointmentId } = appointmentIdParamSchema.parse(req.params);
             const consultation = await this.checkinPatientUseCase.execute(appointmentId, patientId);
-            res.json({ message: "Checked in successfully", data: consultation });
+            res.json({ success: true, message: "Checked in successfully", data: consultation });
         } catch (error) {
             next(error);
         }
     }
 
-    getQueue = async (req: Request, res: Response, next: NextFunction) => {
+    getQueue = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
             const { date } = getQueueQuerySchema.parse(req.query);
             const queue = await this.getDoctorQueueUseCase.execute(doctorId, date);
-            res.json(queue);
+            res.json({ success: true, data: queue });
         } catch (error) {
             next(error);
         }
     }
 
-    start = async (req: Request, res: Response, next: NextFunction) => {
+    start = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
             const { id } = consultationIdSchema.parse(req.params);
             const consultation = await this.startConsultationUseCase.execute(id, doctorId);
-            res.json({ message: "Consultation started", data: consultation });
+            res.json({ success: true, message: "Consultation started", data: consultation });
         } catch (error) {
             next(error);
         }
     }
 
-    complete = async (req: Request, res: Response, next: NextFunction) => {
+    complete = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
             const { id } = consultationIdSchema.parse(req.params);
@@ -73,6 +93,7 @@ export class ConsultationController {
             const consultation = await this.completeConsultationUseCase.execute(
                 id,
                 doctorId,
+                doctorId, // userId is same as doctorId for doctor role
                 vitals,
                 medicalRecord,
                 prescription
@@ -84,7 +105,67 @@ export class ConsultationController {
         }
     }
 
-    getDetails = async (req: Request, res: Response, next: NextFunction) => {
+    saveDraft = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        try {
+            const { id } = consultationIdSchema.parse(req.params);
+            const draft = saveConsultationDraftSchema.parse(req.body);
+            await this.saveDraftUseCase.execute(id, draft);
+            res.json({ message: "Draft saved successfully" });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    getDraft = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        try {
+            const { id } = consultationIdSchema.parse(req.params);
+            const draft = await this.getDraftUseCase.execute(id);
+            res.json(draft);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    createFollowUp = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        try {
+            const { id } = consultationIdSchema.parse(req.params);
+            const { date, slotStart, slotEnd, reason } = createFollowUpSchema.parse(req.body);
+            const followUp = await this.createFollowUpUseCase.execute({
+                originalConsultationId: id,
+                newDate: date,
+                slotStart,
+                slotEnd,
+                reason
+            });
+            res.json({ message: "Follow-up consultation created", data: followUp });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    scheduleFollowUp = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        try {
+            const data = scheduleFollowUpSchema.parse(req.body);
+            const followUp = await this.scheduleFollowUpUseCase.execute(data);
+            res.json({ success: true, message: "Follow-up scheduled", data: followUp });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    generatePDF = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        try {
+            const { id } = consultationIdSchema.parse(req.params);
+            const userId = req.user.id;
+            const role = req.user.role;
+            const data = await this.generatePDFUseCase.execute(id, userId, role);
+            res.json(data);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    getDetails = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
             const { id } = consultationIdSchema.parse(req.params);
@@ -94,53 +175,78 @@ export class ConsultationController {
                 doctorId
             });
 
-            res.json(ConsultationResponseMapper.toResponse(consultation));
+            res.json({
+                success: true,
+                data: ConsultationResponseMapper.toResponse(consultation)
+            });
         } catch (error) {
             next(error);
         }
     }
 
-    getPatientHistory = async (req: Request, res: Response, next: NextFunction) => {
+    getPatientHistory = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
+            const doctorId = req.user.id;
             const { patientId } = getHistoryQuerySchema.parse(req.query);
-            const history = await this.getPatientHistoryUseCase.execute(patientId);
-            res.json(history);
+            const history = await this.getPatientHistoryUseCase.execute(patientId, doctorId);
+            res.json({
+                success: true,
+                data: history
+            });
         } catch (error) {
             next(error);
         }
     }
 
-    requestLabTest = async (req: Request, res: Response, next: NextFunction) => {
+    requestLabTest = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
             const { id } = consultationIdSchema.parse(req.params);
-            const tests = req.body.tests; // Expecting array of { testName: string }
+            const { tests } = requestLabTestSchema.parse(req.body); 
             
-            await this.requestLabTestUseCase.execute(id, doctorId, tests);
+            await this.requestLabTestUseCase.execute(id, doctorId, tests as any);
             res.json({ message: "Lab tests requested successfully" });
         } catch (error) {
             next(error);
         }
     }
 
-    uploadLabTest = async (req: Request, res: Response, next: NextFunction) => {
+    uploadLabTest = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
-            const { id, labTestId } = req.params;
-            const { reportUrl } = req.body;
+            const { id, labTestId } = labTestIdParamSchema.parse(req.params);
+            const { reportUrl } = uploadLabTestSchema.parse(req.body);
             
-            await this.uploadLabTestUseCase.execute(id as string, labTestId as string, patientId, reportUrl);
+            await this.uploadLabTestUseCase.execute(id, labTestId, patientId, reportUrl);
             res.json({ message: "Lab test report uploaded successfully" });
         } catch (error) {
             next(error);
         }
     }
 
-    getLabTests = async (req: Request, res: Response, next: NextFunction) => {
+    reviewLabTest = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
+            const doctorId = req.user.id;
+            const { id, labTestId } = labTestIdParamSchema.parse(req.params);
+            const { reviewerComments, isAbnormal } = reviewLabTestSchema.parse(req.body);
+            
+            await this.reviewLabTestUseCase.execute(id, labTestId, doctorId, reviewerComments, isAbnormal);
+            res.json({ message: "Lab test reviewed successfully" });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    getLabTests = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+        try {
+            const userId = req.user.id;
+            const role = req.user.role;
             const { id } = consultationIdSchema.parse(req.params);
-            const labTests = await this.getLabTestsUseCase.execute(id);
-            res.json(labTests);
+            const labTests = await this.getLabTestsUseCase.execute(id, userId, role);
+            res.json({
+                success: true,
+                data: labTests
+            });
         } catch (error) {
             next(error);
         }

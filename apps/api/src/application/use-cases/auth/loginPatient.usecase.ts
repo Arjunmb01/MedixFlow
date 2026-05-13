@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from "uuid";
 import { MESSAGES } from "@/shared/constants";
 import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { ITokenService } from "@/application/interfaces/ITokenService";
@@ -54,10 +55,11 @@ export class LoginPatientUseCase {
     const valid = await this.passwordHasher.compare(data.password, user.passwordHash);
     if (!valid) throw new Error(MESSAGES.LOGIN_FAILED);
 
-    const accessToken = this.tokenService.generateAccessToken(user.id, user.role as UserRole, user.email);
-    const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as UserRole, user.email);
+    const sessionId = uuidv4();
+    const accessToken = this.tokenService.generateAccessToken(user.id, user.role as UserRole, user.email, sessionId);
+    const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as UserRole, user.email, sessionId);
 
-    await this.sessionService.saveSession(user.id, refreshToken);
+    await this.sessionService.saveSession(user.id, user.role as UserRole, refreshToken, sessionId);
     return { 
       accessToken, 
       refreshToken, 

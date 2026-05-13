@@ -34,6 +34,11 @@ export interface ConsultationResponseDTO {
         id: string;
         firstName: string;
         lastName: string;
+        patientId: string;
+        phone?: string | null;
+        dob?: Date | null;
+        gender?: string | null;
+        bloodGroup?: string | null;
     };
     doctor: {
         id: string;
@@ -43,8 +48,10 @@ export interface ConsultationResponseDTO {
     };
 }
 
+import { ConsultationWithDetails } from "@/domain/repositories/IConsultationRepository";
+
 export class ConsultationResponseMapper {
-    static toResponse(domain: any): ConsultationResponseDTO {
+    static toResponse(domain: ConsultationWithDetails): ConsultationResponseDTO {
         return {
             id: domain.id,
             appointmentId: domain.appointmentId,
@@ -54,7 +61,7 @@ export class ConsultationResponseMapper {
             createdAt: domain.createdAt,
             startedAt: domain.startedAt,
             completedAt: domain.completedAt,
-            vitals: domain.vitals.map((v: any) => ({
+            vitals: domain.vitals.map(v => ({
                 bloodPressure: v.bloodPressure,
                 heartRate: v.heartRate,
                 temperature: v.temperature,
@@ -68,7 +75,7 @@ export class ConsultationResponseMapper {
             prescription: domain.prescription ? {
                 id: domain.prescription.id,
                 instructions: domain.prescription.instructions,
-                medicines: domain.prescription.medicines.map((m: any) => ({
+                medicines: domain.prescription.medicines.map(m => ({
                     name: m.name,
                     dosage: m.dosage,
                     frequency: m.frequency,
@@ -79,6 +86,11 @@ export class ConsultationResponseMapper {
                 id: domain.patient.id,
                 firstName: domain.patient.firstName,
                 lastName: domain.patient.lastName,
+                patientId: domain.patient.patientId,
+                phone: domain.patient.phone,
+                dob: domain.patient.dob,
+                gender: domain.patient.gender,
+                bloodGroup: domain.patient.bloodGroup,
             },
             doctor: {
                 id: domain.doctor.id,

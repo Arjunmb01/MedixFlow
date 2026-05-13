@@ -9,6 +9,8 @@
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
+    "test": "npx jest -c apps/api/jest.config.js apps/api/tests/unit/usecases",
+    "test:coverage": "npx jest -c apps/api/jest.config.js apps/api/tests/unit/usecases --coverage",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
   },
   "workspaces": [

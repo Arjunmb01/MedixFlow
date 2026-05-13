@@ -1,10 +1,8 @@
-import { PrismaClient } from "@prisma/client";
-import { IPaymentRepository } from "../../domain/repositories/IPaymentRepository";
+import { PrismaClient, PaymentStatus, PaymentMethod, Prisma } from "@prisma/client";
+import { IPaymentRepository, PaginatedResponse, PaginationQuery } from "../../domain/repositories/IPaymentRepository";
 import { Payment } from "../../domain/entities/Payment";
 import { PaymentMapper } from "../database/mappers/PaymentMapper";
 import { CreatePaymentInput } from "../../domain/value-objects/types/payment.types";
-import { PaymentStatus } from "../../domain/value-objects/enums/PaymentStatus";
-import { PaymentMethod } from "../../domain/value-objects/enums/PaymentMethod";
 
 export class PaymentRepository implements IPaymentRepository {
     constructor(private readonly prisma: PrismaClient) {}
@@ -92,13 +90,13 @@ export class PaymentRepository implements IPaymentRepository {
         return payments.map(PaymentMapper.toDomain);
     }
 
-    async findAll(filters?: { status?: PaymentStatus; paymentMethod?: PaymentMethod; page?: number; limit?: number; search?: string }): Promise<{ payments: any[]; total: number }> {
-        const { status, paymentMethod, page = 1, limit = 10, search } = filters || {};
+    async findAll(filters?: PaginationQuery & { status?: PaymentStatus; paymentMethod?: PaymentMethod }): Promise<PaginatedResponse<Record<string, unknown>>> {
+        const { status, paymentMethod, page = 1, limit = 10, search, sortBy = 'createdAt', sortOrder = 'desc' } = filters || {};
         const skip = (page - 1) * limit;
 
-        const where: any = {
-            ...(status && { status: status as any }),
-            ...(paymentMethod && { paymentMethod: paymentMethod as any })
+        const where: Prisma.PaymentWhereInput = {
+            ...(status && { status }),
+            ...(paymentMethod && { paymentMethod })
         };
 
         if (search) {
@@ -112,6 +110,9 @@ export class PaymentRepository implements IPaymentRepository {
                 { paypalOrderId: { contains: search, mode: 'insensitive' } }
             ];
         }
+
+        const validSortFields = ['createdAt', 'amount', 'status'];
+        const orderByField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
 
         const [payments, total] = await Promise.all([
             this.prisma.payment.findMany({
@@ -128,22 +129,25 @@ export class PaymentRepository implements IPaymentRepository {
                         } 
                     } 
                 },
-                orderBy: { createdAt: 'desc' },
+                orderBy: { [orderByField]: sortOrder },
                 skip,
                 take: limit
             }),
             this.prisma.payment.count({ where })
         ]);
 
-        // We return the raw prisma objects (which include relations) but we can still map the base payment fields if needed.
-        // For admin list, it's often better to just return the enriched object.
         return {
-            payments: payments.map(p => ({
-                ...PaymentMapper.toDomain(p),
+            data: payments.map(p => ({
+                ...(PaymentMapper.toDomain(p) as any),
                 patient: p.patient,
                 doctor: p.appointment?.doctor
-            })),
-            total
+            }) as Record<string, unknown>),
+            meta: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
         };
     }
 }

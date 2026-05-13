@@ -19,7 +19,7 @@ export class GetPatientDashboardStatsUseCase {
             this.patientRepo.findById(userId)
         ]);
 
-        const { appointments: patientAppointments } = appointments;
+        const patientAppointments = appointments.data;
         const now = this.dateTimeService.now();
         
         const upcomingAppointments = patientAppointments
@@ -37,7 +37,7 @@ export class GetPatientDashboardStatsUseCase {
 
         const recentAppointments = patientAppointments
             .filter((app: any) => new Date(app.appointmentDate) < now || app.status === "CANCELLED" || app.status === "COMPLETED")
-            .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .sort((a: any, b: any) => new Date(b.lastStatusChangedAt || b.createdAt).getTime() - new Date(a.lastStatusChangedAt || a.createdAt).getTime())
             .slice(0, 5);
 
         const profileCompletion = this.calculateProfileCompletionUseCase.execute(patient);

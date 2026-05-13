@@ -77,8 +77,8 @@ export class PatientRepository implements IPatientRepository {
         ]);
     }
 
-    async getPatients(query: PatientFilters & { page: number; limit: number }): Promise<PaginatedPatients> {
-        const { search, status, gender, page, limit } = query;
+    async getPatients(query: PatientFilters): Promise<PaginatedPatients> {
+        const { search, status, gender, page = 1, limit = 10, sortBy = 'firstName', sortOrder = 'asc' } = query;
         const skip = (page - 1) * limit;
 
         const where: Prisma.PatientProfileWhereInput = {
@@ -105,6 +105,10 @@ export class PatientRepository implements IPatientRepository {
             ];
         }
 
+        // Define valid fields for sorting to prevent injection
+        const validSortFields = ['firstName', 'lastName', 'createdAt', 'patientId'];
+        const orderByField = validSortFields.includes(sortBy) ? sortBy : 'firstName';
+
         const [patients, total] = await Promise.all([
             this._prisma.patientProfile.findMany({
                 where,
@@ -127,7 +131,7 @@ export class PatientRepository implements IPatientRepository {
                 skip,
                 take: limit,
                 orderBy: {
-                    firstName: "asc"
+                    [orderByField]: sortOrder
                 }
             }),
             this._prisma.patientProfile.count({ where })
@@ -147,7 +151,7 @@ export class PatientRepository implements IPatientRepository {
     async toggleBlock(userId: string, status: UserStatus): Promise<void> {
         await this._prisma.user.update({
             where: { id: userId },
-            data: { status: status as any }
+            data: { status: status as PrismaUserStatus }
         });
     }
 
@@ -156,7 +160,7 @@ export class PatientRepository implements IPatientRepository {
             where: { id: userId },
             data: {
                 deletedAt: this.dateTimeService.now(),
-                status: UserStatus.INACTIVE as any
+                status: PrismaUserStatus.INACTIVE
             }
         });
     }
@@ -167,10 +171,10 @@ export class PatientRepository implements IPatientRepository {
                 where: { user: { deletedAt: null } }
             }),
             this._prisma.patientProfile.count({
-                where: { user: { status: UserStatus.ACTIVE as any, deletedAt: null } }
+                where: { user: { status: PrismaUserStatus.ACTIVE, deletedAt: null } }
             }),
             this._prisma.patientProfile.count({
-                where: { user: { status: UserStatus.INACTIVE as any, deletedAt: null } }
+                where: { user: { status: PrismaUserStatus.INACTIVE, deletedAt: null } }
             })
         ]);
 

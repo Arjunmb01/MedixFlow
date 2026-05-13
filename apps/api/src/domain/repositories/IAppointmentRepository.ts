@@ -1,4 +1,6 @@
 import { AppointmentStatus } from "../value-objects/enums/AppointmentStatus";
+import { PaginatedResponse } from "../value-objects/types/pagination.types";
+export { PaginatedResponse };
 
 import { CreateAppointmentInput, DoctorAppointmentFilter, DoctorScheduleInput } from "../value-objects/types/appointment.types";
 
@@ -56,15 +58,18 @@ export interface AppointmentWithConsultation extends AppointmentRecord {
       symptoms: string;
       diagnosis: string;
       notes?: string | null;
+      planForManagement?: string | null;
     } | null;
     prescription: {
       id: string;
       instructions?: string | null;
       medicines: Array<{
+        id?: string;
         name: string;
         dosage: string;
         frequency: string;
         duration: string;
+        instructions?: string | null;
       }>;
     } | null;
   } | null;
@@ -91,6 +96,7 @@ export interface AppointmentWithPatient extends AppointmentRecord {
         dosage: string;
         frequency: string;
         duration: string;
+        instructions?: string | null;
       }>;
     } | null;
   } | null;
@@ -112,7 +118,41 @@ export interface AppointmentWithDoctorAndPatient extends AppointmentRecord {
     email: string;
     phone?: string | null;
   };
-  payment?: any;
+  payment?: {
+    id: string;
+    amount: number;
+    status: string;
+    paymentMethod: string;
+    transactionId?: string;
+  };
+  consultation?: {
+    id: string;
+    status: string;
+    vitals: {
+      bloodPressure?: string | null;
+      heartRate?: number | null;
+      temperature?: number | null;
+      weight?: number | null;
+    }[];
+    medicalRecord: {
+      symptoms: string;
+      diagnosis: string;
+      notes?: string | null;
+      planForManagement?: string | null;
+    } | null;
+    prescription: {
+      id: string;
+      instructions?: string | null;
+      medicines: Array<{
+        id?: string;
+        name: string;
+        dosage: string;
+        frequency: string;
+        duration: string;
+        instructions?: string | null;
+      }>;
+    } | null;
+  } | null;
 }
 
 
@@ -137,16 +177,16 @@ export interface AppointmentAuditLogInput {
   appointmentId: string;
   action: string;
   actorId: string;
-  actorRole: any;
+  actorRole: string;
   oldStatus?: AppointmentStatus | string;
   newStatus?: AppointmentStatus | string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 export interface RescheduleProposalInput {
   appointmentId: string;
   proposedById: string;
-  proposedByRole: any;
+  proposedByRole: string;
   newDate: Date;
   newSlotStart: string;
   newSlotEnd: string;
@@ -164,12 +204,27 @@ export interface ReassignInput {
   newSlotEnd?: string;
 }
 
+export interface RescheduleProposal {
+  id: string;
+  appointmentId: string;
+  proposedById: string;
+  proposedByRole: string;
+  newDate: Date;
+  newSlotStart: string;
+  newSlotEnd: string;
+  status: string;
+  reason?: string | null;
+  expiresAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // ─── Repository contract ──────────────────────────────────────────────────
 export interface IAppointmentRepository {
   createAuditLog(log: AppointmentAuditLogInput): Promise<void>;
-  createRescheduleProposal(proposal: RescheduleProposalInput): Promise<any>;
-  getProposalsByAppointmentId(appointmentId: string): Promise<any[]>;
-  findProposalById(id: string): Promise<any | null>;
+  createRescheduleProposal(proposal: RescheduleProposalInput): Promise<RescheduleProposal>;
+  getProposalsByAppointmentId(appointmentId: string): Promise<RescheduleProposal[]>;
+  findProposalById(id: string): Promise<RescheduleProposal | null>;
   updateProposalStatus(id: string, status: string): Promise<void>;
   findImpactedAppointments(doctorId: string, startDate: Date, endDate: Date): Promise<string[]>;
   reassignAtomic(data: ReassignInput): Promise<AppointmentRecord>;
@@ -202,12 +257,12 @@ export interface IAppointmentRepository {
   countActiveBookings(doctorId: string, date: Date, slotStart: string): Promise<number>;
   findActiveBookingByPatient(patientId: string, date: Date, doctorId?: string, slotStart?: string): Promise<AppointmentRecord | null>;
 
-  getAppointmentsByPatientId(patientId: string, filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentWithConsultation[]; total: number }>;
+  getAppointmentsByPatientId(patientId: string, filter?: DoctorAppointmentFilter): Promise<PaginatedResponse<AppointmentWithConsultation>>;
   findById(id: string): Promise<AppointmentWithDoctorAndPatient | null>;
   cancelAppointment(id: string, reason: string): Promise<AppointmentRecord>;
   rescheduleAppointment(id: string, appointmentDate: Date, slotStart: string, slotEnd: string): Promise<AppointmentRecord>;
-  getAppointmentsByDoctorId(doctorId: string, filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentWithPatient[]; total: number }>;
-  getAllAppointments(filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentPreview[]; total: number }>;
+  getAppointmentsByDoctorId(doctorId: string, filter?: DoctorAppointmentFilter): Promise<PaginatedResponse<AppointmentWithPatient>>;
+  getAllAppointments(filter?: DoctorAppointmentFilter): Promise<PaginatedResponse<AppointmentPreview>>;
   updateStatus(id: string, status: AppointmentStatus | string): Promise<AppointmentRecord>;
   updatePaymentStatus(id: string, status: string): Promise<void>;
   getUpcomingByDoctorId(doctorId : string): Promise<AppointmentWithPatient[]>;

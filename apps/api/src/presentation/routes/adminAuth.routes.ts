@@ -8,7 +8,7 @@ const auth = container.authMiddleware;
 
 router.post("/login", controller.login);
 router.post("/refresh-token", controller.refreshToken);
-router.post("/logout", auth.authenticate, auth.authorize([UserRole.ADMIN]), controller.logout);
+router.post("/logout", auth.authenticateAdmin, controller.logout);
 
 export default router;
 

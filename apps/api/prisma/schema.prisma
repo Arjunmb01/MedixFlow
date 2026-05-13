@@ -27,7 +27,7 @@ model User {
 model PatientProfile {
   id                String             @id
   firstName         String
-  lastName         String
+  lastName          String
   phone             String
   dob               DateTime?
   gender            Gender?
@@ -37,9 +37,10 @@ model PatientProfile {
   appointments      Appointment[]
   consultations     Consultation[]
   emergencyContacts EmergencyContact[]
+  followUps         FollowUp[]
+  user              User               @relation(fields: [id], references: [id])
   payments          Payment[]
   wallet            Wallet?
-  user              User               @relation(fields: [id], references: [id])
 
   @@index([firstName, lastName])
 }
@@ -54,17 +55,18 @@ model DoctorProfile {
   phone            String?
   bio              String?
   specializationId String
-  experienceYears Int              @default(0)
-  languages       String[]         @default(["English"])
   avatarUrl        String?
+  experienceYears  Int              @default(0)
+  languages        String[]         @default(["English"])
   appointments     Appointment[]
   consultations    Consultation[]
+  breaks           DoctorBreak[]
+  leaves           DoctorLeave[]
   user             User             @relation(fields: [id], references: [id])
   specialization   Specialization   @relation(fields: [specializationId], references: [id])
   schedules        DoctorSchedule[]
+  followUps        FollowUp[]
   slots            Slot[]
-  leaves           DoctorLeave[]
-  breaks           DoctorBreak[]
 
   @@index([specializationId])
   @@index([firstName, lastName])
@@ -89,63 +91,59 @@ model Slot {
 }
 
 model DoctorSchedule {
-  id                  String        @id @default(uuid())
+  id                  String           @id @default(uuid())
   doctorId            String
   dayOfWeek           Int
   startTime           String
   endTime             String
-  slotDurationMinutes Int           @default(60)
-  fullDay             Boolean       @default(false)
-  slotCapacity        Int           @default(5)
-  bufferTimeMinutes   Int           @default(0)
+  slotDurationMinutes Int              @default(60)
+  slotCapacity        Int              @default(5)
+  fullDay             Boolean          @default(false)
   consultationType    ConsultationType @default(CLINIC)
-  doctor              DoctorProfile @relation(fields: [doctorId], references: [id])
+  bufferTimeMinutes   Int              @default(0)
+  doctor              DoctorProfile    @relation(fields: [doctorId], references: [id])
 }
 
 model DoctorBreak {
   id        String        @id @default(uuid())
   doctorId  String
   name      String        @default("Break")
-  startTime String        // e.g. "13:00"
-  endTime   String        // e.g. "14:00"
-  dayOfWeek Int           // 0-6
+  startTime String
+  endTime   String
+  dayOfWeek Int
   doctor    DoctorProfile @relation(fields: [doctorId], references: [id])
 
   @@index([doctorId])
 }
 
 model Appointment {
-  id              String            @id @default(uuid())
-  patientId       String
-  doctorId        String
-  appointmentDate DateTime
-  status          AppointmentStatus
-  reason          String?
-  notes           String?
-  createdAt       DateTime          @default(now())
-  slotEnd         String
-  slotStart       String
-  startTime       DateTime?
-  endTime         DateTime?
-  paymentStatus   PaymentStatus?    @default(PENDING)
-  paymentMethod   PaymentMethod?    @default(RAZORPAY)
-  queueNumber     Int?
-  expiresAt       DateTime?         // For pending reservation timeout
-  doctor          DoctorProfile     @relation(fields: [doctorId], references: [id])
-  patient         PatientProfile    @relation(fields: [patientId], references: [id])
-  consultation    Consultation?
-  payment         Payment?
-  
-  // Reschedule & History
-  rescheduledToId   String?       @unique
-  rescheduledTo     Appointment?  @relation("RescheduleHistory", fields: [rescheduledToId], references: [id])
-  rescheduledFrom   Appointment?  @relation("RescheduleHistory")
-  
-  auditLogs         AppointmentAuditLog[]
-  proposals         RescheduleProposal[]
-
-  lastStatusChangedAt DateTime    @default(now())
+  id                  String                @id @default(uuid())
+  patientId           String
+  doctorId            String
+  appointmentDate     DateTime
+  status              AppointmentStatus
+  reason              String?
+  notes               String?
+  createdAt           DateTime              @default(now())
+  slotEnd             String
+  slotStart           String
+  paymentMethod       PaymentMethod?        @default(RAZORPAY)
+  paymentStatus       PaymentStatus?        @default(PENDING)
+  endTime             DateTime?
+  startTime           DateTime?
+  queueNumber         Int?
+  expiresAt           DateTime?
+  lastStatusChangedAt DateTime              @default(now())
   parentAppointmentId String?
+  rescheduledToId     String?               @unique
+  doctor              DoctorProfile         @relation(fields: [doctorId], references: [id])
+  patient             PatientProfile        @relation(fields: [patientId], references: [id])
+  rescheduledTo       Appointment?          @relation("RescheduleHistory", fields: [rescheduledToId], references: [id])
+  rescheduledFrom     Appointment?          @relation("RescheduleHistory")
+  auditLogs           AppointmentAuditLog[]
+  consultation        Consultation?
+  payment             Payment?
+  proposals           RescheduleProposal[]
 
   @@index([doctorId, appointmentDate, status])
   @@index([patientId, status])
@@ -154,48 +152,39 @@ model Appointment {
 }
 
 model AppointmentAuditLog {
-  id            String   @id @default(uuid())
+  id            String             @id @default(uuid())
   appointmentId String
-  action        String   // BOOKED, RESCHEDULED, CANCELLED, STATUS_CHANGE, REASSIGNED
-  actorId       String   // userId
+  action        String
+  actorId       String
   actorRole     Role
   oldStatus     AppointmentStatus?
   newStatus     AppointmentStatus?
-  details       Json?    // Store what changed (date, slot, etc.)
-  createdAt     DateTime @default(now())
-  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  details       Json?
+  createdAt     DateTime           @default(now())
+  appointment   Appointment        @relation(fields: [appointmentId], references: [id])
 
   @@index([appointmentId])
   @@index([actorId])
 }
 
 model RescheduleProposal {
-  id              String            @id @default(uuid())
-  appointmentId   String
-  proposedById    String            // User.id
-  proposedByRole  Role
-  newDate         DateTime
-  newSlotStart    String
-  newSlotEnd      String
-  status          ProposalStatus    @default(PENDING)
-  reason          String?
-  expiresAt       DateTime?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  appointment     Appointment       @relation(fields: [appointmentId], references: [id])
+  id             String         @id @default(uuid())
+  appointmentId  String
+  proposedById   String
+  proposedByRole Role
+  newDate        DateTime
+  newSlotStart   String
+  newSlotEnd     String
+  status         ProposalStatus @default(PENDING)
+  reason         String?
+  expiresAt      DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  appointment    Appointment    @relation(fields: [appointmentId], references: [id])
 
   @@index([appointmentId])
   @@index([status])
 }
-
-enum ProposalStatus {
-  PENDING
-  ACCEPTED
-  REJECTED
-  EXPIRED
-}
-
-
 
 model EmergencyContact {
   id        String         @id @default(uuid())
@@ -232,21 +221,52 @@ model Specialization {
 }
 
 model Consultation {
-  id            String             @id @default(uuid())
-  appointmentId String             @unique
-  doctorId      String
-  patientId     String
-  status        ConsultationStatus @default(WAITING)
-  startedAt     DateTime?
-  completedAt   DateTime?
-  createdAt     DateTime           @default(now())
-  appointment   Appointment        @relation(fields: [appointmentId], references: [id])
-  doctor        DoctorProfile      @relation(fields: [doctorId], references: [id])
-  patient       PatientProfile     @relation(fields: [patientId], references: [id])
-  medicalRecord MedicalRecord?
-  prescription  Prescription?
-  vitals        Vitals[]
-  labTests      LabTest[]
+  id                   String                 @id @default(uuid())
+  doctorId             String
+  patientId            String
+  status               ConsultationStatus     @default(WAITING)
+  startedAt            DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime               @default(now())
+  appointmentId        String                 @unique
+  followUpExpiry       DateTime?
+  parentConsultationId String?
+  appointment          Appointment            @relation(fields: [appointmentId], references: [id])
+  doctor               DoctorProfile          @relation(fields: [doctorId], references: [id])
+  parentConsultation   Consultation?          @relation("FollowUpHistory", fields: [parentConsultationId], references: [id])
+  followUps            Consultation[]         @relation("FollowUpHistory")
+  patient              PatientProfile         @relation(fields: [patientId], references: [id])
+  draft                ConsultationDraft?
+  revisions            ConsultationRevision[]
+  followUp             FollowUp?
+  labTests             LabTest[]
+  medicalRecord        MedicalRecord?
+  prescription         Prescription?
+  vitals               Vitals[]
+}
+
+model ConsultationDraft {
+  id             String       @id @default(uuid())
+  consultationId String       @unique
+  vitals         Json?
+  medicalRecord  Json?
+  prescription   Json?
+  labTests       Json?
+  updatedAt      DateTime     @updatedAt
+  consultation   Consultation @relation(fields: [consultationId], references: [id])
+}
+
+model ConsultationRevision {
+  id             String       @id @default(uuid())
+  consultationId String
+  revisedBy      String
+  vitals         Json?
+  medicalRecord  Json?
+  prescription   Json?
+  createdAt      DateTime     @default(now())
+  consultation   Consultation @relation(fields: [consultationId], references: [id])
+
+  @@index([consultationId])
 }
 
 model MedicalRecord {
@@ -255,7 +275,7 @@ model MedicalRecord {
   symptoms          String
   diagnosis         String
   notes             String?
-  planForManagement String?      // New field for precautions
+  planForManagement String?
   consultation      Consultation @relation(fields: [consultationId], references: [id])
 }
 
@@ -284,24 +304,173 @@ model Medicine {
   dosage         String
   frequency      String
   duration       String
-  instructions   String?      // New field for "When to eat" etc.
+  instructions   String?
+  afternoon      Boolean      @default(false)
+  foodTiming     FoodTiming   @default(AFTER_FOOD)
+  genericName    String?
+  morning        Boolean      @default(false)
+  night          Boolean      @default(false)
+  type           MedicineType @default(BRAND)
   prescription   Prescription @relation(fields: [prescriptionId], references: [id])
 }
 
 model LabTest {
-  id             String       @id @default(uuid())
-  consultationId String
-  testName       String
-  status         LabTestStatus @default(PENDING)
-  reportUrl      String?      // URL to the uploaded file
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  consultation   Consultation @relation(fields: [consultationId], references: [id])
+  id               String         @id @default(uuid())
+  consultationId   String
+  testName         String
+  status           LabTestStatus  @default(PENDING)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  instructions     String?
+  testType         String?
+  urgency          LabTestUrgency @default(NORMAL)
+  assignedBy       String?
+  fastingRequired  Boolean        @default(false)
+  isAbnormal       Boolean        @default(false)
+  reviewedBy       String?
+  reviewerComments String?
+  reports          LabReport[]
+  consultation     Consultation   @relation(fields: [consultationId], references: [id])
+}
+
+model LabReport {
+  id         String   @id @default(uuid())
+  labTestId  String
+  fileUrl    String
+  fileName   String
+  fileType   String?
+  uploadedAt DateTime @default(now())
+  labTest    LabTest  @relation(fields: [labTestId], references: [id])
+}
+
+model DoctorLeave {
+  id          String        @id @default(uuid())
+  doctorId    String
+  startDate   DateTime
+  endDate     DateTime
+  reason      String
+  status      LeaveStatus   @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  isProcessed Boolean       @default(false)
+  type        LeaveType     @default(LEAVE)
+  doctor      DoctorProfile @relation(fields: [doctorId], references: [id])
+
+  @@index([doctorId])
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  recipientId String
+  title       String
+  message     String
+  type        NotificationType
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  metadata    Json?
+}
+
+model Payment {
+  id                    String         @id @default(uuid())
+  appointmentId         String         @unique
+  patientId             String
+  amount                Float
+  currency              String         @default("inr")
+  status                PaymentStatus  @default(PENDING)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  paymentMethod         PaymentMethod  @default(RAZORPAY)
+  razorpayOrderId       String?        @unique
+  razorpayPaymentId     String?
+  razorpaySignature     String?
+  paypalCaptureId       String?        @unique
+  paypalOrderId         String?        @unique
+  stripePaymentIntentId String?        @unique
+  stripeSessionId       String?        @unique
+  walletAmount          Float          @default(0)
+  appointment           Appointment    @relation(fields: [appointmentId], references: [id])
+  patient               PatientProfile @relation(fields: [patientId], references: [id])
+
+  @@index([patientId])
+  @@index([status])
+  @@index([stripeSessionId])
+  @@index([paypalOrderId])
+}
+
+model Wallet {
+  id           String              @id @default(uuid())
+  patientId    String              @unique
+  balance      Float               @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  patient      PatientProfile      @relation(fields: [patientId], references: [id])
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id              String            @id @default(uuid())
+  walletId        String
+  amount          Float
+  type            TransactionType
+  status          TransactionStatus @default(COMPLETED)
+  reason          String?
+  createdAt       DateTime          @default(now())
+  metadata        Json?
+  stripeSessionId String?
+  wallet          Wallet            @relation(fields: [walletId], references: [id])
+}
+
+model FollowUp {
+  id             String         @id @default(uuid())
+  consultationId String         @unique
+  patientId      String
+  doctorId       String
+  scheduledDate  DateTime
+  time           String
+  type           FollowUpType   @default(PHYSICAL)
+  status         FollowUpStatus @default(SCHEDULED)
+  reason         String?
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  consultation   Consultation   @relation(fields: [consultationId], references: [id])
+  doctor         DoctorProfile  @relation(fields: [doctorId], references: [id])
+  patient        PatientProfile @relation(fields: [patientId], references: [id])
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([scheduledDate])
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum FoodTiming {
+  BEFORE_FOOD
+  AFTER_FOOD
+  WITH_FOOD
+  EMPTY_STOMACH
+}
+
+enum MedicineType {
+  BRAND
+  GENERIC
 }
 
 enum LabTestStatus {
   PENDING
   UPLOADED
+  REVIEWED
+}
+
+enum LabTestUrgency {
+  NORMAL
+  URGENT
+  EMERGENCY
 }
 
 enum Role {
@@ -345,22 +514,6 @@ enum ConsultationType {
   CLINIC
 }
 
-model DoctorLeave {
-  id        String      @id @default(uuid())
-  doctorId  String
-  startDate DateTime
-  endDate   DateTime
-  reason    String
-  status    LeaveStatus @default(PENDING)
-  type      LeaveType   @default(LEAVE)
-  isProcessed Boolean   @default(false)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  doctor    DoctorProfile @relation(fields: [doctorId], references: [id])
-
-  @@index([doctorId])
-}
-
 enum LeaveType {
   LEAVE
   EMERGENCY
@@ -371,16 +524,6 @@ enum LeaveStatus {
   PENDING
   APPROVED
   REJECTED
-}
-
-model Notification {
-  id          String           @id @default(uuid())
-  recipientId String           // User.id
-  title       String
-  message     String
-  type        NotificationType
-  isRead      Boolean          @default(false)
-  createdAt   DateTime         @default(now())
 }
 
 enum NotificationType {
@@ -394,39 +537,10 @@ enum NotificationType {
   RESCHEDULE_PROPOSAL
   DOCTOR_UNAVAILABLE
   REASSIGNED
-}
-
-model Payment {
-  id                    String         @id @default(uuid())
-  appointmentId         String         @unique
-  patientId             String
-  amount                Float
-  currency              String         @default("inr")
-  
-  // Gateway specific IDs
-  razorpayOrderId       String?        @unique
-  razorpayPaymentId     String?
-  razorpaySignature     String?
-  
-  stripeSessionId       String?        @unique
-  stripePaymentIntentId String?        @unique
-  
-  paypalOrderId         String?        @unique
-  paypalCaptureId       String?        @unique
-
-  walletAmount          Float          @default(0)
-
-  paymentMethod         PaymentMethod  @default(RAZORPAY)
-  status                PaymentStatus  @default(PENDING)
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
-  appointment           Appointment    @relation(fields: [appointmentId], references: [id])
-  patient               PatientProfile @relation(fields: [patientId], references: [id])
-
-  @@index([patientId])
-  @@index([status])
-  @@index([stripeSessionId])
-  @@index([paypalOrderId])
+  FOLLOW_UP_SCHEDULED
+  FOLLOW_UP_REMINDER
+  LAB_REPORT_UPLOADED
+  REPORT_REVIEWED
 }
 
 enum PaymentMethod {
@@ -434,29 +548,6 @@ enum PaymentMethod {
   WALLET
   STRIPE
   PAYPAL
-}
-
-model Wallet {
-  id        String              @id @default(uuid())
-  patientId String              @unique
-  balance   Float               @default(0)
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
-  patient   PatientProfile      @relation(fields: [patientId], references: [id])
-  transactions WalletTransaction[]
-}
-
-model WalletTransaction {
-  id        String      @id @default(uuid())
-  walletId  String
-  amount    Float
-  type      TransactionType
-  status    TransactionStatus @default(COMPLETED)
-  reason    String?
-  stripeSessionId String?
-  metadata  Json?
-  createdAt DateTime    @default(now())
-  wallet    Wallet      @relation(fields: [walletId], references: [id])
 }
 
 enum TransactionType {
@@ -476,4 +567,18 @@ enum PaymentStatus {
   PAID
   FAILED
   REFUNDED
+}
+
+enum FollowUpType {
+  PHYSICAL
+  VIDEO
+  PHONE
+}
+
+enum FollowUpStatus {
+  SCHEDULED
+  COMPLETED
+  MISSED
+  CANCELLED
+  RESCHEDULED
 }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, Clock, MapPin, X, Loader2, CheckCircle } from "lucide-react"
 import { cancelAppointment } from "@/infrastructure/api/patient.api"
 import { checkIn } from "@/infrastructure/api/consultation.api"
@@ -8,6 +8,7 @@ interface Appointment {
     doctorName: string;
     date: string | Date;
     slotStart: string;
+    hasConsultation?: boolean;
 }
 
 interface Props {
@@ -20,7 +21,13 @@ export default function UpcomingCareCard({ appointment }: Props) {
     const [isCancelling, setIsCancelling] = useState(false);
     const [refundToWallet, setRefundToWallet] = useState(true);
     const [isCheckingIn, setIsCheckingIn] = useState(false);
-    const [hasCheckedIn, setHasCheckedIn] = useState(false);
+    const [hasCheckedIn, setHasCheckedIn] = useState(!!appointment?.hasConsultation);
+
+    useEffect(() => {
+        if (appointment?.hasConsultation) {
+            setHasCheckedIn(true);
+        }
+    }, [appointment]);
 
     const handleCheckIn = async () => {
         if (!appointment?.id) return;

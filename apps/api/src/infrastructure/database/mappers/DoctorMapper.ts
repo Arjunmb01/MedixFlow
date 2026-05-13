@@ -6,7 +6,7 @@ import {
     DoctorSchedule, 
     ConsultedPatientRecord, 
     PrescriptionRecord,
-    AppointmentPreview
+    DoctorAppointmentPreview
 } from "../../../domain/value-objects/types/doctor.repository.types";
 import { StaffDoctorListItem } from "../../../domain/value-objects/types/staff.repository.types";
 
@@ -24,6 +24,8 @@ export type PrismaAppointmentWithPatient = PrismaAppointment & {
 export type PrismaPrescriptionFull = PrismaAppointment & { 
     patient: PrismaPatientProfile; 
     consultation: { 
+        id: string;
+        medicalRecord: { diagnosis: string; symptoms: string } | null;
         prescription: PrismaPrescription & { medicines: PrismaMedicine[] } 
     } | null 
 };
@@ -110,7 +112,7 @@ export class DoctorMapper {
     };
   }
 
-  toAppointmentPreview(apt: PrismaAppointmentWithPatient): AppointmentPreview {
+  toAppointmentPreview(apt: PrismaAppointmentWithPatient): DoctorAppointmentPreview {
     return {
         id: apt.id,
         patientId: apt.patientId,
@@ -141,20 +143,36 @@ export class DoctorMapper {
       };
   }
 
-  toPrescriptionRecord(apt: PrismaPrescriptionFull): PrescriptionRecord {
+  toPrescriptionRecord(apt: PrismaPrescriptionFull): any {
       const presc = apt.consultation?.prescription;
       return {
-          id: presc?.id || "",
-          patientName: `${apt.patient.firstName} ${apt.patient.lastName}`,
-          date: apt.appointmentDate,
-          medicines: presc?.medicines?.map((m) => ({
-              name: m.name,
-              dosage: m.dosage,
-              frequency: m.frequency,
-              duration: m.duration,
-          })) || [],
-          instructions: presc?.instructions || undefined,
+          id: apt.id,
+          appointmentDate: apt.appointmentDate,
+          slotStart: apt.slotStart,
+          patient: {
+              firstName: apt.patient.firstName,
+              lastName: apt.patient.lastName,
+              phone: apt.patient.phone || "",
+              gender: apt.patient.gender || "Other",
+          },
+          consultation: {
+              id: apt.consultation?.id || "",
+              medicalRecord: {
+                  diagnosis: apt.consultation?.medicalRecord?.diagnosis || "",
+                  symptoms: apt.consultation?.medicalRecord?.symptoms || "",
+              },
+              prescription: {
+                  id: presc?.id || "",
+                  instructions: presc?.instructions || null,
+                  medicines: presc?.medicines?.map((m) => ({
+                      id: m.id,
+                      name: m.name,
+                      dosage: m.dosage,
+                      frequency: m.frequency,
+                      duration: m.duration,
+                  })) || [],
+              }
+          }
       };
   }
 }
-

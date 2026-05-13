@@ -12,7 +12,7 @@ export interface IPatientRepository {
   updatePatient(id: string, data: Partial<PatientProfile>): Promise<Patient>;
   updatePassword(id: string, passwordHash: string): Promise<void>;
   replaceEmergencyContacts(patientId: string, contacts: EmergencyContact[]): Promise<void>;
-  getPatients(query: PatientFilters & { page: number; limit: number }): Promise<PaginatedPatients>;
+  getPatients(query: PatientFilters): Promise<PaginatedPatients>;
   toggleBlock(userId: string, status: UserStatus): Promise<void>;
   deletePatient(userId: string): Promise<void>;
   getStats(): Promise<{ total: number; active: number; blocked: number }>;

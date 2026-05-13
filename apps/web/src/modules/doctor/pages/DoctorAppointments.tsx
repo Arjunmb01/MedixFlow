@@ -22,6 +22,7 @@ import {
 import { useState } from "react";
 import Badge from "../../patient/components/ui/Badge";
 import { RescheduleModal } from "@/modules/shared/components/RescheduleModal";
+import type { Appointment } from "@/domain/appointment/types";
 
 export default function DoctorAppointments() {
     const { profile } = useDoctorDashboard();
@@ -30,7 +31,9 @@ export default function DoctorAppointments() {
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const [selectedApt, setSelectedApt] = useState<any | null>(null);
+    const [sortBy, setSortBy] = useState("appointmentDate");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+    const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
     const [selectedPrescription, setSelectedPrescription] = useState<any | null>(null);
     const [rescheduleApt, setRescheduleApt] = useState<any | null>(null);
 
@@ -41,7 +44,9 @@ export default function DoctorAppointments() {
         toDate: toDate || undefined,
         search: searchTerm || undefined,
         page: currentPage,
-        limit: 4
+        limit: 4,
+        sortBy,
+        sortOrder
     };
 
     const { appointments: paginatedAppointments, loading, meta, refreshAppointments } = useDoctorAppointments(apiFilters);
@@ -125,6 +130,23 @@ export default function DoctorAppointments() {
                                         <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Clear All</span>
                                     </button>
                                 )}
+
+                                <select
+                                    value={`${sortBy}-${sortOrder}`}
+                                    onChange={(e) => {
+                                        const [newSortBy, newSortOrder] = e.target.value.split("-");
+                                        setSortBy(newSortBy);
+                                        setSortOrder(newSortOrder as "asc" | "desc");
+                                        setCurrentPage(1);
+                                    }}
+                                    className="px-6 py-3.5 bg-white border border-gray-200 rounded-2xl text-xs font-bold text-gray-600 focus:outline-none focus:border-teal-600 transition-all cursor-pointer shadow-sm appearance-none pr-10 relative"
+                                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2394A3B8\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.25rem' }}
+                                >
+                                    <option value="appointmentDate-desc">Newest First</option>
+                                    <option value="appointmentDate-asc">Oldest First</option>
+                                    <option value="status-asc">Status (A-Z)</option>
+                                    <option value="status-desc">Status (Z-A)</option>
+                                </select>
                             </div>
                         </div>
                     </header>
@@ -431,8 +453,8 @@ export default function DoctorAppointments() {
             {rescheduleApt && (
                 <RescheduleModal
                     appointmentId={rescheduleApt.id}
-                    patientId={rescheduleApt.patient?.id || rescheduleApt.patientId}
-                    doctorId={rescheduleApt.doctorId ?? rescheduleApt.doctor?.id}
+                    patientId={rescheduleApt.patient?.id || (rescheduleApt as any).patientId}
+                    doctorId={(rescheduleApt as any).doctorId ?? rescheduleApt.doctor?.id}
                     role="doctor"
                     onSuccess={refreshAppointments}
                     onClose={() => setRescheduleApt(null)}

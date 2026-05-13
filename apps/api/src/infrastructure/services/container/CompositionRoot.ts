@@ -41,6 +41,9 @@ import { RazorpayService } from "../RazorpayService";
 import redisClient from "../redisClient";
 import { RedisQueueService } from "../RedisQueueService";
 import { AppointmentCleanupService } from "../AppointmentCleanupService";
+import { RedisService } from "../RedisService";
+import { DistributedLockService } from "../DistributedLockService";
+import { RabbitMQProducer } from "../../rabbitmq/RabbitMQProducer";
 
 // Use Cases - Auth
 import { SignUpUseCase } from "@/application/use-cases/auth/signup.usecase";
@@ -91,6 +94,12 @@ import { GetConsultationDetailsUseCase } from "@/application/use-cases/consultat
 import { GetDoctorQueueUseCase } from "@/application/use-cases/consultation/getDoctorQueue.usecase";
 import { GetPatientHistoryUseCase } from "@/application/use-cases/consultation/getPatientHistory.usecase";
 import { StartConsultationUseCase } from "@/application/use-cases/consultation/startConsultation.usecase";
+import { SaveConsultationDraftUseCase } from "@/application/use-cases/consultation/saveConsultationDraft.usecase";
+import { GetConsultationDraftUseCase } from "@/application/use-cases/consultation/getConsultationDraft.usecase";
+import { CreateFollowUpConsultationUseCase } from "@/application/use-cases/consultation/createFollowUpConsultation.usecase";
+import { ScheduleFollowUpUseCase } from "@/application/use-cases/consultation/scheduleFollowUp.usecase";
+import { GenerateConsultationPDFUseCase } from "@/application/use-cases/consultation/generateConsultationPDF.usecase";
+import { ReviewLabTestUseCase } from "@/application/use-cases/consultation/reviewLabTest.usecase";
 
 // Use Cases - Doctor
 import { GetAllDoctorsUseCase } from "@/application/use-cases/doctor/getAllDoctors.usecase";
@@ -199,13 +208,17 @@ export class CompositionRoot {
         const schedulingPolicy = new SchedulingPolicy();
         const slotGenerator = new SlotGenerator();
         const dateTimeService = new SystemDateTimeService();
-        const redisSessionService = new RedisSessionService(redisClient);
+        const redisSessionService = new RedisSessionService(redisClient as any);
+        const redisService = new RedisService(redisClient as any);
+        const lockService = new DistributedLockService(redisClient as any);
+        const rabbitMQProducer = new RabbitMQProducer();
+        
         const emailService = new SmtpEmailService(smtpConfig);
-        const emailOtpService = new EmailOtpService(redisClient, emailService);
+        const emailOtpService = new EmailOtpService(redisClient as any, emailService);
         const jwtTokenService = new JwtTokenService(jwtConfig);
         const googleAuthService = new GoogleAuthService();
         const patientIdGenerator = new PatientIdGenerator(prisma);
-        const notificationCacheService = new NotificationCacheService(redisClient);
+        const notificationCacheService = new NotificationCacheService(redisClient as any);
         const razorpayService = new RazorpayService();
         const queueService = new RedisQueueService();
 
@@ -217,7 +230,7 @@ export class CompositionRoot {
         const slotRepository = new SlotRepository(prisma, slotMapper);
         const consultationRepository = new ConsultationRepository(prisma, consultationMapper, dateTimeService);
         const appointmentRepository = new AppointmentRepository(prisma, appointmentMapper, dateTimeService);
-        const appointmentCleanupService = new AppointmentCleanupService(appointmentRepository);
+        const appointmentCleanupService = new AppointmentCleanupService(appointmentRepository, lockService);
         const leaveRepository = new DoctorLeaveRepository(prisma);
         const notificationRepository = new NotificationRepository(prisma, notificationMapper);
         const paymentRepository = new PaymentRepository(prisma);
@@ -252,8 +265,8 @@ export class CompositionRoot {
         const markNotificationAsReadUseCase = new MarkNotificationAsReadUseCase(notificationRepository, notificationCacheService, socketService);
         const getUnreadCountUseCase = new GetUnreadCountUseCase(notificationRepository, notificationCacheService);
         const deleteNotificationsUseCase = new DeleteNotificationsUseCase(notificationRepository, notificationCacheService, socketService);
-        const handleRazorpayWebhookUseCase = new HandleRazorpayWebhookUseCase(razorpayService, paymentRepository, walletRepository, appointmentRepository, sendNotificationUseCase, queueService, socketService);
-        const confirmPaymentUseCase = new ConfirmPaymentUseCase(paymentRepository, appointmentRepository, queueService, socketService, sendNotificationUseCase);
+        const confirmPaymentUseCase = new ConfirmPaymentUseCase(paymentRepository, appointmentRepository, queueService, socketService, sendNotificationUseCase, lockService);
+        const handleRazorpayWebhookUseCase = new HandleRazorpayWebhookUseCase(razorpayService, paymentRepository, walletRepository, appointmentRepository, sendNotificationUseCase, queueService, socketService, confirmPaymentUseCase);
         const handleStripeWebhookUseCase = new HandleStripeWebhookUseCase(paymentRepository, appointmentRepository, confirmPaymentUseCase, walletService);
         const handlePayPalWebhookUseCase = new HandlePayPalWebhookUseCase(paymentRepository, confirmPaymentUseCase);
         const simulatePaymentUseCase = new SimulatePaymentUseCase(paymentRepository, appointmentRepository, confirmPaymentUseCase);
@@ -272,7 +285,8 @@ export class CompositionRoot {
             doctorRepository,
             patientRepository,
             queueService,
-            socketService
+            socketService,
+            lockService
         );
         const cancelAppointmentUseCase = new CancelAppointmentUseCase(
             appointmentRepository, 
@@ -311,6 +325,12 @@ export class CompositionRoot {
         const requestLabTestUseCase = new RequestLabTestUseCase(consultationRepository, sendNotificationUseCase);
         const uploadLabTestUseCase = new UploadLabTestUseCase(consultationRepository, sendNotificationUseCase);
         const getLabTestsUseCase = new GetLabTestsUseCase(consultationRepository);
+        const saveConsultationDraftUseCase = new SaveConsultationDraftUseCase(consultationRepository);
+        const getConsultationDraftUseCase = new GetConsultationDraftUseCase(consultationRepository);
+        const createFollowUpConsultationUseCase = new CreateFollowUpConsultationUseCase(appointmentRepository, consultationRepository, dateTimeService);
+        const scheduleFollowUpUseCase = new ScheduleFollowUpUseCase(consultationRepository, appointmentRepository, dateTimeService, sendNotificationUseCase);
+        const generateConsultationPDFUseCase = new GenerateConsultationPDFUseCase(consultationRepository);
+        const reviewLabTestUseCase = new ReviewLabTestUseCase(consultationRepository, sendNotificationUseCase);
 
         // Doctor
         const getAllDoctorsUseCase = new GetAllDoctorsUseCase(doctorRepository);
@@ -375,7 +395,10 @@ export class CompositionRoot {
         const consultationController = new ConsultationController(
             checkinPatientUseCase, getDoctorQueueUseCase, startConsultationUseCase, 
             completeConsultationUseCase, getPatientHistoryUseCase, getConsultationDetailsUseCase,
-            requestLabTestUseCase, uploadLabTestUseCase, getLabTestsUseCase
+            requestLabTestUseCase, uploadLabTestUseCase, getLabTestsUseCase,
+            saveConsultationDraftUseCase, getConsultationDraftUseCase,
+            createFollowUpConsultationUseCase, scheduleFollowUpUseCase, 
+            generateConsultationPDFUseCase, reviewLabTestUseCase
         );
 
         const doctorAuthController = new DoctorAuthController(

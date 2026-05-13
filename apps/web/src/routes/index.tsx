@@ -16,8 +16,9 @@ export default function AppRoutes() {
     return (
         <BrowserRouter>
             <Suspense fallback={
-                <div className="flex h-screen items-center justify-center bg-[#F8FAFC]">
+                <div className="flex h-screen items-center justify-center bg-[#F8FAFC]" role="status" aria-label="Loading MedixFlow">
                     <div className="w-10 h-10 border-4 border-[#3B82F6] border-t-transparent rounded-full animate-spin" />
+                    <span className="sr-only">Loading...</span>
                 </div>
             }>
                 <Routes>

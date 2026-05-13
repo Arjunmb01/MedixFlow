@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
+import { AuthenticatedRequest } from "@/shared/middlewares/auth.middleware";
 import { HandleRazorpayWebhookUseCase } from "../../application/use-cases/payment/HandleRazorpayWebhookUseCase";
 import { GetWalletBalanceUseCase } from "../../application/use-cases/patient/GetWalletBalanceUseCase";
 import { CreateWalletTopUpUseCase } from "../../application/use-cases/patient/CreateWalletTopUpUseCase";
@@ -14,6 +15,7 @@ import { VerifyPayPalPaymentUseCase } from "../../application/use-cases/payment/
 import { VerifyRazorpayPaymentUseCase } from "../../application/use-cases/payment/VerifyRazorpayPaymentUseCase";
 import { StatusCode } from "../../shared/constants";
 import { env as config } from "../../shared/config/env";
+import { getPaymentsQuerySchema, getFinancialActivityQuerySchema } from "./dto/validation/payment.dtos";
 
 export class PaymentController {
   constructor(
@@ -34,13 +36,15 @@ export class PaymentController {
 
   async getAllPayments(req: Request, res: Response): Promise<void> {
     try {
-      const { status, paymentMethod, page, limit, search } = req.query;
+      const validatedQuery = getPaymentsQuerySchema.parse(req.query);
       const result = await this.getAllPaymentsUseCase.execute({
-        status: status as any,
-        paymentMethod: paymentMethod as any,
-        page: page ? parseInt(page as string) : 1,
-        limit: limit ? parseInt(limit as string) : 10,
-        search: search as string
+        status: validatedQuery.status as any,
+        paymentMethod: validatedQuery.paymentMethod as any,
+        page: validatedQuery.page,
+        limit: validatedQuery.limit,
+        search: validatedQuery.search,
+        sortBy: validatedQuery.sortBy,
+        sortOrder: (validatedQuery.sortOrder || 'desc') as any
       });
       res.status(StatusCode.OK).json(result);
     } catch (error: any) {
@@ -51,20 +55,21 @@ export class PaymentController {
   async handleWebhook(req: Request, res: Response): Promise<void> {
     const sig = req.headers["x-razorpay-signature"] as string;
     const payload = req.body;
-    const rawBody = (req as any).rawBody; 
+    const rawBody = (req as AuthenticatedRequest).rawBody; 
 
     try {
-      await this.handleWebhookUseCase.execute(sig, payload, rawBody, config.RAZORPAY_WEBHOOK_SECRET);
+      await this.handleWebhookUseCase.execute(sig, payload, rawBody || "", config.RAZORPAY_WEBHOOK_SECRET);
       res.status(StatusCode.OK).json({ received: true });
-    } catch (error: any) {
-      console.error("Razorpay Webhook Error:", error.message);
-      res.status(StatusCode.BAD_REQUEST).json({ message: error.message });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Bad Request";
+      console.error("Razorpay Webhook Error:", message);
+      res.status(StatusCode.BAD_REQUEST).json({ message });
     }
   }
 
   async handleStripeWebhook(req: Request, res: Response): Promise<void> {
     const sig = req.headers["stripe-signature"] as string;
-    const payload = (req as any).rawBody || req.body; // Stripe needs raw body for verification
+    const payload = (req as AuthenticatedRequest).rawBody || req.body; 
 
     try {
       await this.handleStripeWebhookUseCase.execute(payload, sig, config.STRIPE_WEBHOOK_SECRET);
@@ -88,9 +93,9 @@ export class PaymentController {
     }
   }
 
-  async getWalletBalance(req: Request, res: Response): Promise<void> {
+  async getWalletBalance(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const patientId = (req as any).user.id; // Assuming user is attached via middleware
+      const patientId = req.user.id; 
       const result = await this.getWalletBalanceUseCase.execute(patientId);
       res.status(StatusCode.OK).json(result);
     } catch (error: any) {
@@ -98,9 +103,9 @@ export class PaymentController {
     }
   }
 
-  async topUpWallet(req: Request, res: Response): Promise<void> {
+  async topUpWallet(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const patientId = (req as any).user.id;
+      const patientId = req.user.id;
       const { amount } = req.body;
 
       if (!amount || amount <= 0) {
@@ -111,7 +116,7 @@ export class PaymentController {
       const result = await this.topUpWalletUseCase.execute({
         patientId,
         amount,
-        customerEmail: (req as any).user.email
+        customerEmail: req.user.email
       });
 
       res.status(StatusCode.OK).json(result);
@@ -120,9 +125,9 @@ export class PaymentController {
     }
   }
 
-  async verifyWalletTopUp(req: Request, res: Response): Promise<void> {
+  async verifyWalletTopUp(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const patientId = (req as any).user.id;
+      const patientId = req.user.id;
       const { razorpayOrderId, razorpayPaymentId, razorpaySignature, amount } = req.body;
 
       if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature || !amount) {
@@ -147,20 +152,21 @@ export class PaymentController {
     }
   }
 
-  async getFinancialActivity(req: Request, res: Response): Promise<void> {
+  async getFinancialActivity(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const patientId = (req as any).user.id;
-      const { search, status, startDate, endDate, method, page: qPage, limit: qLimit } = req.query;
-      const page = parseInt(qPage as string) || 1;
-      const limit = parseInt(qLimit as string) || 10;
+      const patientId = req.user.id;
+      const validatedQuery = getFinancialActivityQuerySchema.parse(req.query);
+      
       const result = await this.getFinancialActivityUseCase.execute(patientId, { 
-        page, 
-        limit, 
-        search: search as string, 
-        status: status as string,
-        startDate: startDate as string,
-        endDate: endDate as string,
-        method: method as string
+        page: validatedQuery.page, 
+        limit: validatedQuery.limit, 
+        search: validatedQuery.search, 
+        status: validatedQuery.status as any,
+        startDate: validatedQuery.startDate,
+        endDate: validatedQuery.endDate,
+        method: validatedQuery.method as any,
+        sortBy: validatedQuery.sortBy,
+        sortOrder: (validatedQuery.sortOrder || 'desc') as any
       });
       res.status(StatusCode.OK).json(result);
     } catch (error: any) {

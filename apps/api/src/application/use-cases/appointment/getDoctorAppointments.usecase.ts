@@ -16,10 +16,11 @@ export class GetDoctorAppointmentsUseCase {
     await this.appointmentRepo.markPastAppointmentsAsNotAttended();
 
     const result = await this.appointmentRepo.getAppointmentsByDoctorId(doctorId, filter);
-    let { appointments, total } = result;
+    let appointments = result.data;
+    let total = result.meta.total;
 
     if (filter?.isUpcoming === undefined) {
-      appointments = appointments.filter(app => 
+      appointments = appointments.filter((app: AppointmentWithPatient) => 
         !this.dateTimeService.isUpcoming(app.appointmentDate, app.slotStart)
       );
       total = appointments.length;
@@ -29,9 +30,9 @@ export class GetDoctorAppointmentsUseCase {
       data: appointments,
       meta: {
         total,
-        page: filter?.page || 1,
-        limit: filter?.limit || 10,
-        totalPages: Math.ceil(total / (filter?.limit || 10))
+        page: result.meta.page,
+        limit: result.meta.limit,
+        totalPages: Math.ceil(total / result.meta.limit)
       }
     };
   }

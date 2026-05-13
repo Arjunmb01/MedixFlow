@@ -4,6 +4,7 @@ import { MarkNotificationAsReadUseCase } from "@/application/use-cases/notificat
 import { GetUnreadCountUseCase } from "@/application/use-cases/notification/GetUnreadCountUseCase";
 import { DeleteNotificationsUseCase } from "@/application/use-cases/notification/DeleteNotificationsUseCase";
 import { StatusCode } from "@/shared/constants";
+import { paginationQuerySchema } from "./dto/validation/pagination.dtos";
 
 export class NotificationController {
   constructor(
@@ -21,10 +22,12 @@ export class NotificationController {
         return;
       }
 
-      const limit = parseInt(req.query.limit as string) || 10;
-      const offset = parseInt(req.query.offset as string) || 0;
-
-      const notifications = await this.getNotificationsUseCase.execute(userId, limit, offset);
+      const validatedQuery = paginationQuerySchema.parse(req.query);
+      const notifications = await this.getNotificationsUseCase.execute(
+        userId, 
+        validatedQuery.page, 
+        validatedQuery.limit
+      );
       res.status(StatusCode.OK).json(notifications);
     } catch (error) {
       console.error("Get Notifications Error:", error);

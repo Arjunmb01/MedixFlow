@@ -6,6 +6,8 @@ import { GetPatientAppointmentsUseCase } from "@/application/use-cases/patient/g
 import { CancelAppointmentUseCase } from "@/application/use-cases/appointment/cancelAppointment.usecase";
 import { RescheduleAppointmentUseCase } from "@/application/use-cases/appointment/rescheduleAppointment.usecase";
 import { RespondToProposalUseCase } from "@/application/use-cases/appointment/RespondToProposalUseCase";
+import { getPatientAppointmentsQuerySchema } from "./dto/validation/patient.dtos";
+import { AuthenticatedRequest } from "@/shared/middlewares/auth.middleware";
 
 export class PatientAppointmentController {
     constructor(
@@ -17,7 +19,7 @@ export class PatientAppointmentController {
         private respondToProposalUseCase: RespondToProposalUseCase
     ) {}
 
-    getUpcomingAppointments = async (req: Request, res: Response, next: NextFunction) => {
+    getUpcomingAppointments = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
             const appointments = await this.getUpcomingAppointmentsUseCase.execute(patientId);
@@ -27,7 +29,7 @@ export class PatientAppointmentController {
         }
     }
 
-    getPatientDashboardStats = async (req: Request, res: Response, next: NextFunction) => {
+    getPatientDashboardStats = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
             const stats = await this.getPatientDashboardStatsUseCase.execute(patientId);
@@ -37,16 +39,22 @@ export class PatientAppointmentController {
         }
     }
 
-    getPatientAppointments = async (req: Request, res: Response, next: NextFunction) => {
+    getPatientAppointments = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
+            const validatedQuery = getPatientAppointmentsQuerySchema.parse(req.query);
+            
             const filter = {
-                status: req.query.status as string,
-                paymentStatus: req.query.paymentStatus as string,
-                isUpcoming: String(req.query.isUpcoming) === "true",
-                page: req.query.page ? parseInt(req.query.page as string) : undefined,
-                limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+                status: validatedQuery.status,
+                paymentStatus: validatedQuery.paymentStatus,
+                isUpcoming: validatedQuery.isUpcoming,
+                page: validatedQuery.page,
+                limit: validatedQuery.limit,
+                search: validatedQuery.search,
+                sortBy: validatedQuery.sortBy,
+                sortOrder: validatedQuery.sortOrder,
             };
+            
             const appointments = await this.getPatientAppointmentsUseCase.execute(patientId, filter);
             res.json(appointments);
         } catch (error) {
@@ -54,7 +62,7 @@ export class PatientAppointmentController {
         }
     }
 
-    cancelAppointment = async (req: Request, res: Response, next: NextFunction) => {
+    cancelAppointment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
             const id = req.params.id as string;
@@ -66,7 +74,7 @@ export class PatientAppointmentController {
         }
     }
 
-    rescheduleAppointment = async (req: Request, res: Response, next: NextFunction) => {
+    rescheduleAppointment = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const callerId = req.user.id;
             const id = req.params.id as string;
@@ -85,7 +93,7 @@ export class PatientAppointmentController {
         }
     }
 
-    respondToProposal = async (req: Request, res: Response, next: NextFunction) => {
+    respondToProposal = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const actorId = req.user.id;
             const proposalId = req.params.proposalId as string;

@@ -22,11 +22,13 @@ export class RefreshTokenUseCase {
     const userId = payload.id;
     const role = payload.role;
 
+    const sessionId = payload.sessionId;
+
     if (role !== expectedRole) {
       throw new Error(MESSAGES.INVALID_ROLE_SESSION);
     }
 
-    const storedToken = await this.sessionService.getSession(userId);
+    const storedToken = await this.sessionService.getSession(userId, expectedRole, sessionId);
     if (!storedToken || storedToken !== refreshToken) {
       throw new Error(MESSAGES.SESSION_EXPIRED);
     }
@@ -34,17 +36,17 @@ export class RefreshTokenUseCase {
     // Check if user is blocked/inactive using IAuthRepository
     const result = await this.authRepository.findUserById(userId);
     if (!result) {
-      await this.sessionService.deleteSession(userId);
+      await this.sessionService.deleteSession(userId, expectedRole, sessionId);
       throw new Error(MESSAGES.ACCOUNT_BLOCKED);
     }
 
     const { user, patientId } = result;
     if (user.status === "INACTIVE" || user.status === "SUSPENDED") {
-      await this.sessionService.deleteSession(userId);
+      await this.sessionService.deleteSession(userId, expectedRole, sessionId);
       throw new Error(MESSAGES.ACCOUNT_BLOCKED);
     }
 
-    const accessToken = this.tokenService.generateAccessToken(userId, role as UserRole, user.email);
+    const accessToken = this.tokenService.generateAccessToken(userId, role as UserRole, user.email, sessionId);
 
     return { accessToken, patientId };
 

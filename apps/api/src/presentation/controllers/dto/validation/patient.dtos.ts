@@ -2,12 +2,17 @@ import { z } from "zod";
 import { UserStatus } from "@/domain/value-objects/enums/UserStatus";
 import { Gender } from "@/domain/value-objects/enums/Gender";
 
-export const getPatientsQuerySchema = z.object({
-  search: z.string().optional(),
+import { paginationQuerySchema } from "./pagination.dtos";
+
+export const getPatientsQuerySchema = paginationQuerySchema.extend({
   status: z.nativeEnum(UserStatus).optional(),
   gender: z.nativeEnum(Gender).optional(),
-  page: z.string().transform(val => parseInt(val) || 1),
-  limit: z.string().transform(val => parseInt(val) || 10)
+});
+
+export const getPatientAppointmentsQuerySchema = paginationQuerySchema.extend({
+  status: z.string().optional(),
+  paymentStatus: z.string().optional(),
+  isUpcoming: z.string().optional().transform(val => val === "true"),
 });
 
 export const emergencyContactSchema = z.object({

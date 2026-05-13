@@ -8,7 +8,7 @@ const auth = container.authMiddleware;
 
 router.post("/login", controller.login);
 router.post("/refresh-token", controller.refreshToken);
-router.post("/logout", auth.authenticate, auth.authorize([UserRole.DOCTOR]), controller.logout);
+router.post("/logout", auth.authenticateDoctor, controller.logout);
 router.post("/forgot-password", controller.forgotPassword);
 router.post("/reset-password", controller.resetPassword);
 

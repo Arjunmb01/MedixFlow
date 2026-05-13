@@ -20,8 +20,8 @@ export class StaffRepository implements IStaffRepository {
         private readonly passwordHasher: IPasswordHasher
     ) {}
 
-    async getDoctors(query: StaffDoctorFilters & { page: number; limit: number }): Promise<PaginatedStaffDoctors> {
-        const { search, specialty: specialization, status, page, limit } = query;
+    async getDoctors(query: StaffDoctorFilters): Promise<PaginatedStaffDoctors> {
+        const { search, specialty: specialization, status, page = 1, limit = 10, sortBy = 'firstName', sortOrder = 'asc' } = query;
         const skip = (page - 1) * limit;
 
         const where: Prisma.DoctorProfileWhereInput = {
@@ -52,6 +52,9 @@ export class StaffRepository implements IStaffRepository {
             where.user.status = status;
         }
 
+        const validSortFields = ['firstName', 'lastName', 'createdAt', 'consultationFee'];
+        const orderByField = validSortFields.includes(sortBy) ? sortBy : 'firstName';
+
         const [doctors, total] = await Promise.all([
             this._prisma.doctorProfile.findMany({
                 where,
@@ -70,15 +73,15 @@ export class StaffRepository implements IStaffRepository {
                 skip,
                 take: limit,
                 orderBy: {
-                    firstName: "asc"
+                    [orderByField]: sortOrder
                 }
             }),
             this._prisma.doctorProfile.count({ where })
         ]);
 
         return {
-            doctors: doctors.map((d) => this.mapper.toStaffDoctorListItem(d as any)),
-            stats: {
+            data: doctors.map((d) => this.mapper.toStaffDoctorListItem(d as any)),
+            meta: {
                 total,
                 page,
                 limit,

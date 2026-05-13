@@ -9,7 +9,8 @@ export class GetUpcomingAppointmentsUseCase {
 
     async execute (patientId: string) {
         await this.appointmentRepo.markPastAppointmentsAsNotAttended(patientId);
-        const { appointments: patientAppointments } = await this.appointmentRepo.getAppointmentsByPatientId(patientId);
+        const appointmentsResponse = await this.appointmentRepo.getAppointmentsByPatientId(patientId);
+        const patientAppointments = appointmentsResponse.data;
         const now = this.dateTimeService.now();
 
         return patientAppointments.filter((app: any) => 

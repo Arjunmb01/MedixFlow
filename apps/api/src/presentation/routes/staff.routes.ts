@@ -10,7 +10,7 @@ const auth = container.authMiddleware;
 router.post("/setup-password", controller.setupPassword);
 
 // Protected routes
-router.use(auth.authenticate, auth.authorize([UserRole.ADMIN]));
+router.use(auth.authenticateAdmin);
 
 router.get("/doctors", controller.getDoctors);
 router.post("/doctors", controller.createDoctor);

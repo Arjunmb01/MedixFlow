@@ -1,5 +1,6 @@
 import { UserStatus } from "../enums/UserStatus";
 import { Gender } from "../enums/Gender";
+import { PaginatedResponse, PaginationQuery } from "./pagination.types";
 
 export interface PatientProfile {
   id: string;
@@ -46,18 +47,9 @@ export interface PatientListItem extends PatientProfile {
   appointmentsCount: number;
 }
 
-export interface PaginatedPatients {
-  data: PatientListItem[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
+export interface PaginatedPatients extends PaginatedResponse<PatientListItem> {}
 
-export interface PatientFilters {
-  search?: string;
+export interface PatientFilters extends PaginationQuery {
   status?: UserStatus;
   gender?: Gender;
 }

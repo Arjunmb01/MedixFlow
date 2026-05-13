@@ -12,13 +12,7 @@ import {
     getDoctorAppointmentsQuerySchema, 
     generateSlotsSchema
 } from "@/presentation/controllers/dto/validation/staff.dtos";
-
-interface AuthenticatedRequest extends Request {
-    user: {
-        id: string;
-        role: string;
-    };
-}
+import { AuthenticatedRequest } from "@/shared/middlewares/auth.middleware";
 
 export class DoctorAppointmentController {
     constructor(
@@ -54,6 +48,7 @@ export class DoctorAppointmentController {
                 isUpcoming: validatedQuery.type === "upcoming" ? true : validatedQuery.type === "past" ? false : undefined,
                 page: validatedQuery.page,
                 limit: validatedQuery.limit,
+                search: validatedQuery.search,
                 sortBy: validatedQuery.sortBy,
                 sortOrder: validatedQuery.sortOrder,
             };
