@@ -19,8 +19,8 @@ export const AUTH_COOKIES = {
 export const COOKIE_OPTIONS: CookieOptions = {
     httpOnly: true,
     secure: env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for refresh token
+    sameSite: env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
 export const ACCESS_TOKEN_COOKIE_OPTIONS: CookieOptions = {
