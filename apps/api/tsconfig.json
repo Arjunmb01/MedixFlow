@@ -10,8 +10,8 @@
        "@/*": ["./src/*"]
     },
 
-    "typeRoots": ["./node_modules/@types", "./src/core/types"]
+    "types": ["node"]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "prisma.config.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "tests"]
 }

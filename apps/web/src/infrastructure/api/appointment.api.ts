@@ -7,6 +7,7 @@ export interface BookAppointmentPayload {
     date: string; 
     slotStart: string;
     slotEnd: string;
+    consultationType?: "VIDEO" | "CLINIC";
     paymentMethod?: "RAZORPAY" | "WALLET" | "STRIPE" | "PAYPAL";
     useWallet?: boolean;
 }
@@ -25,11 +26,14 @@ export const getAvailableSlots = async (
     }
 
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    const { data } = await api.get("/appointments/slots", {
+    const { data: responseBody } = await api.get("/appointments/slots", {
         params: { doctorId, date: dateStr },
     });
 
-    return (data as any[]).map((slot: any) => {
+    const slotsPayload = Array.isArray(responseBody)
+        ? responseBody
+        : (responseBody as { data?: unknown[] })?.data ?? [];
+    return (slotsPayload as any[]).map((slot: any) => {
         const startDate = new Date(slot.startTime);
         const endDate = new Date(slot.endTime);
         const now = new Date();
@@ -42,6 +46,7 @@ export const getAvailableSlots = async (
             available: slot.available ? 1 : 0,
             isFull: !slot.available,
             isPast: startDate < now && dateStr === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
+            consultationType: slot.consultationType === "VIDEO" ? "VIDEO" : "CLINIC",
         } as SlotInfo;
     });
 };

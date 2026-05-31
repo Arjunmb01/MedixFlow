@@ -48,7 +48,8 @@ export class AppointmentController {
             slotStart: data.slotStart,
             slotEnd: data.slotEnd,
             paymentMethod: data.paymentMethod,
-            useWallet: data.useWallet
+            useWallet: data.useWallet,
+            consultationType: data.consultationType,
         });
 
         res.status(StatusCode.CREATED).json({

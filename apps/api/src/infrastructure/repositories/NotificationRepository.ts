@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { INotificationRepository } from "../../domain/repositories/INotificationRepository";
+import { PaginatedResponse } from "@/domain/value-objects/types/pagination.types";
 import { NotificationRecord, CreateNotificationInput } from "../../domain/value-objects/types/notification.types";
 import { NotificationMapper } from "../database/mappers/NotificationMapper";
 
@@ -21,14 +22,27 @@ export class NotificationRepository implements INotificationRepository {
     return this.mapper.toRecord(result);
   }
 
-  async getUserNotifications(userId: string, limit: number = 20, offset: number = 0): Promise<NotificationRecord[]> {
-    const results = await this.prisma.notification.findMany({
-      where: { recipientId: userId },
-      orderBy: { createdAt: "desc" },
-      take: limit,
-      skip: offset,
-    });
-    return results.map((r) => this.mapper.toRecord(r));
+  async getUserNotifications(userId: string, page: number = 1, limit: number = 20): Promise<PaginatedResponse<NotificationRecord>> {
+    const skip = (page - 1) * limit;
+    const [results, total] = await Promise.all([
+      this.prisma.notification.findMany({
+        where: { recipientId: userId },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip,
+      }),
+      this.prisma.notification.count({ where: { recipientId: userId } })
+    ]);
+
+    return {
+      data: results.map((r) => this.mapper.toRecord(r)),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 
   async getUnreadCount(userId: string): Promise<number> {

@@ -33,4 +33,18 @@ export class SystemDateTimeService implements IDateTimeService {
 
     return diff <= 30 && diff >= -10;
   }
+
+  /** Video join window: 15 min before slot start through 60 min after slot end. */
+  isWithinVideoConsultationWindow(
+    date: Date,
+    slotStart: string,
+    slotEnd: string
+  ): boolean {
+    const now = this.now();
+    const start = this.toDateTime(date, slotStart);
+    const end = this.toDateTime(date, slotEnd);
+    const minutesBeforeStart = (start.getTime() - now.getTime()) / (1000 * 60);
+    const minutesAfterEnd = (now.getTime() - end.getTime()) / (1000 * 60);
+    return minutesBeforeStart <= 15 && minutesAfterEnd <= 60;
+  }
 }

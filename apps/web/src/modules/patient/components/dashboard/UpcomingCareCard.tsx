@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Calendar, Clock, MapPin, X, Loader2, CheckCircle } from "lucide-react"
+import { Calendar, Clock, MapPin, X, Loader2, CheckCircle, Video } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import { cancelAppointment } from "@/infrastructure/api/patient.api"
 import { checkIn } from "@/infrastructure/api/consultation.api"
 
@@ -8,6 +9,7 @@ interface Appointment {
     doctorName: string;
     date: string | Date;
     slotStart: string;
+    consultationType?: "VIDEO" | "CLINIC";
 }
 
 interface Props {
@@ -15,6 +17,8 @@ interface Props {
 }
 
 export default function UpcomingCareCard({ appointment }: Props) {
+    const navigate = useNavigate();
+    const isVideo = appointment?.consultationType === "VIDEO";
     const [showModal, setShowModal] = useState(false);
     const [reason, setReason] = useState("");
     const [isCancelling, setIsCancelling] = useState(false);
@@ -120,14 +124,23 @@ export default function UpcomingCareCard({ appointment }: Props) {
                         <div>
                             <h3 className="text-[32px] font-black tracking-tighter leading-none">{appointment.doctorName}</h3>
                             <div className="flex items-center gap-2 mt-2.5 opacity-60 text-[14px] font-black uppercase tracking-widest">
-                                <MapPin className="w-4 h-4" />
-                                <span>Physical Clinic</span>
+                                {isVideo ? <Video className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
+                                <span>{isVideo ? "Video Consultation" : "Physical Clinic"}</span>
                             </div>
                         </div>
                     </div>
 
                     <div className="mt-12 flex flex-wrap gap-4">
-                        {canCheckIn(appointment.date, appointment.slotStart) && !hasCheckedIn && (
+                        {isVideo && canCheckIn(appointment.date, appointment.slotStart) && (
+                            <button
+                                onClick={() => navigate(`/consultation/video/${appointment.id}`)}
+                                className="bg-white text-primary-600 px-8 py-4.5 rounded-2xl font-black text-[15px] flex items-center gap-3 hover:bg-gray-50 transition-all shadow-2xl shadow-black/10 group"
+                            >
+                                <Video className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                Join Consultation
+                            </button>
+                        )}
+                        {!isVideo && canCheckIn(appointment.date, appointment.slotStart) && !hasCheckedIn && (
                             <button
                                 onClick={handleCheckIn}
                                 disabled={isCheckingIn}

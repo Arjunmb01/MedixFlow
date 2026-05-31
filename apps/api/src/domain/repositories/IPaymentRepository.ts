@@ -2,6 +2,8 @@ import { Payment } from "../entities/Payment";
 import { CreatePaymentInput } from "../value-objects/types/payment.types";
 import { PaymentStatus } from "../value-objects/enums/PaymentStatus";
 import { PaymentMethod } from "../value-objects/enums/PaymentMethod";
+import { PaginatedResponse, PaginationQuery } from "../value-objects/types/pagination.types";
+export { PaginatedResponse, PaginationQuery };
 
 export interface IPaymentRepository {
     create(data: CreatePaymentInput): Promise<Payment>;
@@ -18,5 +20,5 @@ export interface IPaymentRepository {
         paypalCaptureId?: string;
     }): Promise<Payment>;
     findByPatientId(patientId: string): Promise<Payment[]>;
-    findAll(filters?: { status?: PaymentStatus; paymentMethod?: PaymentMethod; page?: number; limit?: number; search?: string }): Promise<{ payments: any[]; total: number }>;
+    findAll(filters?: PaginationQuery & { status?: PaymentStatus; paymentMethod?: PaymentMethod }): Promise<PaginatedResponse<Record<string, unknown>>>;
 }

@@ -5,9 +5,11 @@ import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
 
 const NavbarNotificationBell: React.FC = () => {
-  const { notifications, unreadCount, markAsRead, clearAll } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { notifications, unreadCount, markAsRead, clearAll } = useNotifications({
+    enableSocket: isOpen,
+  });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -65,9 +67,17 @@ const NavbarNotificationBell: React.FC = () => {
                   }`}
                 >
                   <div className="flex gap-3">
-                    <div className={`mt-1 flex-shrink-0 w-2 h-2 rounded-full ${!notification.isRead ? "bg-blue-500" : "bg-transparent"}`} />
+                    <div
+                      className={`mt-1 flex-shrink-0 w-2 h-2 rounded-full ${
+                        !notification.isRead ? "bg-blue-500" : "bg-transparent"
+                      }`}
+                    />
                     <div className="flex-1">
-                      <p className={`text-sm ${!notification.isRead ? "font-bold text-gray-900" : "text-gray-600"}`}>
+                      <p
+                        className={`text-sm ${
+                          !notification.isRead ? "font-bold text-gray-900" : "text-gray-600"
+                        }`}
+                      >
                         {notification.title}
                       </p>
                       <p className="text-xs text-gray-500 mt-1 line-clamp-2">
@@ -75,7 +85,11 @@ const NavbarNotificationBell: React.FC = () => {
                       </p>
                       <div className="flex items-center gap-1 mt-2 text-[10px] text-gray-400">
                         <Clock size={10} />
-                        <span>{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}</span>
+                        <span>
+                          {formatDistanceToNow(new Date(notification.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -85,15 +99,15 @@ const NavbarNotificationBell: React.FC = () => {
           </div>
 
           <div className="p-3 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between gap-2 overflow-hidden">
-            <button 
+            <button
               onClick={() => clearAll()}
               className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors px-2 py-1.5 rounded-lg hover:bg-red-50"
             >
               <Trash2 size={12} />
               Clear all
             </button>
-            <Link 
-              to="/notifications" 
+            <Link
+              to="/notifications"
               onClick={() => setIsOpen(false)}
               className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-gray-700 transition-colors px-2 py-1.5 rounded-lg hover:bg-gray-100"
             >

@@ -1,22 +1,22 @@
 import { Router } from "express";
-import { UserRole } from "@/domain/value-objects/enums/UserRole";
-import { container } from "@/infrastructure/services/container/CompositionRoot";
+import { getContainer } from "@/infrastructure/services/container/CompositionRoot";
 
-const router = Router();
-const leaveController = container.leaveController;
-const auth = container.authMiddleware;
+export function createLeaveRouters(): {
+  doctorLeaveRouter: Router;
+  adminLeaveRouter: Router;
+} {
+  const { leaveController, authMiddleware: auth } = getContainer();
 
-// Doctor leave routes
-const doctorRouter = Router();
-doctorRouter.use(auth.authenticate, auth.authorize([UserRole.DOCTOR]));
-doctorRouter.post("/", leaveController.applyLeave);
-doctorRouter.get("/", leaveController.getMyLeaves);
-doctorRouter.delete("/:id", leaveController.cancelLeave);
+  const doctorLeaveRouter = Router();
+  doctorLeaveRouter.use(auth.authenticateDoctor);
+  doctorLeaveRouter.post("/", leaveController.applyLeave);
+  doctorLeaveRouter.get("/", leaveController.getMyLeaves);
+  doctorLeaveRouter.delete("/:id", leaveController.cancelLeave);
 
-// Admin/Staff leave routes
-const adminRouter = Router();
-adminRouter.use(auth.authenticate, auth.authorize([UserRole.ADMIN]));
-adminRouter.get("/", leaveController.getAllLeaves);
-adminRouter.patch("/:id/review", leaveController.reviewLeave);
+  const adminLeaveRouter = Router();
+  adminLeaveRouter.use(auth.authenticateAdmin);
+  adminLeaveRouter.get("/", leaveController.getAllLeaves);
+  adminLeaveRouter.patch("/:id/review", leaveController.reviewLeave);
 
-export { doctorRouter as doctorLeaveRouter, adminRouter as adminLeaveRouter };
+  return { doctorLeaveRouter, adminLeaveRouter };
+}

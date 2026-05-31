@@ -1,14 +1,13 @@
 import { Router } from "express";
-import { UserRole } from "@/domain/value-objects/enums/UserRole";
-import { container } from "@/infrastructure/services/container/CompositionRoot";
+import { getContainer } from "@/infrastructure/services/container/CompositionRoot";
 
-const router = Router();
-const controller = container.adminAuthController;
-const auth = container.authMiddleware;
+export default function createAdminAuthRoutes(): Router {
+  const { adminAuthController: controller, authMiddleware: auth } = getContainer();
+  const router = Router();
 
-router.post("/login", controller.login);
-router.post("/refresh-token", controller.refreshToken);
-router.post("/logout", auth.authenticate, auth.authorize([UserRole.ADMIN]), controller.logout);
+  router.post("/login", controller.login);
+  router.post("/refresh-token", controller.refreshToken);
+  router.post("/logout", auth.authenticateAdmin, controller.logout);
 
-export default router;
-
+  return router;
+}

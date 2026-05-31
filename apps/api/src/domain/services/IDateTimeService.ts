@@ -4,4 +4,5 @@ export interface IDateTimeService {
   isUpcoming(date: Date, time: string): boolean;
   isTodayOrFuture(date: Date | string): boolean;
   isWithinCheckInWindow(date: Date, time: string): boolean;
+  isWithinVideoConsultationWindow(date: Date, slotStart: string, slotEnd: string): boolean;
 }

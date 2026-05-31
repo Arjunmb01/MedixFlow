@@ -9,6 +9,7 @@ import {
     updatePatientProfileSchema 
 } from "@/presentation/controllers/dto/validation/patient.dtos";
 import { updatePasswordSchema } from "@/presentation/controllers/dto/validation/auth.dtos";
+import { AuthenticatedRequest } from "@/shared/middlewares/auth.middleware";
 
 export class PatientProfileController {
     constructor(
@@ -18,7 +19,7 @@ export class PatientProfileController {
         private updatePasswordUseCase: UpdatePasswordUseCase
     ) {}
 
-    updatePatientProfile = async (req: Request, res: Response, next: NextFunction) => {
+    updatePatientProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
             const data = updatePatientProfileSchema.parse(req.body);
@@ -29,7 +30,7 @@ export class PatientProfileController {
         }
     }
 
-    updateEmergencyContacts = async (req: Request, res: Response, next: NextFunction) => {
+    updateEmergencyContacts = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
             const { contacts } = emergencyContactSchema.parse(req.body);
@@ -40,7 +41,7 @@ export class PatientProfileController {
         }
     }
 
-    getPatientProfile = async (req: Request, res: Response, next: NextFunction) => {
+    getPatientProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
             const patient = await this.getPatientProfileUseCase.execute(patientId);
@@ -50,7 +51,7 @@ export class PatientProfileController {
         }
     }
 
-    updatePassword = async (req: Request, res: Response, next: NextFunction) => {
+    updatePassword = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
             const { currentPassword, newPassword } = updatePasswordSchema.parse(req.body);

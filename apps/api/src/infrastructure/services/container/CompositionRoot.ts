@@ -1,5 +1,6 @@
 import { prisma } from "../../database/prismaClient";
 import { env } from "@/shared/config/env";
+import { mark } from "@/shared/startupProfiler";
 
 // Mappers
 import { ConsultationMapper } from "../../database/mappers/ConsultationMapper";
@@ -37,7 +38,11 @@ import { PatientIdGenerator } from "../PatientIdGenerator";
 import { SystemDateTimeService } from "../SystemDateTimeService";
 import { NotificationCacheService } from "../NotificationCacheService";
 import { socketService } from "../SocketService";
-import { RazorpayService } from "../RazorpayService";
+import { ConsultationSignalingHandler } from "../ConsultationSignalingHandler";
+import { RedisConsultationRoomService } from "../RedisConsultationRoomService";
+import { ConsultationSessionRepository } from "../../repositories/ConsultationSessionRepository";
+import { ConsultationAccessPolicy } from "@/application/services/ConsultationAccessPolicy";
+import { getRazorpayService } from "../RazorpayServiceProvider";
 import redisClient from "../redisClient";
 import { RedisQueueService } from "../RedisQueueService";
 import { AppointmentCleanupService } from "../AppointmentCleanupService";
@@ -91,6 +96,12 @@ import { GetConsultationDetailsUseCase } from "@/application/use-cases/consultat
 import { GetDoctorQueueUseCase } from "@/application/use-cases/consultation/getDoctorQueue.usecase";
 import { GetPatientHistoryUseCase } from "@/application/use-cases/consultation/getPatientHistory.usecase";
 import { StartConsultationUseCase } from "@/application/use-cases/consultation/startConsultation.usecase";
+import { JoinVideoWaitingRoomUseCase } from "@/application/use-cases/consultation/JoinVideoWaitingRoomUseCase";
+import { StartVideoConsultationUseCase } from "@/application/use-cases/consultation/StartVideoConsultationUseCase";
+import { AdmitPatientUseCase } from "@/application/use-cases/consultation/AdmitPatientUseCase";
+import { EndVideoConsultationUseCase } from "@/application/use-cases/consultation/EndVideoConsultationUseCase";
+import { GetVideoSessionStateUseCase } from "@/application/use-cases/consultation/GetVideoSessionStateUseCase";
+import { SendConsultationChatUseCase } from "@/application/use-cases/consultation/SendConsultationChatUseCase";
 
 // Use Cases - Doctor
 import { GetAllDoctorsUseCase } from "@/application/use-cases/doctor/getAllDoctors.usecase";
@@ -154,6 +165,7 @@ import { AdminAuthController } from "@/presentation/controllers/AdminAuthControl
 import { AppointmentController } from "@/presentation/controllers/AppointmentController";
 import { NotificationController } from "@/presentation/controllers/NotificationController";
 import { ConsultationController } from "@/presentation/controllers/ConsultationController";
+import { VideoConsultationController } from "@/presentation/controllers/VideoConsultationController";
 import { DoctorAuthController } from "@/presentation/controllers/DoctorAuthController";
 import { DoctorProfileController } from "@/presentation/controllers/DoctorProfileController";
 import { DoctorAppointmentController } from "@/presentation/controllers/DoctorAppointmentController";
@@ -206,8 +218,9 @@ export class CompositionRoot {
         const googleAuthService = new GoogleAuthService();
         const patientIdGenerator = new PatientIdGenerator(prisma);
         const notificationCacheService = new NotificationCacheService(redisClient);
-        const razorpayService = new RazorpayService();
+        const razorpayService = getRazorpayService();
         const queueService = new RedisQueueService();
+        const consultationRoomService = new RedisConsultationRoomService();
 
         // 4. Repositories
         const patientRepository = new PatientRepository(prisma, patientMapper, dateTimeService);
@@ -216,7 +229,13 @@ export class CompositionRoot {
         const authRepository = new AuthRepository(prisma, patientIdGenerator);
         const slotRepository = new SlotRepository(prisma, slotMapper);
         const consultationRepository = new ConsultationRepository(prisma, consultationMapper, dateTimeService);
+        const consultationSessionRepository = new ConsultationSessionRepository(prisma);
         const appointmentRepository = new AppointmentRepository(prisma, appointmentMapper, dateTimeService);
+        const consultationAccessPolicy = new ConsultationAccessPolicy(
+            appointmentRepository,
+            consultationSessionRepository,
+            dateTimeService
+        );
         const appointmentCleanupService = new AppointmentCleanupService(appointmentRepository);
         const leaveRepository = new DoctorLeaveRepository(prisma);
         const notificationRepository = new NotificationRepository(prisma, notificationMapper);
@@ -312,6 +331,45 @@ export class CompositionRoot {
         const uploadLabTestUseCase = new UploadLabTestUseCase(consultationRepository, sendNotificationUseCase);
         const getLabTestsUseCase = new GetLabTestsUseCase(consultationRepository);
 
+        const joinVideoWaitingRoomUseCase = new JoinVideoWaitingRoomUseCase(
+            consultationAccessPolicy,
+            consultationRepository,
+            consultationSessionRepository,
+            consultationRoomService
+        );
+        const startVideoConsultationUseCase = new StartVideoConsultationUseCase(
+            consultationAccessPolicy,
+            consultationRepository,
+            consultationSessionRepository,
+            consultationRoomService,
+            socketService
+        );
+        const admitPatientUseCase = new AdmitPatientUseCase(
+            consultationAccessPolicy,
+            consultationSessionRepository,
+            consultationRoomService,
+            socketService
+        );
+        const endVideoConsultationUseCase = new EndVideoConsultationUseCase(
+            consultationAccessPolicy,
+            consultationSessionRepository,
+            consultationRepository,
+            appointmentRepository,
+            consultationRoomService,
+            socketService,
+            sendNotificationUseCase
+        );
+        const getVideoSessionStateUseCase = new GetVideoSessionStateUseCase(
+            consultationAccessPolicy,
+            consultationSessionRepository,
+            consultationRoomService
+        );
+        const sendConsultationChatUseCase = new SendConsultationChatUseCase(
+            consultationAccessPolicy,
+            consultationSessionRepository,
+            socketService
+        );
+
         // Doctor
         const getAllDoctorsUseCase = new GetAllDoctorsUseCase(doctorRepository);
         const getConsultedPatientsUseCase = new GetConsultedPatientsUseCase(doctorRepository);
@@ -329,7 +387,7 @@ export class CompositionRoot {
         const getAllPatientsUseCase = new GetAllPatientsUseCase(patientRepository);
         const getPatientAppointmentsUseCase = new GetPatientAppointmentsUseCase(appointmentRepository);
         const getPatientByIdUseCase = new GetPatientByIdUseCase(patientRepository);
-        const getPatientDashboardStatsUseCase = new GetPatientDashboardStatsUseCase(appointmentRepository, patientRepository, calculateProfileCompletionUseCase, dateTimeService);
+        const getPatientDashboardStatsUseCase = new GetPatientDashboardStatsUseCase(appointmentRepository, patientRepository, calculateProfileCompletionUseCase);
         const getPatientProfileUseCase = new GetPatientProfileUseCase(patientRepository, calculateProfileCompletionUseCase);
         const getUpcomingAppointmentsUseCase = new GetUpcomingAppointmentsUseCase(appointmentRepository, dateTimeService);
         const updateEmergencyContactUseCase = new UpdateEmergencyContactUseCase(patientRepository);
@@ -376,6 +434,23 @@ export class CompositionRoot {
             checkinPatientUseCase, getDoctorQueueUseCase, startConsultationUseCase, 
             completeConsultationUseCase, getPatientHistoryUseCase, getConsultationDetailsUseCase,
             requestLabTestUseCase, uploadLabTestUseCase, getLabTestsUseCase
+        );
+
+        const videoConsultationController = new VideoConsultationController(
+            joinVideoWaitingRoomUseCase,
+            startVideoConsultationUseCase,
+            admitPatientUseCase,
+            endVideoConsultationUseCase,
+            getVideoSessionStateUseCase,
+            sendConsultationChatUseCase
+        );
+
+        const consultationSignalingHandler = new ConsultationSignalingHandler(
+            () => socketService.getIO(),
+            jwtTokenService,
+            consultationRoomService,
+            consultationSessionRepository,
+            consultationAccessPolicy
         );
 
         const doctorAuthController = new DoctorAuthController(
@@ -474,10 +549,25 @@ export class CompositionRoot {
             staffController,
             leaveController,
             paymentController,
+            videoConsultationController,
+            consultationSignalingHandler,
             authMiddleware,
             appointmentCleanupService
         };
     }
 }
 
-export const container = CompositionRoot.assemble();
+export type AppContainer = ReturnType<typeof CompositionRoot.assemble>;
+
+let _container: AppContainer | null = null;
+
+/** Assembles DI graph on first call — not at module import time. */
+export function getContainer(): AppContainer {
+  if (!_container) {
+    mark("composition_start");
+    _container = CompositionRoot.assemble();
+    mark("composition_end");
+  }
+  return _container;
+}
+

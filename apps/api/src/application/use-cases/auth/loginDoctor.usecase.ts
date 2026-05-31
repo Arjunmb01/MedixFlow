@@ -41,7 +41,7 @@ export class LoginDoctorUseCase {
     const accessToken = this.tokenService.generateAccessToken(user.id, user.role as UserRole, user.email);
     const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as UserRole, user.email);
 
-    await this.sessionService.saveSession(user.id, refreshToken);
+    await this.sessionService.saveSession(user.id, user.role as UserRole, refreshToken);
 
     return { 
       accessToken, 

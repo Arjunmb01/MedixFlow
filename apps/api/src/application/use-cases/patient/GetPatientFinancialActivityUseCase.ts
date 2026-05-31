@@ -16,7 +16,7 @@ export interface UnifiedActivity {
 export class GetPatientFinancialActivityUseCase {
     constructor(private readonly prisma: PrismaClient) {}
 
-    async execute(patientId: string, filters: { page?: number; limit?: number; search?: string; status?: string; startDate?: string; endDate?: string; method?: string } = {}): Promise<{ data: UnifiedActivity[], total: number }> {
+    async execute(patientId: string, filters: { page?: number; limit?: number; search?: string; status?: string; startDate?: string; endDate?: string; method?: string; sortBy?: string; sortOrder?: string } = {}): Promise<{ data: UnifiedActivity[], meta: { total: number, page: number, limit: number, totalPages: number } }> {
         const { page = 1, limit = 10, search, status: statusFilter, startDate, endDate, method: methodFilter } = filters;
 
         const wallet = await this.prisma.wallet.findUnique({
@@ -109,12 +109,19 @@ export class GetPatientFinancialActivityUseCase {
             });
         });
 
-        // Sort by date descending
         const sorted = activity.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
         const total = sorted.length;
+        const totalPages = Math.ceil(total / limit);
         const start = (page - 1) * limit;
         const data = sorted.slice(start, start + limit);
 
-        return { data, total };
+        const meta = {
+            total,
+            page,
+            limit,
+            totalPages
+        };
+
+        return { data, meta };
     }
 }

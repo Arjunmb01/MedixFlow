@@ -9,8 +9,10 @@ import {
     RefreshCcw, 
     ClipboardList, 
     Hourglass,
-    ArrowRight
+    ArrowRight,
+    Video
 } from "lucide-react"
+import { canJoinVideoConsultation } from "@/application/consultation/utils/videoWindow"
 
 export default function DoctorDashboard() {
     const { profile, stats, loading } = useDoctorDashboard()
@@ -139,26 +141,47 @@ export default function DoctorDashboard() {
                                                 TIME: {activeApt.slotStart}
                                             </div>
                                         </div>
-                                        <button 
-                                            onClick={() => handleEnterWorkspace(activeApt.consultationId, activeApt.consultationStatus)}
-                                            disabled={isStartingSession || !activeApt.isCheckedIn}
-                                            className={`px-8 py-3.5 rounded-2xl font-black text-sm shadow-xl transition-all active:scale-95 flex items-center gap-2 ${
-                                                !activeApt.isCheckedIn 
-                                                ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
-                                                : isOngoing
-                                                    ? "bg-green-600 hover:bg-green-700 text-white shadow-green-200"
-                                                    : "bg-teal-600 hover:bg-teal-700 text-white shadow-teal-200"
-                                            }`}
-                                        >
-                                            {isStartingSession ? (
-                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            ) : (
-                                                <>
-                                                    {!activeApt.isCheckedIn ? "Not Checked In" : (isOngoing ? "Resume Workspace" : "Enter Workspace")}
-                                                    {activeApt.isCheckedIn && <ArrowRight className="w-4 h-4" />}
-                                                </>
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            {canJoinVideoConsultation({
+                                                consultationType: activeApt.consultationType,
+                                                status: activeApt.status,
+                                                appointmentDate: activeApt.appointmentDate,
+                                                slotStart: activeApt.slotStart,
+                                                slotEnd: activeApt.slotEnd ?? activeApt.slotStart,
+                                            }) && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate(`/doctor/consultation/video/${activeApt.id}`)}
+                                                    className="px-8 py-3.5 rounded-2xl font-black text-sm shadow-xl transition-all active:scale-95 flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white shadow-violet-200"
+                                                >
+                                                    <Video className="w-4 h-4" />
+                                                    Start Video Call
+                                                </button>
                                             )}
-                                        </button>
+                                            {activeApt.consultationType !== "VIDEO" && (
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => handleEnterWorkspace(activeApt.consultationId, activeApt.consultationStatus)}
+                                                    disabled={isStartingSession || !activeApt.isCheckedIn}
+                                                    className={`px-8 py-3.5 rounded-2xl font-black text-sm shadow-xl transition-all active:scale-95 flex items-center gap-2 ${
+                                                        !activeApt.isCheckedIn 
+                                                        ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+                                                        : isOngoing
+                                                            ? "bg-green-600 hover:bg-green-700 text-white shadow-green-200"
+                                                            : "bg-teal-600 hover:bg-teal-700 text-white shadow-teal-200"
+                                                    }`}
+                                                >
+                                                    {isStartingSession ? (
+                                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                    ) : (
+                                                        <>
+                                                            {!activeApt.isCheckedIn ? "Not Checked In" : (isOngoing ? "Resume Workspace" : "Enter Workspace")}
+                                                            {activeApt.isCheckedIn && <ArrowRight className="w-4 h-4" />}
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 );

@@ -17,22 +17,29 @@ import {
     ChevronLeft,
     ChevronRight,
     Pill,
-    CalendarClock
+    CalendarClock,
+    Video
 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Badge from "../../patient/components/ui/Badge";
 import { RescheduleModal } from "@/modules/shared/components/RescheduleModal";
+import type { Appointment } from "@/domain/appointment/types";
+import { canJoinVideoConsultation } from "@/application/consultation/utils/videoWindow";
 
 export default function DoctorAppointments() {
+    const navigate = useNavigate();
     const { profile } = useDoctorDashboard();
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const [selectedApt, setSelectedApt] = useState<any | null>(null);
-    const [selectedPrescription, setSelectedPrescription] = useState<any | null>(null);
-    const [rescheduleApt, setRescheduleApt] = useState<any | null>(null);
+    const [sortBy, setSortBy] = useState("appointmentDate");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+    const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
+    const [selectedPrescription, setSelectedPrescription] = useState<Appointment | null>(null);
+    const [rescheduleApt, setRescheduleApt] = useState<Appointment | null>(null);
 
     const apiFilters = {
         status: (statusFilter === "ALL" || statusFilter === "UPCOMING") ? undefined : statusFilter,
@@ -41,7 +48,9 @@ export default function DoctorAppointments() {
         toDate: toDate || undefined,
         search: searchTerm || undefined,
         page: currentPage,
-        limit: 4
+        limit: 4,
+        sortBy,
+        sortOrder
     };
 
     const { appointments: paginatedAppointments, loading, meta, refreshAppointments } = useDoctorAppointments(apiFilters);
@@ -125,6 +134,23 @@ export default function DoctorAppointments() {
                                         <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Clear All</span>
                                     </button>
                                 )}
+
+                                <select
+                                    value={`${sortBy}-${sortOrder}`}
+                                    onChange={(e) => {
+                                        const [newSortBy, newSortOrder] = e.target.value.split("-");
+                                        setSortBy(newSortBy);
+                                        setSortOrder(newSortOrder as "asc" | "desc");
+                                        setCurrentPage(1);
+                                    }}
+                                    className="px-6 py-3.5 bg-white border border-gray-200 rounded-2xl text-xs font-bold text-gray-600 focus:outline-none focus:border-teal-600 transition-all cursor-pointer shadow-sm appearance-none pr-10 relative"
+                                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2394A3B8\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.25rem' }}
+                                >
+                                    <option value="appointmentDate-desc">Newest First</option>
+                                    <option value="appointmentDate-asc">Oldest First</option>
+                                    <option value="status-asc">Status (A-Z)</option>
+                                    <option value="status-desc">Status (Z-A)</option>
+                                </select>
                             </div>
                         </div>
                     </header>
@@ -203,6 +229,15 @@ export default function DoctorAppointments() {
                                                     className="px-6 py-3 bg-teal-50 text-teal-600 border border-teal-100 rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-teal-100 transition-all flex items-center gap-2"
                                                 >
                                                     <FileText className="w-4 h-4" /> Prescriptions
+                                                </button>
+                                            )}
+
+                                            {canJoinVideoConsultation(apt) && (
+                                                <button
+                                                    onClick={() => navigate(`/doctor/consultation/video/${apt.id}`)}
+                                                    className="px-6 py-3 bg-violet-600 text-white rounded-xl text-[13px] font-black uppercase tracking-wider hover:bg-violet-700 transition-all shadow-lg shadow-violet-100 active:scale-95 flex items-center gap-2"
+                                                >
+                                                    <Video className="w-4 h-4" /> Start Video Call
                                                 </button>
                                             )}
 
@@ -314,7 +349,9 @@ export default function DoctorAppointments() {
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Location</span>
-                                    <span className="text-sm font-black text-gray-700">In-Clinic Consultation</span>
+                                    <span className="text-sm font-black text-gray-700">
+                                        {selectedApt.consultationType === "VIDEO" ? "Video Consultation" : "In-Clinic Consultation"}
+                                    </span>
                                 </div>
                             </div>
 

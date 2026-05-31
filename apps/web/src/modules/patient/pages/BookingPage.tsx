@@ -518,6 +518,7 @@ export default function BookingPage() {
                                                 date: dateStr,
                                                 slotStart: selectedSlot.start,
                                                 slotEnd: selectedSlot.end,
+                                                consultationType: selectedSlot.consultationType ?? "CLINIC",
                                                 paymentMethod: effectivePaymentMethod,
                                                 useWallet
                                             });

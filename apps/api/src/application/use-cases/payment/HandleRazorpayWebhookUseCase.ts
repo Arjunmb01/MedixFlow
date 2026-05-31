@@ -131,6 +131,15 @@ export class HandleRazorpayWebhookUseCase {
           type: NotificationType.BOOKED,
         });
       }
+    } else if (event === "payment.failed") {
+      const payment = payload.payload.payment?.entity;
+      const orderId = payment?.order_id;
+      if (orderId) {
+        const paymentRecord = await this.paymentRepo.findByOrderId(orderId);
+        if (paymentRecord && paymentRecord.status === PaymentStatus.PENDING) {
+          await this.paymentRepo.updateStatus(paymentRecord.id, PaymentStatus.FAILED);
+        }
+      }
     }
   }
 }

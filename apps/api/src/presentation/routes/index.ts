@@ -1,34 +1,38 @@
 import { Router } from "express";
-import authRoutes from ".//patientAuth.routes"
-import adminAuthRoutes from ".//adminAuth.routes"
-import doctorAuthRoutes from ".//doctorAuth.routes"
-import patientRoutes from ".//patient.routes"
-import staffRoutes from ".//staff.routes"
-import doctorRoutes from ".//doctor.routes"
-import sharedAdminRoutes from ".//admin.routes"
-import publicDoctorRoutes from ".//publicDoctor.routes"
-import uploadRoutes from ".//upload.routes"
-import appointmentRoutes from ".//appointment.routes"
-import { doctorLeaveRouter, adminLeaveRouter } from ".//leave.routes"
-import notificationRoutes from "./notification.routes"
-import paymentRoutes from "./payment.routes"
-import walletRoutes from "./wallet.routes"
+import createPatientAuthRoutes from "./patientAuth.routes";
+import createAdminAuthRoutes from "./adminAuth.routes";
+import createDoctorAuthRoutes from "./doctorAuth.routes";
+import createPatientRoutes from "./patient.routes";
+import createStaffRoutes from "./staff.routes";
+import createDoctorRoutes from "./doctor.routes";
+import createAdminRoutes from "./admin.routes";
+import createPublicDoctorRoutes from "./publicDoctor.routes";
+import createUploadRoutes from "./upload.routes";
+import createAppointmentRoutes from "./appointment.routes";
+import { createLeaveRouters } from "./leave.routes";
+import createNotificationRoutes from "./notification.routes";
+import createPaymentRoutes from "./payment.routes";
+import createWalletRoutes from "./wallet.routes";
 
-const router = Router()
-router.use("/common", uploadRoutes)
-router.use("/auth", authRoutes)
-router.use("/admin/auth", adminAuthRoutes)
-router.use("/doctor/auth", doctorAuthRoutes)
-router.use("/admin", sharedAdminRoutes)
-router.use("/patient/wallet", walletRoutes)
-router.use("/patient", patientRoutes)
-router.use("/staff", staffRoutes)
-router.use("/doctor", doctorRoutes)
-router.use("/doctors", publicDoctorRoutes)
-router.use("/appointments",appointmentRoutes)
-router.use("/doctor/leaves", doctorLeaveRouter)
-router.use("/admin/leaves", adminLeaveRouter)
-router.use("/notifications", notificationRoutes)
-router.use("/payments", paymentRoutes)
+export default function createApiRouter(): Router {
+  const router = Router();
+  const { doctorLeaveRouter, adminLeaveRouter } = createLeaveRouters();
 
-export default router
+  router.use("/common", createUploadRoutes());
+  router.use("/auth", createPatientAuthRoutes());
+  router.use("/admin/auth", createAdminAuthRoutes());
+  router.use("/doctor/auth", createDoctorAuthRoutes());
+  router.use("/admin", createAdminRoutes());
+  router.use("/patient/wallet", createWalletRoutes());
+  router.use("/patient", createPatientRoutes());
+  router.use("/staff", createStaffRoutes());
+  router.use("/doctor", createDoctorRoutes());
+  router.use("/doctors", createPublicDoctorRoutes());
+  router.use("/appointments", createAppointmentRoutes());
+  router.use("/doctor/leaves", doctorLeaveRouter);
+  router.use("/admin/leaves", adminLeaveRouter);
+  router.use("/notifications", createNotificationRoutes());
+  router.use("/payments", createPaymentRoutes());
+
+  return router;
+}

@@ -85,6 +85,7 @@ export class AppointmentMapper {
             startTime: prismaApp.startTime,
             endTime: prismaApp.endTime,
             status: prismaApp.status,
+            consultationType: (prismaApp as { consultationType?: "VIDEO" | "CLINIC" }).consultationType,
             paymentStatus: prismaApp.paymentStatus || undefined,
             paymentMethod: prismaApp.paymentMethod || undefined,
             reason: prismaApp.reason,
@@ -172,7 +173,13 @@ export class AppointmentMapper {
                 email: prismaApp.patient.user.email,
                 phone: prismaApp.patient.phone,
             },
-            payment: prismaApp.payment
+            payment: prismaApp.payment ? {
+                id: prismaApp.payment.id,
+                amount: prismaApp.payment.amount,
+                status: prismaApp.payment.status,
+                paymentMethod: prismaApp.payment.paymentMethod,
+                transactionId: (prismaApp.payment as any).razorpayPaymentId || (prismaApp.payment as any).stripeSessionId || (prismaApp.payment as any).paypalOrderId
+            } : undefined
         };
     }
 

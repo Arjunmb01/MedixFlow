@@ -4,6 +4,7 @@ export interface Appointment {
     slotStart: string;
     slotEnd: string;
     status: "PENDING" | "BOOKED" | "COMPLETED" | "CANCELLED" | "NOT_ATTENDED";
+    consultationType?: "VIDEO" | "CLINIC";
     patient: {
         id: string;
         patientId: string;
@@ -39,4 +40,11 @@ export interface Appointment {
             }>;
         } | null;
     } | null;
-}
+}
+
+export interface PaginationMeta {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+}

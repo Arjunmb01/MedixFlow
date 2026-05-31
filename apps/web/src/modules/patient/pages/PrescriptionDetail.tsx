@@ -5,8 +5,7 @@ import TopNav from "../components/dashboard/TopNav";
 import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile";
 import { getPatientAppointments } from "@/infrastructure/api/patient.api";
 import { getLabTests, uploadLabTest } from "@/infrastructure/api/consultation.api";
-import { pdf } from '@react-pdf/renderer';
-import PrescriptionPDF from "../components/prescription/PrescriptionPDF";
+import { generatePrescriptionPdfBlob } from "../utils/generatePrescriptionPdf";
 import { toast } from "sonner";
 import {
     ArrowLeft,
@@ -118,13 +117,16 @@ export default function PrescriptionDetail() {
                     const rx = data.consultation.prescription!;
                     const prescriptionId = `RX-${new Date(data.appointmentDate).getFullYear()}-${rx.id.slice(0, 4).toUpperCase()}`;
                     
-                    const blob = await pdf(
-                        <PrescriptionPDF 
-                            data={data} 
-                            profile={profile} 
-                            prescriptionId={prescriptionId} 
+                    const { default: PrescriptionPDF } = await import(
+                        "../components/prescription/PrescriptionPDF"
+                    );
+                    const blob = await generatePrescriptionPdfBlob(
+                        <PrescriptionPDF
+                            data={data}
+                            profile={profile}
+                            prescriptionId={prescriptionId}
                         />
-                    ).toBlob();
+                    );
                     
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
@@ -230,13 +232,16 @@ export default function PrescriptionDetail() {
             const rx = data.consultation.prescription!;
             const prescriptionId = `RX-${new Date(data.appointmentDate).getFullYear()}-${rx.id.slice(0, 4).toUpperCase()}`;
             
-            const blob = await pdf(
-                <PrescriptionPDF 
-                    data={data} 
-                    profile={profile} 
-                    prescriptionId={prescriptionId} 
+            const { default: PrescriptionPDF } = await import(
+                "../components/prescription/PrescriptionPDF"
+            );
+            const blob = await generatePrescriptionPdfBlob(
+                <PrescriptionPDF
+                    data={data}
+                    profile={profile}
+                    prescriptionId={prescriptionId}
                 />
-            ).toBlob();
+            );
             
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');

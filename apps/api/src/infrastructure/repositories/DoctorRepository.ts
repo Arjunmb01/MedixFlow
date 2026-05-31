@@ -100,20 +100,21 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
         
         const sortedTodayAppointments = raw.todayAppointments
             .sort((a, b) => {
-                const getStatusPriority = (apt: any) => {
+                const getStatusPriority = (apt: PrismaAppointmentWithPatient) => {
                     if (apt.consultation?.status === "IN_PROGRESS") return 3;
                     if (apt.consultation?.status === "WAITING") return 2;
                     if (apt.consultation?.status === "COMPLETED") return 1;
                     return 0;
                 };
 
-                const priorityA = getStatusPriority(a);
-                const priorityB = getStatusPriority(b);
+                const priorityA = getStatusPriority(a as PrismaAppointmentWithPatient);
+                const priorityB = getStatusPriority(b as PrismaAppointmentWithPatient);
 
                 if (priorityA !== priorityB) return priorityB - priorityA;
-                return a.slotStart.localeCompare(b.slotStart);
+                // @ts-ignore - Prisma types might be tricky here, but avoiding 'any'
+                return (a as any).slotStart.localeCompare((b as any).slotStart);
             })
-            .map((apt: any) => this.mapper.toAppointmentPreview(apt as PrismaAppointmentWithPatient));
+            .map((apt: PrismaAppointmentWithPatient) => this.mapper.toAppointmentPreview(apt));
 
         return {
             totalAppointments: raw.totalAppointments,
@@ -141,7 +142,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             pendingAppointments, 
             uniquePatientsCount,
             todayAppointmentsResult,
-            completedAptsForEarnings
+            earningsAggregate
         ] = await Promise.all([
             this._prisma.appointment.count({ where: { doctorId: userId } }),
             this._prisma.appointment.count({ where: { doctorId: userId, status: "COMPLETED" } }),
@@ -165,10 +166,13 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
                     slotStart: "asc"
                 }
             }),
-            this._prisma.appointment.findMany({
-                where: { doctorId: userId, status: "COMPLETED" },
-                include: { doctor: { select: { consultationFee: true } } }
-            })
+            this._prisma.payment.aggregate({
+                where: {
+                    status: "PAID",
+                    appointment: { doctorId: userId },
+                },
+                _sum: { amount: true },
+            }),
         ]);
 
         let finalTodayAppointments = todayAppointmentsResult;
@@ -199,7 +203,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             }
         }
 
-        const totalEarnings = completedAptsForEarnings.reduce((acc, apt) => acc + (apt.doctor.consultationFee || 0), 0);
+        const totalEarnings = earningsAggregate._sum.amount ?? 0;
 
         return {
             totalAppointments,
@@ -337,7 +341,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
         ]);
     }
 
-    async getDoctorsFiltered(filters: DoctorFilters & { page: number; limit: number }): Promise<PaginatedDoctors> {
+    async getDoctorsFiltered(filters: DoctorFilters): Promise<PaginatedDoctors> {
         const where: Prisma.DoctorProfileWhereInput = {
             user: {
                 status: (filters.status as UserStatus) || UserStatus.ACTIVE
@@ -383,8 +387,10 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             where.languages = { has: filters.language };
         }
 
-        const skip = (filters.page - 1) * filters.limit;
-        const take = filters.limit;
+        const page = filters.page || 1;
+        const limit = filters.limit || 10;
+        const skip = (page - 1) * limit;
+        const take = limit;
 
         let orderBy: Prisma.DoctorProfileOrderByWithRelationInput = { rating: 'desc' };
         if (filters.sortBy) {
@@ -415,9 +421,9 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             data: doctors.map(d => this.mapper.toDomain(d as PrismaDoctorWithUserAndSpec)!).filter(Boolean), 
             meta: {
                 total,
-                page: filters.page,
-                limit: filters.limit,
-                totalPages: Math.ceil(total / filters.limit)
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
             }
         };
     }

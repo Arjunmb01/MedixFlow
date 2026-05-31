@@ -1,12 +1,15 @@
 import cron from "node-cron";
 import { IAppointmentRepository } from "../../domain/repositories/IAppointmentRepository";
-import { socketService } from "./SocketService";
+import { env } from "@/shared/config/env";
 
 export class AppointmentCleanupService {
     constructor(private readonly appointmentRepo: IAppointmentRepository) {}
 
     public start(): void {
-        // Run every minute
+        if (env.NODE_ENV === "development") {
+            console.log("[Cleanup] Skipped in development (use production or manual trigger).");
+            return;
+        }
         cron.schedule("* * * * *", async () => {
             await this.cleanup();
         });

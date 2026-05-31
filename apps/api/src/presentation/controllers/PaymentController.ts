@@ -14,6 +14,7 @@ import { VerifyPayPalPaymentUseCase } from "../../application/use-cases/payment/
 import { VerifyRazorpayPaymentUseCase } from "../../application/use-cases/payment/VerifyRazorpayPaymentUseCase";
 import { StatusCode } from "../../shared/constants";
 import { env as config } from "../../shared/config/env";
+import { getPaymentsQuerySchema, getFinancialActivityQuerySchema } from "./dto/validation/payment.dtos";
 
 export class PaymentController {
   constructor(
@@ -34,13 +35,15 @@ export class PaymentController {
 
   async getAllPayments(req: Request, res: Response): Promise<void> {
     try {
-      const { status, paymentMethod, page, limit, search } = req.query;
+      const validatedQuery = getPaymentsQuerySchema.parse(req.query);
       const result = await this.getAllPaymentsUseCase.execute({
-        status: status as any,
-        paymentMethod: paymentMethod as any,
-        page: page ? parseInt(page as string) : 1,
-        limit: limit ? parseInt(limit as string) : 10,
-        search: search as string
+        status: validatedQuery.status as any,
+        paymentMethod: validatedQuery.paymentMethod as any,
+        page: validatedQuery.page,
+        limit: validatedQuery.limit,
+        search: validatedQuery.search,
+        sortBy: validatedQuery.sortBy,
+        sortOrder: validatedQuery.sortOrder
       });
       res.status(StatusCode.OK).json(result);
     } catch (error: any) {
@@ -150,17 +153,18 @@ export class PaymentController {
   async getFinancialActivity(req: Request, res: Response): Promise<void> {
     try {
       const patientId = (req as any).user.id;
-      const { search, status, startDate, endDate, method, page: qPage, limit: qLimit } = req.query;
-      const page = parseInt(qPage as string) || 1;
-      const limit = parseInt(qLimit as string) || 10;
+      const validatedQuery = getFinancialActivityQuerySchema.parse(req.query);
+      
       const result = await this.getFinancialActivityUseCase.execute(patientId, { 
-        page, 
-        limit, 
-        search: search as string, 
-        status: status as string,
-        startDate: startDate as string,
-        endDate: endDate as string,
-        method: method as string
+        page: validatedQuery.page, 
+        limit: validatedQuery.limit, 
+        search: validatedQuery.search, 
+        status: validatedQuery.status,
+        startDate: validatedQuery.startDate,
+        endDate: validatedQuery.endDate,
+        method: validatedQuery.method,
+        sortBy: validatedQuery.sortBy,
+        sortOrder: validatedQuery.sortOrder
       });
       res.status(StatusCode.OK).json(result);
     } catch (error: any) {

@@ -4,7 +4,7 @@ import { PatientFilters, PaginatedPatients } from "@/domain/value-objects/types/
 export class GetAllPatientsUseCase {
   constructor(private patientRepository: IPatientRepository) {}
 
-  async execute(query: PatientFilters & { page: number; limit: number }): Promise<PaginatedPatients> {
+  async execute(query: PatientFilters): Promise<PaginatedPatients> {
     return this.patientRepository.getPatients(query);
   }
 }

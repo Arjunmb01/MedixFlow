@@ -1,15 +1,10 @@
 import { IDoctorStatsRepository } from "@/domain/repositories/IDoctorRepository";
 import { DoctorFilters, PaginatedDoctors } from "@/domain/value-objects/types/doctor.repository.types";
 
-export interface GetDoctorsFilters extends DoctorFilters {
-  page: number;
-  limit: number;
-}
-
 export class GetAllDoctorsUseCase {
   constructor(private doctorRepository: IDoctorStatsRepository) {}
 
-  async execute(filters: GetDoctorsFilters): Promise<PaginatedDoctors> {
+  async execute(filters: DoctorFilters): Promise<PaginatedDoctors> {
     return this.doctorRepository.getDoctorsFiltered(filters);
   }
 }

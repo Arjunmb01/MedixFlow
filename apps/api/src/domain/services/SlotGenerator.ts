@@ -2,6 +2,7 @@
 export interface TimeInterval {
   start: Date;
   end: Date;
+  consultationType?: "VIDEO" | "CLINIC";
 }
 
 export interface DoctorWorkingDay {
@@ -21,6 +22,7 @@ export interface GeneratedSlot {
   startTime: Date;
   endTime: Date;
   available: boolean;
+  consultationType: "VIDEO" | "CLINIC";
 }
 
 export class SlotGenerator {
@@ -52,7 +54,8 @@ export class SlotGenerator {
         slots.push({
           startTime: new Date(currentStart),
           endTime: new Date(currentEnd),
-          available: !isBlocked
+          available: !isBlocked,
+          consultationType: shift.consultationType ?? "CLINIC",
         });
 
         // 3. Move to the next slot, adding buffer time

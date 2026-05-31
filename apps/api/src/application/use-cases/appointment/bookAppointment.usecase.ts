@@ -76,6 +76,10 @@ export class BookAppointmentUseCase {
 
         const schedule = await this.appointmentRepo.getDoctorSchedule(data.doctorId, data.appointmentDate.getDay());
         const capacity = schedule?.slotCapacity ?? (schedule ? this.schedulingPolicy.calculateSlotCapacity(schedule.slotDurationMinutes) : 5);
+        const consultationType =
+            data.consultationType ??
+            (schedule as { consultationType?: "VIDEO" | "CLINIC" } | null)?.consultationType ??
+            "CLINIC";
 
         const activeBookings = await this.appointmentRepo.countActiveBookings(data.doctorId, data.appointmentDate, data.slotStart);
 
@@ -103,6 +107,7 @@ export class BookAppointmentUseCase {
 
         const appointment = await this.appointmentRepo.createWithTransaction({
             ...data,
+            consultationType,
             status: AppointmentStatus.PENDING,
             expiresAt
         } as any);

@@ -1,4 +1,4 @@
-import { IAppointmentRepository } from "../../../domain/repositories/IAppointmentRepository";
+import { IAppointmentRepository, AppointmentWithPatient } from "../../../domain/repositories/IAppointmentRepository";
 import { DoctorAppointmentFilter } from "@/domain/value-objects/types/appointment.types";
 import { AppointmentStatus } from "@/domain/value-objects/enums/AppointmentStatus";
 import { IDateTimeService } from "@/domain/services/IDateTimeService";
@@ -10,12 +10,10 @@ export class GetDoctorAppointmentsUseCase {
     ) {}
 
 async execute(doctorId: string, filter?: DoctorAppointmentFilter) {
-  const { appointments, total } = await this.appointmentRepo.getAppointmentsByDoctorId(doctorId, filter);
-
-  const { page = 1, limit = 10 } = filter || {};
+  const result = await this.appointmentRepo.getAppointmentsByDoctorId(doctorId, filter);
 
   return {
-    data: appointments.map((appt) => ({
+    data: result.data.map((appt: AppointmentWithPatient) => ({
       id: appt.id,
       status: appt.status as AppointmentStatus,
       appointmentDate: appt.appointmentDate,
@@ -40,7 +38,7 @@ async execute(doctorId: string, filter?: DoctorAppointmentFilter) {
               ? {
                   id: appt.consultation.prescription.id,
                   instructions: appt.consultation.prescription.instructions,
-                  medicines: appt.consultation.prescription.medicines.map((m: any) => ({
+                  medicines: appt.consultation.prescription.medicines.map((m: { id: string; name: string; dosage: string; frequency: string; duration: string }) => ({
                     id: m.id,
                     name: m.name,
                     dosage: m.dosage,
@@ -55,12 +53,7 @@ async execute(doctorId: string, filter?: DoctorAppointmentFilter) {
       queueNumber: appt.queueNumber,
       createdAt: appt.createdAt,
     })),
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    }
+    meta: result.meta
   };
 }
 }

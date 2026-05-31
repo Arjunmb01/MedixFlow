@@ -77,8 +77,8 @@ export class PatientRepository implements IPatientRepository {
         ]);
     }
 
-    async getPatients(query: PatientFilters & { page: number; limit: number }): Promise<PaginatedPatients> {
-        const { search, status, gender, page, limit } = query;
+    async getPatients(query: PatientFilters): Promise<PaginatedPatients> {
+        const { search, status, gender, page = 1, limit = 10, sortBy = 'firstName', sortOrder = 'asc' } = query;
         const skip = (page - 1) * limit;
 
         const where: Prisma.PatientProfileWhereInput = {
@@ -105,6 +105,10 @@ export class PatientRepository implements IPatientRepository {
             ];
         }
 
+        // Define valid fields for sorting to prevent injection
+        const validSortFields = ['firstName', 'lastName', 'createdAt', 'patientId'];
+        const orderByField = validSortFields.includes(sortBy) ? sortBy : 'firstName';
+
         const [patients, total] = await Promise.all([
             this._prisma.patientProfile.findMany({
                 where,
@@ -127,7 +131,7 @@ export class PatientRepository implements IPatientRepository {
                 skip,
                 take: limit,
                 orderBy: {
-                    firstName: "asc"
+                    [orderByField]: sortOrder
                 }
             }),
             this._prisma.patientProfile.count({ where })

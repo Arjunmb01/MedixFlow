@@ -20,6 +20,8 @@ export default function FeaturesSection() {
           <img
             src={doctorPatientImg}
             alt="Doctor consulting patient"
+            loading="lazy"
+            decoding="async"
             className="w-full h-[480px] object-cover rounded-[32px] shadow-2xl relative"
           />
           {/* Floating stat badge - top left */}
@@ -72,6 +74,8 @@ export default function FeaturesSection() {
               <img
                 src={operatingRoomImg}
                 alt="Operating room"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-[320px] object-cover transition-transform duration-700 group-hover:scale-105"
               />
             </div>
@@ -85,6 +89,8 @@ export default function FeaturesSection() {
               <img
                 src={surgeryTeamImg}
                 alt="Surgical team"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-[320px] object-cover transition-transform duration-700 group-hover:scale-105"
               />
             </div>

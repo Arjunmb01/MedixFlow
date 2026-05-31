@@ -1,71 +1,82 @@
-import { useEffect, useState, useCallback } from "react";
-import { io } from "socket.io-client";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { io, type Socket } from "socket.io-client";
 import { useSelector } from "react-redux";
-import { getNotifications, getUnreadCount, markAsRead, deleteAllNotifications, type NotificationDTO } from "@/infrastructure/api/notification.api";
+import {
+  getNotifications,
+  getUnreadCount,
+  markAsRead,
+  deleteAllNotifications,
+  type NotificationDTO,
+} from "@/infrastructure/api/notification.api";
+import type { RootState } from "@/core/store/store";
 
 const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
 
-export const useNotifications = () => {
+interface UseNotificationsOptions {
+  /** When false, skips Socket.IO (still loads unread count for badge). */
+  enableSocket?: boolean;
+}
+
+export const useNotifications = (options: UseNotificationsOptions = {}) => {
+  const { enableSocket = true } = options;
   const [notifications, setNotifications] = useState<NotificationDTO[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const socketRef = useRef<Socket | null>(null);
 
-  // Get current user ID from Redux with fallback to local storage
-  const authState = useSelector((state: any) => state.auth);
-  const persistedRole = authState.persistedRole || (typeof window !== "undefined" ? localStorage.getItem("medixflow_user_role") : null);
+  const authState = useSelector((state: RootState) => state.auth);
+  const persistedRole = authState.persistedRole;
   const user = persistedRole ? authState[persistedRole]?.user : null;
   const userId = user?.id;
-  
+
   const fetchInitialData = useCallback(async () => {
-    if (!userId) {
-      return;
-    }
+    if (!userId) return;
     try {
-      const [notifs, count] = await Promise.all([
-        getNotifications(10, 0),
-        getUnreadCount()
-      ]);
-      setNotifications(notifs);
-      setUnreadCount(count);
+      if (enableSocket) {
+        const [notifs, count] = await Promise.all([
+          getNotifications(10, 0),
+          getUnreadCount(),
+        ]);
+        setNotifications(notifs);
+        setUnreadCount(count);
+      } else {
+        const count = await getUnreadCount();
+        setUnreadCount(count);
+      }
     } catch (error) {
       console.error("[useNotifications] Failed to fetch notifications:", error);
     }
-  }, [userId]);
+  }, [userId, enableSocket]);
 
   useEffect(() => {
     if (!userId) return;
+    void fetchInitialData();
+  }, [userId, fetchInitialData]);
 
-    fetchInitialData();
+  useEffect(() => {
+    if (!userId || !enableSocket) return;
 
     const newSocket = io(SOCKET_SERVER_URL, {
       query: { userId },
       withCredentials: true,
-      transports: ["websocket", "polling"],
+      transports: ["websocket"],
       reconnectionAttempts: 5,
     });
 
-    newSocket.on("connect", () => {
-      console.log("Socket connected successfully:", newSocket.id);
-    });
-
-    newSocket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error);
-    });
+    socketRef.current = newSocket;
 
     newSocket.on("notification_received", (notification: NotificationDTO) => {
-      console.log("Notification received:", notification);
       setNotifications((prev) => [notification, ...prev.slice(0, 9)]);
     });
 
     newSocket.on("unread_count_updated", ({ count }: { count: number }) => {
-      console.log("Unread count updated:", count);
       setUnreadCount(count);
     });
 
     return () => {
-      console.log("Disconnecting socket...");
       newSocket.disconnect();
+      socketRef.current = null;
     };
-  }, [userId, fetchInitialData]);
+  }, [userId, enableSocket]);
 
   const handleMarkAsRead = async (id?: string) => {
     try {
@@ -77,7 +88,6 @@ export const useNotifications = () => {
       } else {
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       }
-      // Unread count will be updated via socket event from backend
     } catch (error) {
       console.error("Failed to mark as read:", error);
     }
@@ -98,6 +108,6 @@ export const useNotifications = () => {
     unreadCount,
     markAsRead: handleMarkAsRead,
     clearAll: handleClearAll,
-    refresh: fetchInitialData
+    refresh: fetchInitialData,
   };
 };

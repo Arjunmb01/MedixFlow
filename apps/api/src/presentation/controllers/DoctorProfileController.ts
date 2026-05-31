@@ -5,13 +5,7 @@ import { UpdateDoctorProfileUseCase } from "@/application/use-cases/doctor/updat
 import { UpdateDoctorPasswordUseCase } from "@/application/use-cases/doctor/updateDoctorPassword.usecase";
 import { updateDoctorSchema } from "@/presentation/controllers/dto/validation/staff.dtos";
 import { updatePasswordSchema } from "@/presentation/controllers/dto/validation/auth.dtos";
-
-interface AuthenticatedRequest extends Request {
-    user: {
-        id: string;
-        role: string;
-    };
-}
+import { AuthenticatedRequest } from "@/shared/middlewares/auth.middleware";
 
 export class DoctorProfileController {
     constructor(

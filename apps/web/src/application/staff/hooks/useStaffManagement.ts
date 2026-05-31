@@ -12,9 +12,9 @@ export const useStaffManagement = () => {
     const fetchDoctors = useCallback(async (filters?: any) => {
         try {
             setLoading(true);
-            const data = await getDoctors(filters);
-            setDoctors(data.doctors || data); // Handle both wrapped and direct array
-            setStats(data.stats);
+            const response = await getDoctors(filters);
+            setDoctors(response.data || []);
+            setStats(response.meta);
         } catch (error) {
             console.error("Failed to fetch doctors", error);
             toast.error("Failed to load doctor directory");

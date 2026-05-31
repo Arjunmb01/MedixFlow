@@ -39,7 +39,7 @@ export default function BillingPage() {
                 endDate: dateRange.to || undefined
             })
             setActivities(data.data || [])
-            setTotal(data.total || 0)
+            setTotal(data.meta?.total || 0)
         } catch (error) {
             console.error("Failed to fetch billing history:", error)
         } finally {

@@ -49,7 +49,8 @@ export class GetDoctorDashboardStatsUseCase {
             appointmentDate: apt.appointmentDate,
             isCheckedIn: !!apt.consultation,
             consultationId: apt.consultation?.id,
-            consultationStatus: apt.consultation?.status
+            consultationStatus: apt.consultation?.status,
+            consultationType: (apt as { consultationType?: "VIDEO" | "CLINIC" }).consultationType ?? "CLINIC",
         })),
         todayAppointmentsCount: raw.todayAppointments.length,
         pendingToday: raw.todayAppointments.filter((a: any) => ["PENDING", "BOOKED"].includes(a.status)).length,

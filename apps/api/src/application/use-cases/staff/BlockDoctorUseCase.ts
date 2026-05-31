@@ -1,6 +1,7 @@
 import { IStaffRepository } from "@/domain/repositories/IStaffRepository";
 import { ISessionService } from "@/application/interfaces/IAuthServices";
 import { UserStatus } from "@/domain/value-objects/enums/UserStatus";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 
 export interface BlockDoctorUseCaseInput {
     id: string;
@@ -18,7 +19,7 @@ export class BlockDoctorUseCase {
         await this.staffRepository.blockDoctor(id, status);
         
         if (status === UserStatus.SUSPENDED || status === UserStatus.INACTIVE) {
-            await this.sessionService.deleteSession(id);
+            await this.sessionService.deleteSession(id, UserRole.DOCTOR);
         }
     }
 }

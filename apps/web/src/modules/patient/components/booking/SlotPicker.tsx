@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users } from 'lucide-react';
+import { Users, Video, MapPin } from 'lucide-react';
 
 export interface SlotInfo {
     start: string;
@@ -9,6 +9,7 @@ export interface SlotInfo {
     available: number;
     isFull: boolean;
     isPast: boolean;
+    consultationType?: "VIDEO" | "CLINIC";
 }
 
 interface SlotPickerProps {
@@ -74,6 +75,17 @@ export const SlotPicker: React.FC<SlotPickerProps> = ({
                             <div className="flex items-center justify-between mb-3">
                                 <span className={`text-[13px] font-black tracking-tight ${isSelected ? 'text-[#3B82F6]' : 'text-[#0F172A]'} ${isDisabled ? 'line-through text-[#94A3B8]' : ''}`}>
                                     {formatTime(slot.start)} – {formatTime(slot.end)}
+                                </span>
+                                <span className={`inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                                    slot.consultationType === "VIDEO"
+                                        ? "bg-violet-100 text-violet-700"
+                                        : "bg-slate-100 text-slate-600"
+                                }`}>
+                                    {slot.consultationType === "VIDEO" ? (
+                                        <><Video className="w-3 h-3" /> Video</>
+                                    ) : (
+                                        <><MapPin className="w-3 h-3" /> Clinic</>
+                                    )}
                                 </span>
                                 {slot.isFull && (
                                     <span className="text-[10px] font-black text-[#EF4444] bg-red-50 px-2 py-0.5 rounded-full border border-red-100">

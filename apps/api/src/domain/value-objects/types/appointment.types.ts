@@ -1,4 +1,5 @@
 import { PaymentMethod } from "../enums/PaymentMethod";
+import { PaginationQuery } from "./pagination.types";
 
 export interface CreateAppointmentInput {
   patientId: string;
@@ -6,6 +7,7 @@ export interface CreateAppointmentInput {
   appointmentDate: Date;
   slotStart: string;
   slotEnd: string;
+  consultationType?: "VIDEO" | "CLINIC";
   startTime?: Date;
   endTime?: Date;
   paymentMethod?: PaymentMethod;
@@ -19,6 +21,7 @@ export interface DoctorScheduleInput {
   endTime: string;
   slotDurationMinutes: number;
   slotCapacity: number;
+  consultationType?: "VIDEO" | "CLINIC";
 }
 
 
@@ -29,16 +32,32 @@ export interface AppointmentDateTime {
 
 import { AppointmentStatus } from "../enums/AppointmentStatus";
 
-export type DoctorAppointmentFilter = {
+export interface DoctorAppointmentFilter extends PaginationQuery {
   status?: AppointmentStatus | string;
   paymentStatus?: string;
   doctorId?: string;
   fromDate?: Date;
   toDate?: Date;
   isUpcoming?: boolean;
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc";
-  search?: string;
+  /** When true, loads consultation, prescription, vitals (heavier query). */
+  includeConsultationDetails?: boolean;
+}
+
+export interface PatientDashboardSummary {
+  upcomingCount: number;
+  nextAppointment: {
+    id: string;
+    date: Date;
+    slotStart: string;
+    doctorName: string;
+    specialty: string;
+    consultationType?: "VIDEO" | "CLINIC";
+  } | null;
+  recentAppointments: Array<{
+    id: string;
+    doctorName: string;
+    specialty: string;
+    date: Date;
+    status: string;
+  }>;
 }

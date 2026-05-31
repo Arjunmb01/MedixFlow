@@ -7,15 +7,17 @@ export class GetUpcomingAppointmentsUseCase {
         private readonly dateTimeService: IDateTimeService
     ) {}
 
-    async execute (patientId: string) {
-        await this.appointmentRepo.markPastAppointmentsAsNotAttended(patientId);
-        const { appointments: patientAppointments } = await this.appointmentRepo.getAppointmentsByPatientId(patientId);
-        const now = this.dateTimeService.now();
+    async execute(patientId: string) {
+        const appointmentsResponse = await this.appointmentRepo.getAppointmentsByPatientId(
+            patientId,
+            { isUpcoming: true, limit: 20, page: 1, sortBy: "appointmentDate", sortOrder: "asc" }
+        );
 
-        return patientAppointments.filter((app: any) => 
-            this.dateTimeService.isUpcoming(app.appointmentDate, app.slotStart) &&
-            app.status !== "CANCELLED" &&
-            app.status !== "COMPLETED"
+        return appointmentsResponse.data.filter(
+            (app) =>
+                this.dateTimeService.isUpcoming(app.appointmentDate, app.slotStart) &&
+                app.status !== "CANCELLED" &&
+                app.status !== "COMPLETED"
         );
     }
 }

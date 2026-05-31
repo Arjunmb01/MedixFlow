@@ -28,9 +28,8 @@ export class CancelAppointmentUseCase {
     ) {}
 
     async execute (appointmentId : string, patientId : string, reason : string, refundToWallet: boolean = false, isSystemAction: boolean = false) {
-        // ... (existing code for finding and cancelling appointment)
         const appointment = await this.appointmentRepo.findById(appointmentId);
-
+        console.log("Appointment :  ",appointment)
         if(!appointment) throw new Error("Appointment not found");
         
         if(!isSystemAction && appointment.patientId !== patientId) {
@@ -44,7 +43,6 @@ export class CancelAppointmentUseCase {
             reason
         )
 
-        // Create audit log
         await this.appointmentRepo.createAuditLog({
             appointmentId: appointmentId,
             action: "CANCELLED",
@@ -57,7 +55,6 @@ export class CancelAppointmentUseCase {
 
         await this.consultationRepo.deleteByAppointmentId(appointmentId);
 
-        // Refund Logic
         try {
             await this.refundAppointmentUseCase.execute(appointmentId, patientId, refundToWallet);
         } catch (error) {

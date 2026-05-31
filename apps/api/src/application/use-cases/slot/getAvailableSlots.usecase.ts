@@ -48,7 +48,8 @@ export class GetAvailableSlotCase {
         const workingDay = {
             shifts: schedules.map(s => ({
                 start: mapTimeToDate(s.startTime, searchDate),
-                end: mapTimeToDate(s.endTime, searchDate)
+                end: mapTimeToDate(s.endTime, searchDate),
+                consultationType: (s as { consultationType?: "VIDEO" | "CLINIC" }).consultationType ?? "CLINIC",
             })),
             breaks: breaks.map(b => ({
                 start: mapTimeToDate(b.startTime, searchDate),

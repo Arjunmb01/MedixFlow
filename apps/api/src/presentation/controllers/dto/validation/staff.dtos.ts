@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { UserStatus } from "@/domain/value-objects/enums/UserStatus";
+import { paginationQuerySchema } from "./pagination.dtos";
 
 const baseDoctorSchema = z.object({
   firstName: z.string().min(2),
@@ -31,26 +32,19 @@ export const createDoctorSchema = baseDoctorSchema.refine(data => (data.firstNam
 
 export const updateDoctorSchema = baseDoctorSchema.partial();
 
-export const getDoctorsQuerySchema = z.object({
-  search: z.string().optional(),
+export const getDoctorsQuerySchema = paginationQuerySchema.extend({
   specialty: z.string().optional(),
   status: z.nativeEnum(UserStatus).optional(),
-  page: z.string().transform(val => parseInt(val) || 1).optional(),
-  limit: z.string().transform(val => parseInt(val) || 10).optional()
 });
 
 import { AppointmentStatus } from "@/domain/value-objects/enums/AppointmentStatus";
 
-export const getDoctorAppointmentsQuerySchema = z.object({
+export const getDoctorAppointmentsQuerySchema = paginationQuerySchema.extend({
   status: z.string().optional(),
   paymentStatus: z.string().optional(),
   fromDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
   toDate: z.string().optional().transform(val => val ? new Date(val) : undefined),
   type: z.enum(["upcoming", "past"]).optional(),
-  page: z.string().transform(val => parseInt(val) || 1).optional(),
-  limit: z.string().transform(val => parseInt(val) || 10).optional(),
-  sortBy: z.string().optional(),
-  sortOrder: z.enum(["asc", "desc"]).optional()
 });
 
 export const getAdminAppointmentsQuerySchema = getDoctorAppointmentsQuerySchema.extend({

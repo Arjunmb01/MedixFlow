@@ -19,6 +19,7 @@ interface AppointmentPreview {
     isCheckedIn?: boolean;
     consultationId?: string;
     consultationStatus?: string;
+    consultationType?: "VIDEO" | "CLINIC";
 }
 
 interface DashboardStats {

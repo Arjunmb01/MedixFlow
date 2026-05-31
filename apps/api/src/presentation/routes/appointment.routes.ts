@@ -1,17 +1,33 @@
 import { Router } from "express";
-import { container } from "@/infrastructure/services/container/CompositionRoot";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
+import { getContainer } from "@/infrastructure/services/container/CompositionRoot";
 
-const router = Router();
-const controller = container.appointmentController;
-const slotController = container.doctorSlotController;
+export default function createAppointmentRoutes(): Router {
+  const {
+    appointmentController: controller,
+    doctorSlotController: slotController,
+    authMiddleware: auth,
+  } = getContainer();
 
-const auth = container.authMiddleware;
+  const router = Router();
 
-router.get("/slots", slotController.getSlots.bind(slotController));
-router.get("/check-conflict", auth.authenticate, controller.checkConflict.bind(controller));
+  router.get("/slots", slotController.getSlots.bind(slotController));
+  router.get(
+    "/check-conflict",
+    auth.authenticateRoles([UserRole.PATIENT, UserRole.DOCTOR, UserRole.ADMIN]),
+    controller.checkConflict.bind(controller)
+  );
+  router.post("/", auth.authenticatePatient, controller.book.bind(controller));
+  router.get(
+    "/:id",
+    auth.authenticateRoles([UserRole.PATIENT, UserRole.DOCTOR, UserRole.ADMIN]),
+    controller.getById.bind(controller)
+  );
+  router.patch(
+    "/:id/status",
+    auth.authenticateRoles([UserRole.DOCTOR, UserRole.ADMIN]),
+    controller.updateStatus.bind(controller)
+  );
 
-router.post("/", auth.authenticate, controller.book.bind(controller));
-router.get("/:id", auth.authenticate, controller.getById.bind(controller));
-router.patch("/:id/status", auth.authenticate, auth.authorize(["DOCTOR", "ADMIN", "STAFF"]), controller.updateStatus.bind(controller));
-
-export default router;
+  return router;
+}

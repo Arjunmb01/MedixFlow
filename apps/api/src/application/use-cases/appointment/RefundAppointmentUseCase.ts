@@ -38,7 +38,6 @@ export class RefundAppointmentUseCase {
     }
 
     if (refundToWallet) {
-      // Entire remaining amount goes to wallet
       await this.walletRepo.updateBalance(
         wallet.id,
         totalToRefund,
@@ -46,7 +45,6 @@ export class RefundAppointmentUseCase {
         `Refund for cancelled appointment ${appointmentId} (after ₹50 cancellation fee)`
       );
     } else {
-      // Split refund: prioritize returning to original gateway source first
       const gatewayRefundAmount = Math.min(payment.amount, totalToRefund);
       const walletRefundAmount = totalToRefund - gatewayRefundAmount;
 

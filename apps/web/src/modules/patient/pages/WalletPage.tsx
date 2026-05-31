@@ -49,7 +49,7 @@ export default function WalletPage() {
             ]);
             setBalance(balanceData.wallet.balance);
             setTransactions(activityData.data || []);
-            setTotalTransactions(activityData.total || 0);
+            setTotalTransactions(activityData.meta?.total || 0);
         } catch (error) {
             console.error("Failed to fetch wallet data:", error);
             setBalance(0);

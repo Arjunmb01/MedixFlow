@@ -1,16 +1,15 @@
 import { Router } from "express";
-import { UserRole } from "@/domain/value-objects/enums/UserRole";
-import { container } from "@/infrastructure/services/container/CompositionRoot";
+import { getContainer } from "@/infrastructure/services/container/CompositionRoot";
 
-const router = Router();
-const controller = container.doctorAuthController;
-const auth = container.authMiddleware;
+export default function createDoctorAuthRoutes(): Router {
+  const { doctorAuthController: controller, authMiddleware: auth } = getContainer();
+  const router = Router();
 
-router.post("/login", controller.login);
-router.post("/refresh-token", controller.refreshToken);
-router.post("/logout", auth.authenticate, auth.authorize([UserRole.DOCTOR]), controller.logout);
-router.post("/forgot-password", controller.forgotPassword);
-router.post("/reset-password", controller.resetPassword);
+  router.post("/login", controller.login);
+  router.post("/refresh-token", controller.refreshToken);
+  router.post("/logout", auth.authenticateDoctor, controller.logout);
+  router.post("/forgot-password", controller.forgotPassword);
+  router.post("/reset-password", controller.resetPassword);
 
-export default router;
-
+  return router;
+}

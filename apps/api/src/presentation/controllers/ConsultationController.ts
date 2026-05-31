@@ -17,6 +17,7 @@ import {
     getHistoryQuerySchema 
 } from "./dto/validation/consultation.dtos";
 import { z } from "zod";
+import { AuthenticatedRequest } from "@/shared/middlewares/auth.middleware";
 
 export class ConsultationController {
     constructor(
@@ -31,7 +32,7 @@ export class ConsultationController {
         private getLabTestsUseCase: GetLabTestsUseCase
     ) {}
 
-    checkin = async (req: Request, res: Response, next: NextFunction) => {
+    checkin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
             const { appointmentId } = appointmentIdParamSchema.parse(req.params);
@@ -42,7 +43,7 @@ export class ConsultationController {
         }
     }
 
-    getQueue = async (req: Request, res: Response, next: NextFunction) => {
+    getQueue = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
             const { date } = getQueueQuerySchema.parse(req.query);
@@ -53,7 +54,7 @@ export class ConsultationController {
         }
     }
 
-    start = async (req: Request, res: Response, next: NextFunction) => {
+    start = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
             const { id } = consultationIdSchema.parse(req.params);
@@ -64,7 +65,7 @@ export class ConsultationController {
         }
     }
 
-    complete = async (req: Request, res: Response, next: NextFunction) => {
+    complete = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
             const { id } = consultationIdSchema.parse(req.params);
@@ -84,7 +85,7 @@ export class ConsultationController {
         }
     }
 
-    getDetails = async (req: Request, res: Response, next: NextFunction) => {
+    getDetails = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
             const { id } = consultationIdSchema.parse(req.params);
@@ -110,7 +111,7 @@ export class ConsultationController {
         }
     }
 
-    requestLabTest = async (req: Request, res: Response, next: NextFunction) => {
+    requestLabTest = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;
             const { id } = consultationIdSchema.parse(req.params);
@@ -123,7 +124,7 @@ export class ConsultationController {
         }
     }
 
-    uploadLabTest = async (req: Request, res: Response, next: NextFunction) => {
+    uploadLabTest = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const patientId = req.user.id;
             const { id, labTestId } = req.params;

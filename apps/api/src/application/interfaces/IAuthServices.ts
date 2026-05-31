@@ -1,8 +1,10 @@
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
+
 export interface ISessionService {
-  saveSession(userId: string, refreshToken: string): Promise<void>;
-  getSession(userId: string): Promise<string | null>;
-  deleteSession(userId: string): Promise<void>;
-  verifySession(userId: string, refreshToken: string): Promise<boolean>;
+  saveSession(userId: string, role: UserRole, refreshToken: string): Promise<void>;
+  getSession(userId: string, role: UserRole): Promise<string | null>;
+  deleteSession(userId: string, role: UserRole): Promise<void>;
+  verifySession(userId: string, role: UserRole, refreshToken: string): Promise<boolean>;
 }
 
 export interface RegistrationData {

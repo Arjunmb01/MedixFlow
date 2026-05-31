@@ -1,31 +1,62 @@
-import { env as config } from "./shared/config/env";
-import dotenv from "dotenv";
-dotenv.config({ path: "./.env" });
+import { mark, report } from "./shared/startupProfiler";
 
-import app from "./app";
+mark("__start__");
+
+import { env as config } from "./shared/config/env";
+mark("env_loaded");
+
+import app, { mountApiRoutes } from "./app";
+mark("express_app_loaded");
+
 import { connectRedis } from "./infrastructure/services/redisClient";
 import { createServer } from "http";
 import { socketService } from "./infrastructure/services/SocketService";
-import { container } from "./infrastructure/services/container/CompositionRoot";
 
 const PORT = config.PORT || 5000;
 const httpServer = createServer(app);
 
-async function startServer() {
+async function startBackgroundServices(): Promise<void> {
   try {
     await connectRedis();
+    mark("redis_connected");
 
-    socketService.initialize(httpServer);
-    
-    const { appointmentCleanupService } = container;
-    appointmentCleanupService.start();
+    const { getContainer } = await import(
+      "./infrastructure/services/container/CompositionRoot"
+    );
+    const container = getContainer();
+    socketService.initialize(httpServer, container.consultationSignalingHandler);
+    mark("socket_initialized");
 
-    httpServer.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
+    container.appointmentCleanupService.start();
+    mark("cron_started");
   } catch (error) {
-    console.error("Server startup failed:", error);
+    console.error("Background services failed (Redis/Socket/Cron):", error);
   }
+}
+
+async function mountRoutesInBackground(): Promise<void> {
+  try {
+    mark("routes_mount_start");
+    await mountApiRoutes();
+    mark("routes_mounted");
+    console.log("API routes ready.");
+    report();
+  } catch (error) {
+    console.error("Failed to mount API routes:", error);
+    process.exit(1);
+  }
+}
+
+function startServer(): void {
+  httpServer.listen(PORT, () => {
+    mark("listening");
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log("  GET /health — ready now");
+    console.log("  /api/*     — loading (see 'API routes ready' below)...\n");
+
+    void mountRoutesInBackground();
+    void startBackgroundServices();
+  });
 }
 
 startServer();

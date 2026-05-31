@@ -16,6 +16,9 @@ const PaymentSuccess = lazy(() => import("../pages/PaymentSuccess"))
 const PaymentFailure = lazy(() => import("../pages/PaymentFailure"))
 const PaymentCancel = lazy(() => import("../pages/PaymentCancel"))
 const BillingPage = lazy(() => import("../pages/BillingPage"))
+const PatientVideoConsultationPage = lazy(
+    () => import("../../consultation/pages/PatientVideoConsultationPage")
+)
 
 export const PatientRoutes = (
     <>
@@ -136,7 +139,14 @@ export const PatientRoutes = (
             }
         />
 
-
+        <Route
+            path="/consultation/video/:appointmentId"
+            element={
+                <ProtectedRoute role={UserRole.PATIENT}>
+                    <PatientVideoConsultationPage />
+                </ProtectedRoute>
+            }
+        />
     </>
 )
 

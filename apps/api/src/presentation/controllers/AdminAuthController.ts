@@ -5,6 +5,8 @@ import { LoginAdminUseCase } from "@/application/use-cases/auth/loginAdmin.useca
 import { RefreshTokenUseCase } from "@/application/use-cases/auth/refreshToken.usecase";
 import { LogoutUseCase } from "@/application/use-cases/auth/logout.usecase";
 import { loginSchema } from "@/presentation/controllers/dto/validation/auth.dtos";
+import { AUTH_COOKIES, COOKIE_OPTIONS, ACCESS_TOKEN_COOKIE_OPTIONS } from "@/shared/constants/auth";
+import { AuthenticatedRequest } from "@/shared/middlewares/auth.middleware";
 
 export class AdminAuthController {
     constructor(
@@ -20,12 +22,8 @@ export class AdminAuthController {
 
             const { accessToken, refreshToken } = result;
 
-            res.cookie("admin_refreshToken", refreshToken, {
-                httpOnly: true,
-                secure: false, // Set to true in production
-                sameSite: "strict",
-                maxAge: 7 * 24 * 60 * 60 * 1000
-            });
+            res.cookie(AUTH_COOKIES.ADMIN.ACCESS, accessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
+            res.cookie(AUTH_COOKIES.ADMIN.REFRESH, refreshToken, COOKIE_OPTIONS);
 
             res.json({ accessToken, user: result.user });
         } catch (error) {
@@ -35,20 +33,24 @@ export class AdminAuthController {
 
     refreshToken = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const refreshToken = req.cookies.admin_refreshToken;
+            const refreshToken = req.cookies[AUTH_COOKIES.ADMIN.REFRESH];
             const result = await this.refreshTokenUseCase.execute(refreshToken, UserRole.ADMIN);
+            
+            res.cookie(AUTH_COOKIES.ADMIN.ACCESS, result.accessToken, ACCESS_TOKEN_COOKIE_OPTIONS);
+            
             res.json(result);
         } catch (error) {
             res.status(StatusCode.UNAUTHORIZED).json({ message: error instanceof Error ? error.message : "An unexpected error occurred" });
         }
     }
 
-    logout = async (req: Request, res: Response, next: NextFunction) => {
+    logout = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
-            await this.logoutUseCase.execute(userId);
+            await this.logoutUseCase.execute(userId, UserRole.ADMIN);
 
-            res.clearCookie("admin_refreshToken");
+            res.clearCookie(AUTH_COOKIES.ADMIN.ACCESS);
+            res.clearCookie(AUTH_COOKIES.ADMIN.REFRESH);
             res.json({ message: MESSAGES.LOGOUT_SUCCESS });
         } catch (error) {
             res.status(StatusCode.BAD_REQUEST).json({ message: error instanceof Error ? error.message : "An unexpected error occurred" });

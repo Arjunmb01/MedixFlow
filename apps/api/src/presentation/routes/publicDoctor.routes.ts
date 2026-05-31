@@ -1,10 +1,12 @@
-import { Router } from "express"
-import { container } from "@/infrastructure/services/container/CompositionRoot"
+import { Router } from "express";
+import { getContainer } from "@/infrastructure/services/container/CompositionRoot";
 
-const router = Router()
+export default function createPublicDoctorRoutes(): Router {
+  const { publicDoctorController } = getContainer();
+  const router = Router();
 
-router.get("/", container.publicDoctorController.getAllDoctors)
-router.get("/:id", container.publicDoctorController.getDoctorDetails)
+  router.get("/", publicDoctorController.getAllDoctors);
+  router.get("/:id", publicDoctorController.getDoctorDetails);
 
-export default router
-
+  return router;
+}

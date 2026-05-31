@@ -11,6 +11,9 @@ const ConsultationWorkspace = lazy(() => import("../pages/ConsultationWorkspace"
 const DoctorPatients = lazy(() => import("../pages/DoctorPatients"))
 const DoctorPrescriptions = lazy(() => import("../pages/DoctorPrescriptions"))
 const DoctorLeave = lazy(() => import("../pages/DoctorLeave"))
+const DoctorVideoConsultationPage = lazy(
+    () => import("../../consultation/pages/DoctorVideoConsultationPage")
+)
 
 export const DoctorRoutes = (
     <>
@@ -41,6 +44,7 @@ export const DoctorRoutes = (
         {/* Specialized Consultation Module Routes */}
         <Route path="/doctor/queue" element={<ProtectedRoute role={UserRole.DOCTOR}><DoctorQueue /></ProtectedRoute>} />
         <Route path="/doctor/workspace/:id" element={<ProtectedRoute role={UserRole.DOCTOR}><ConsultationWorkspace /></ProtectedRoute>} />
+        <Route path="/doctor/consultation/video/:appointmentId" element={<ProtectedRoute role={UserRole.DOCTOR}><DoctorVideoConsultationPage /></ProtectedRoute>} />
         
         <Route path="/doctor/patients" element={<ProtectedRoute role={UserRole.DOCTOR}><DoctorPatients /></ProtectedRoute>} />
         <Route path="/doctor/prescriptions" element={<ProtectedRoute role={UserRole.DOCTOR}><DoctorPrescriptions /></ProtectedRoute>} />

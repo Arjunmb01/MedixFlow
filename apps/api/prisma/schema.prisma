@@ -120,6 +120,7 @@ model Appointment {
   doctorId        String
   appointmentDate DateTime
   status          AppointmentStatus
+  consultationType ConsultationType @default(CLINIC)
   reason          String?
   notes           String?
   createdAt       DateTime          @default(now())
@@ -134,6 +135,7 @@ model Appointment {
   doctor          DoctorProfile     @relation(fields: [doctorId], references: [id])
   patient         PatientProfile    @relation(fields: [patientId], references: [id])
   consultation    Consultation?
+  consultationSession ConsultationSession?
   payment         Payment?
   
   // Reschedule & History
@@ -149,6 +151,8 @@ model Appointment {
 
   @@index([doctorId, appointmentDate, status])
   @@index([patientId, status])
+  @@index([patientId, appointmentDate, status])
+  @@index([status, appointmentDate])
   @@index([doctorId, startTime, endTime])
   @@index([expiresAt])
 }
@@ -185,6 +189,7 @@ model RescheduleProposal {
   appointment     Appointment       @relation(fields: [appointmentId], references: [id])
 
   @@index([appointmentId])
+  @@index([appointmentId, status])
   @@index([status])
 }
 
@@ -243,10 +248,72 @@ model Consultation {
   appointment   Appointment        @relation(fields: [appointmentId], references: [id])
   doctor        DoctorProfile      @relation(fields: [doctorId], references: [id])
   patient       PatientProfile     @relation(fields: [patientId], references: [id])
+  session       ConsultationSession?
   medicalRecord MedicalRecord?
   prescription  Prescription?
   vitals        Vitals[]
   labTests      LabTest[]
+}
+
+model ConsultationSession {
+  id             String                    @id @default(uuid())
+  roomId         String                    @unique
+  appointmentId  String                    @unique
+  consultationId String?                   @unique
+  doctorId       String
+  patientId      String
+  startedAt      DateTime?
+  endedAt        DateTime?
+  duration       Int?
+  status         ConsultationSessionStatus @default(WAITING)
+  summary        String?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+  appointment    Appointment               @relation(fields: [appointmentId], references: [id])
+  consultation   Consultation?             @relation(fields: [consultationId], references: [id])
+  participants   ConsultationParticipant[]
+  chatMessages   ConsultationChatMessage[]
+
+  @@index([doctorId, status])
+  @@index([patientId, status])
+}
+
+model ConsultationParticipant {
+  id        String          @id @default(uuid())
+  sessionId String
+  userId    String
+  role      ParticipantRole
+  joinedAt  DateTime?
+  leftAt    DateTime?
+  socketId  String?
+  session   ConsultationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([userId])
+}
+
+model ConsultationChatMessage {
+  id         String          @id @default(uuid())
+  sessionId  String
+  senderId   String
+  senderRole ParticipantRole
+  message    String
+  createdAt  DateTime        @default(now())
+  session    ConsultationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+}
+
+enum ConsultationSessionStatus {
+  WAITING
+  IN_CALL
+  ENDED
+  CANCELLED
+}
+
+enum ParticipantRole {
+  DOCTOR
+  PATIENT
 }
 
 model MedicalRecord {
@@ -381,6 +448,9 @@ model Notification {
   type        NotificationType
   isRead      Boolean          @default(false)
   createdAt   DateTime         @default(now())
+
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@index([recipientId, isRead])
 }
 
 enum NotificationType {
@@ -457,6 +527,8 @@ model WalletTransaction {
   metadata  Json?
   createdAt DateTime    @default(now())
   wallet    Wallet      @relation(fields: [walletId], references: [id])
+
+  @@index([walletId, createdAt(sort: Desc)])
 }
 
 enum TransactionType {

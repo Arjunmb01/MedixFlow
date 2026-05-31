@@ -14,8 +14,6 @@ export class HandlePayPalWebhookUseCase {
         console.log(`[PayPalWebhook] Received event: ${payload.event_type}`);
         
         const gateway = PaymentGatewayFactory.getGateway(PaymentMethod.PAYPAL);
-        // Signature verification is bypassed in current implementation for simplicity
-        // in production this should be properly verified.
         const result = await gateway.verifyWebhook(payload, signature, secret);
 
         if (!result.isValid) {

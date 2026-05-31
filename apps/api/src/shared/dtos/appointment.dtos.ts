@@ -19,6 +19,7 @@ export const bookAppointmentSchema = z.object({
     slotEnd: z.string().regex(/^([01]\d|2[0-3]):?([0-5]\d)$/, "Invalid time format (HH:mm)"),
     paymentMethod: z.nativeEnum(PaymentMethod).default(PaymentMethod.RAZORPAY),
     useWallet: z.boolean().optional().default(false),
+    consultationType: z.enum(["VIDEO", "CLINIC"]).optional(),
 });
 
 export const updateAppointmentStatusSchema = z.object({

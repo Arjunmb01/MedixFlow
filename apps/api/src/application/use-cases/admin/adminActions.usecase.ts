@@ -3,6 +3,7 @@ import { IStaffRepository } from "@/domain/repositories/IStaffRepository";
 import { ISessionService } from "@/application/interfaces/IAuthServices";
 import { MESSAGES } from "@/shared/constants";
 import { UserStatus } from "@/domain/value-objects/enums/UserStatus";
+import { UserRole } from "@/domain/value-objects/enums/UserRole";
 
 export class ToggleBlockPatientUseCase {
   constructor(
@@ -14,7 +15,7 @@ export class ToggleBlockPatientUseCase {
     const result = await this.patientRepository.toggleBlock(id, status);
 
     if (status === UserStatus.SUSPENDED || status === UserStatus.INACTIVE) {
-        await this.sessionService.deleteSession(id);
+        await this.sessionService.deleteSession(id, UserRole.PATIENT);
     }
 
     return result;

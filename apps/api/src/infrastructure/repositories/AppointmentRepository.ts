@@ -1,7 +1,8 @@
-import { PrismaClient, Appointment, AppointmentStatus } from "@prisma/client";
+import { PrismaClient, Appointment, AppointmentStatus, Prisma, Role, PaymentStatus } from "@prisma/client";
 import { IDateTimeService } from "@/domain/services/IDateTimeService";
 import {
   IAppointmentRepository,
+  PaginatedResponse,
   AppointmentRecord,
   AppointmentWithConsultation,
   AppointmentWithDoctorAndPatient,
@@ -15,6 +16,31 @@ import { CreateAppointmentInput, DoctorAppointmentFilter, DoctorScheduleInput } 
 
 import { AppointmentMapper, AppointmentStatusMapper } from "../database/mappers/AppointmentMapper";
 
+const DEFAULT_PAGE_LIMIT = 50;
+const MAX_PAGE_LIMIT = 100;
+
+const doctorListInclude = {
+  doctor: {
+    include: {
+      specialization: true,
+    },
+  },
+} as const;
+
+const fullConsultationInclude = {
+  ...doctorListInclude,
+  consultation: {
+    include: {
+      medicalRecord: true,
+      prescription: {
+        include: {
+          medicines: true,
+        },
+      },
+      vitals: true,
+    },
+  },
+} as const;
 
 export class AppointmentRepository implements IAppointmentRepository {
   constructor(
@@ -37,6 +63,7 @@ export class AppointmentRepository implements IAppointmentRepository {
         endTime: true,
         slotDurationMinutes: true,
         slotCapacity: true,
+        consultationType: true,
       },
     });
   }
@@ -123,10 +150,8 @@ export class AppointmentRepository implements IAppointmentRepository {
     const { doctorId, patientId, startTime, endTime, reason } = data;
 
     return await this.prisma.$transaction(async (tx) => {
-      // Pessimistic Lock: Lock the doctor profile to serialize bookings for this doctor
       await tx.$executeRawUnsafe(`SELECT id FROM "DoctorProfile" WHERE id = '${doctorId}' FOR UPDATE`);
 
-      // Double-check availability (Overlap Check)
       const overlapping = await tx.appointment.findFirst({
         where: {
           doctorId,
@@ -204,7 +229,7 @@ export class AppointmentRepository implements IAppointmentRepository {
         },
         OR: orConditions,
         status: {
-          in: ["BOOKED", "PENDING"] as any,
+          in: ["BOOKED", "PENDING"] as AppointmentStatus[],
         },
       },
     });
@@ -212,8 +237,8 @@ export class AppointmentRepository implements IAppointmentRepository {
     return result ? this.mapper.toRecord(result) : null;
   }
 
-  async getAppointmentsByPatientId(patientId: string, filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentWithConsultation[]; total: number }> {
-    const where: any = { patientId };
+  async getAppointmentsByPatientId(patientId: string, filter?: DoctorAppointmentFilter): Promise<PaginatedResponse<AppointmentWithConsultation>> {
+    const where: Prisma.AppointmentWhereInput = { patientId };
     
     if (filter?.search) {
       where.OR = [
@@ -224,7 +249,7 @@ export class AppointmentRepository implements IAppointmentRepository {
     }
     
     if (filter?.status) where.status = filter.status as AppointmentStatus;
-    if (filter?.paymentStatus) where.paymentStatus = filter.paymentStatus;
+    if (filter?.paymentStatus) where.paymentStatus = filter.paymentStatus as PaymentStatus;
     
     if (filter?.isUpcoming) {
       const today = new Date();
@@ -237,30 +262,17 @@ export class AppointmentRepository implements IAppointmentRepository {
       if (filter.toDate) where.appointmentDate.lte = filter.toDate;
     }
 
-    const { page, limit, sortBy = "appointmentDate", sortOrder = "desc" } = filter || {};
-    const skip = (page && limit) ? (page - 1) * limit : undefined;
+    const { page = 1, sortBy = "appointmentDate", sortOrder = "desc" } = filter || {};
+    const limit = Math.min(filter?.limit ?? DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT);
+    const skip = (page - 1) * limit;
+    const include = filter?.includeConsultationDetails
+      ? fullConsultationInclude
+      : doctorListInclude;
 
     const [results, total] = await Promise.all([
       this.prisma.appointment.findMany({
         where,
-        include: {
-          doctor: {
-            include: {
-              specialization: true,
-            },
-          },
-          consultation: {
-            include: {
-              medicalRecord: true,
-              prescription: {
-                include: {
-                  medicines: true,
-                },
-              },
-              vitals: true,
-            },
-          },
-        },
+        include,
         orderBy: {
           [sortBy]: sortOrder,
         },
@@ -271,8 +283,65 @@ export class AppointmentRepository implements IAppointmentRepository {
     ]);
 
     return {
-      appointments: results.map(r => this.mapper.toWithConsultation(r)),
-      total,
+      data: results.map((r) =>
+        this.mapper.toWithConsultation({
+          ...r,
+          consultation: "consultation" in r ? r.consultation : null,
+        } as Parameters<AppointmentMapper["toWithConsultation"]>[0])
+      ),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      }
+    };
+  }
+
+  async getPatientDashboardSummary(patientId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const upcomingWhere = {
+      patientId,
+      status: { in: ["PENDING", "BOOKED"] as AppointmentStatus[] },
+      appointmentDate: { gte: today },
+    };
+
+    const [upcomingCount, next, recent] = await Promise.all([
+      this.prisma.appointment.count({ where: upcomingWhere }),
+      this.prisma.appointment.findFirst({
+        where: upcomingWhere,
+        orderBy: [{ appointmentDate: "asc" }, { slotStart: "asc" }],
+        include: doctorListInclude,
+      }),
+      this.prisma.appointment.findMany({
+        where: { patientId },
+        orderBy: { appointmentDate: "desc" },
+        take: 5,
+        include: doctorListInclude,
+      }),
+    ]);
+
+    return {
+      upcomingCount,
+      nextAppointment: next
+        ? {
+            id: next.id,
+            date: next.appointmentDate,
+            slotStart: next.slotStart,
+            doctorName: `Dr. ${next.doctor.firstName} ${next.doctor.lastName}`,
+            specialty: next.doctor.specialization?.name ?? "General",
+            consultationType: next.consultationType as "VIDEO" | "CLINIC",
+          }
+        : null,
+      recentAppointments: recent.map((app) => ({
+        id: app.id,
+        doctorName: `Dr. ${app.doctor.firstName} ${app.doctor.lastName}`,
+        specialty: app.doctor.specialization?.name ?? "General",
+        date: app.appointmentDate,
+        status: app.status,
+      })),
     };
   }
 
@@ -386,8 +455,8 @@ export class AppointmentRepository implements IAppointmentRepository {
     });
   }
 
-  async getAppointmentsByDoctorId(doctorId: string, filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentWithPatient[]; total: number }> {
-    const where: any = { doctorId };
+  async getAppointmentsByDoctorId(doctorId: string, filter?: DoctorAppointmentFilter): Promise<PaginatedResponse<AppointmentWithPatient>> {
+    const where: Prisma.AppointmentWhereInput = { doctorId };
 
     if (filter?.search) {
       where.OR = [
@@ -402,7 +471,7 @@ export class AppointmentRepository implements IAppointmentRepository {
     }
 
     if (filter?.paymentStatus) {
-      where.paymentStatus = filter.paymentStatus;
+      where.paymentStatus = filter.paymentStatus as PaymentStatus;
     }
 
     if (filter?.fromDate || filter?.toDate) {
@@ -414,7 +483,7 @@ export class AppointmentRepository implements IAppointmentRepository {
     if (filter?.isUpcoming !== undefined) {
       const now = this.dateTimeService.now();
       where.appointmentDate = {
-        ...(where.appointmentDate || {}),
+        ...(where.appointmentDate as any || {}),
         ...(filter.isUpcoming ? { gte: now } : { lt: now }),
       };
     }
@@ -449,17 +518,33 @@ export class AppointmentRepository implements IAppointmentRepository {
     ]);
 
     return {
-      appointments: appointments.map(r => this.mapper.toWithPatient(r)),
-      total,
+      data: appointments.map(r => this.mapper.toWithPatient(r)),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
     };
   }
 
-  async getAllAppointments(filter?: DoctorAppointmentFilter): Promise<{ appointments: AppointmentPreview[]; total: number }> {
-    const where: any = {};
+  async getAllAppointments(filter?: DoctorAppointmentFilter): Promise<PaginatedResponse<AppointmentPreview>> {
+    const where: Prisma.AppointmentWhereInput = {};
+
+    if (filter?.search) {
+      where.OR = [
+        { patient: { firstName: { contains: filter.search, mode: 'insensitive' } } },
+        { patient: { lastName: { contains: filter.search, mode: 'insensitive' } } },
+        { patient: { patientId: { contains: filter.search, mode: 'insensitive' } } },
+        { doctor: { firstName: { contains: filter.search, mode: 'insensitive' } } },
+        { doctor: { lastName: { contains: filter.search, mode: 'insensitive' } } },
+        { id: { contains: filter.search, mode: 'insensitive' } },
+      ];
+    }
 
     if (filter?.doctorId) where.doctorId = filter.doctorId;
     if (filter?.status) where.status = filter.status as AppointmentStatus;
-    if (filter?.paymentStatus) where.paymentStatus = filter.paymentStatus;
+    if (filter?.paymentStatus) where.paymentStatus = filter.paymentStatus as PaymentStatus;
 
     if (filter?.fromDate || filter?.toDate) {
       where.appointmentDate = {};
@@ -494,8 +579,13 @@ export class AppointmentRepository implements IAppointmentRepository {
     ]);
 
     return {
-      appointments: appointments.map((r) => this.mapper.toPreview(r as any)),
-      total,
+      data: appointments.map((r) => this.mapper.toPreview(r as any)),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
     };
   }
 
@@ -752,10 +842,10 @@ export class AppointmentRepository implements IAppointmentRepository {
         appointmentId: log.appointmentId,
         action: log.action,
         actorId: log.actorId,
-        actorRole: log.actorRole,
-        oldStatus: log.oldStatus as any,
-        newStatus: log.newStatus as any,
-        details: log.details || {},
+        actorRole: log.actorRole as Role,
+        oldStatus: log.oldStatus as AppointmentStatus,
+        newStatus: log.newStatus as AppointmentStatus,
+        details: log.details as Prisma.InputJsonValue || {},
       }
     });
   }
@@ -765,7 +855,7 @@ export class AppointmentRepository implements IAppointmentRepository {
       data: {
         appointmentId: proposal.appointmentId,
         proposedById: proposal.proposedById,
-        proposedByRole: proposal.proposedByRole,
+        proposedByRole: proposal.proposedByRole as Role,
         newDate: proposal.newDate,
         newSlotStart: proposal.newSlotStart,
         newSlotEnd: proposal.newSlotEnd,
