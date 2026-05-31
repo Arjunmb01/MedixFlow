@@ -1,14 +1,20 @@
--- AlterTable
-ALTER TABLE "Appointment" ADD COLUMN "consultationType" "ConsultationType" NOT NULL DEFAULT 'CLINIC';
+-- Idempotent: safe if column/enums/tables already exist from prior db push
 
--- CreateEnum
-CREATE TYPE "ConsultationSessionStatus" AS ENUM ('WAITING', 'IN_CALL', 'ENDED', 'CANCELLED');
+ALTER TABLE "Appointment" ADD COLUMN IF NOT EXISTS "consultationType" "ConsultationType" NOT NULL DEFAULT 'CLINIC';
 
--- CreateEnum
-CREATE TYPE "ParticipantRole" AS ENUM ('DOCTOR', 'PATIENT');
+DO $$ BEGIN
+  CREATE TYPE "ConsultationSessionStatus" AS ENUM ('WAITING', 'IN_CALL', 'ENDED', 'CANCELLED');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
--- CreateTable
-CREATE TABLE "ConsultationSession" (
+DO $$ BEGIN
+  CREATE TYPE "ParticipantRole" AS ENUM ('DOCTOR', 'PATIENT');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "ConsultationSession" (
     "id" TEXT NOT NULL,
     "roomId" TEXT NOT NULL,
     "appointmentId" TEXT NOT NULL,
@@ -26,8 +32,7 @@ CREATE TABLE "ConsultationSession" (
     CONSTRAINT "ConsultationSession_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "ConsultationParticipant" (
+CREATE TABLE IF NOT EXISTS "ConsultationParticipant" (
     "id" TEXT NOT NULL,
     "sessionId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -39,8 +44,7 @@ CREATE TABLE "ConsultationParticipant" (
     CONSTRAINT "ConsultationParticipant_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "ConsultationChatMessage" (
+CREATE TABLE IF NOT EXISTS "ConsultationChatMessage" (
     "id" TEXT NOT NULL,
     "sessionId" TEXT NOT NULL,
     "senderId" TEXT NOT NULL,
@@ -51,38 +55,35 @@ CREATE TABLE "ConsultationChatMessage" (
     CONSTRAINT "ConsultationChatMessage_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE UNIQUE INDEX "ConsultationSession_roomId_key" ON "ConsultationSession"("roomId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ConsultationSession_roomId_key" ON "ConsultationSession"("roomId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ConsultationSession_appointmentId_key" ON "ConsultationSession"("appointmentId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ConsultationSession_consultationId_key" ON "ConsultationSession"("consultationId");
+CREATE INDEX IF NOT EXISTS "ConsultationSession_doctorId_status_idx" ON "ConsultationSession"("doctorId", "status");
+CREATE INDEX IF NOT EXISTS "ConsultationSession_patientId_status_idx" ON "ConsultationSession"("patientId", "status");
+CREATE INDEX IF NOT EXISTS "ConsultationParticipant_userId_idx" ON "ConsultationParticipant"("userId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ConsultationParticipant_sessionId_userId_key" ON "ConsultationParticipant"("sessionId", "userId");
+CREATE INDEX IF NOT EXISTS "ConsultationChatMessage_sessionId_createdAt_idx" ON "ConsultationChatMessage"("sessionId", "createdAt");
 
--- CreateIndex
-CREATE UNIQUE INDEX "ConsultationSession_appointmentId_key" ON "ConsultationSession"("appointmentId");
+DO $$ BEGIN
+  ALTER TABLE "ConsultationSession" ADD CONSTRAINT "ConsultationSession_appointmentId_fkey" FOREIGN KEY ("appointmentId") REFERENCES "Appointment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
--- CreateIndex
-CREATE UNIQUE INDEX "ConsultationSession_consultationId_key" ON "ConsultationSession"("consultationId");
+DO $$ BEGIN
+  ALTER TABLE "ConsultationSession" ADD CONSTRAINT "ConsultationSession_consultationId_fkey" FOREIGN KEY ("consultationId") REFERENCES "Consultation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
--- CreateIndex
-CREATE INDEX "ConsultationSession_doctorId_status_idx" ON "ConsultationSession"("doctorId", "status");
+DO $$ BEGIN
+  ALTER TABLE "ConsultationParticipant" ADD CONSTRAINT "ConsultationParticipant_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "ConsultationSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
--- CreateIndex
-CREATE INDEX "ConsultationSession_patientId_status_idx" ON "ConsultationSession"("patientId", "status");
-
--- CreateIndex
-CREATE UNIQUE INDEX "ConsultationParticipant_sessionId_userId_key" ON "ConsultationParticipant"("sessionId", "userId");
-
--- CreateIndex
-CREATE INDEX "ConsultationParticipant_userId_idx" ON "ConsultationParticipant"("userId");
-
--- CreateIndex
-CREATE INDEX "ConsultationChatMessage_sessionId_createdAt_idx" ON "ConsultationChatMessage"("sessionId", "createdAt");
-
--- AddForeignKey
-ALTER TABLE "ConsultationSession" ADD CONSTRAINT "ConsultationSession_appointmentId_fkey" FOREIGN KEY ("appointmentId") REFERENCES "Appointment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "ConsultationSession" ADD CONSTRAINT "ConsultationSession_consultationId_fkey" FOREIGN KEY ("consultationId") REFERENCES "Consultation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "ConsultationParticipant" ADD CONSTRAINT "ConsultationParticipant_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "ConsultationSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "ConsultationChatMessage" ADD CONSTRAINT "ConsultationChatMessage_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "ConsultationSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "ConsultationChatMessage" ADD CONSTRAINT "ConsultationChatMessage_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "ConsultationSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;

@@ -436,6 +436,9 @@ model Notification {
   isRead      Boolean          @default(false)
   createdAt   DateTime         @default(now())
   metadata    Json?
+
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@index([recipientId, isRead])
 }
 
 model Payment {
@@ -486,6 +489,8 @@ model WalletTransaction {
   metadata        Json?
   stripeSessionId String?
   wallet          Wallet            @relation(fields: [walletId], references: [id])
+
+  @@index([walletId, createdAt(sort: Desc)])
 }
 
 model FollowUp {
