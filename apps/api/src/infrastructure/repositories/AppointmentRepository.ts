@@ -150,14 +150,8 @@ export class AppointmentRepository implements IAppointmentRepository {
     const { doctorId, patientId, startTime, endTime, reason } = data;
 
     return await this.prisma.$transaction(async (tx) => {
-<<<<<<< HEAD
-      await tx.$executeRawUnsafe(`SELECT id FROM "DoctorProfile" WHERE id = '${doctorId}' FOR UPDATE`);
-=======
-      // FIX [SECURITY]: Using parameterized query to prevent SQL Injection
-      // FIX [RACE CONDITION]: Locking both Doctor and Patient to prevent overlapping appointments
       await tx.$executeRaw`SELECT id FROM "DoctorProfile" WHERE id = ${doctorId} FOR UPDATE`;
       await tx.$executeRaw`SELECT id FROM "PatientProfile" WHERE id = ${patientId} FOR UPDATE`;
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
       const overlapping = await tx.appointment.findFirst({
         where: {
@@ -290,7 +284,6 @@ export class AppointmentRepository implements IAppointmentRepository {
     ]);
 
     return {
-<<<<<<< HEAD
       data: results.map((r) =>
         this.mapper.toWithConsultation({
           ...r,
@@ -350,15 +343,6 @@ export class AppointmentRepository implements IAppointmentRepository {
         date: app.appointmentDate,
         status: app.status,
       })),
-=======
-      data: results.map(r => this.mapper.toWithConsultation(r)),
-      meta: {
-        total,
-        page: page || 1,
-        limit: limit || 10,
-        totalPages: Math.ceil(total / (limit || 10))
-      }
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
     };
   }
 
@@ -521,11 +505,7 @@ export class AppointmentRepository implements IAppointmentRepository {
     if (filter?.isUpcoming !== undefined) {
       const now = this.dateTimeService.now();
       where.appointmentDate = {
-<<<<<<< HEAD
-        ...(where.appointmentDate as any || {}),
-=======
         ...(where.appointmentDate as Prisma.DateTimeFilter || {}),
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
         ...(filter.isUpcoming ? { gte: now } : { lt: now }),
       };
     }
@@ -623,11 +603,7 @@ export class AppointmentRepository implements IAppointmentRepository {
     ]);
 
     return {
-<<<<<<< HEAD
-      data: appointments.map((r) => this.mapper.toPreview(r as any)),
-=======
       data: appointments.map((r) => this.mapper.toPreview(r)),
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
       meta: {
         total,
         page,

@@ -3,7 +3,6 @@ module.exports = {
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/tests/unit/setup.ts'],
   transform: {
-<<<<<<< HEAD
     '^.+\\.tsx?$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json', diagnostics: false }],
   },
   globals: {
@@ -12,9 +11,6 @@ module.exports = {
         types: ['jest', 'node'],
       },
     },
-=======
-    '^.+\\.tsx?$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json' }],
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',

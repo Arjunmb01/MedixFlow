@@ -114,11 +114,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
                 // @ts-ignore - Prisma types might be tricky here, but avoiding 'any'
                 return (a as any).slotStart.localeCompare((b as any).slotStart);
             })
-<<<<<<< HEAD
-            .map((apt: PrismaAppointmentWithPatient) => this.mapper.toAppointmentPreview(apt));
-=======
-            .map((apt: any) => this.mapper.toAppointmentPreview(apt));
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
+            .map((apt) => this.mapper.toAppointmentPreview(apt as PrismaAppointmentWithPatient));
 
         return {
             totalAppointments: raw.totalAppointments,
@@ -146,11 +142,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             pendingAppointments, 
             uniquePatientsCount,
             todayAppointmentsResult,
-<<<<<<< HEAD
-            earningsAggregate
-=======
             earningsResult
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
         ] = await Promise.all([
             this._prisma.appointment.count({ where: { doctorId: userId } }),
             this._prisma.appointment.count({ where: { doctorId: userId, status: "COMPLETED" } }),
@@ -174,16 +166,6 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
                     slotStart: "asc"
                 }
             }),
-<<<<<<< HEAD
-            this._prisma.payment.aggregate({
-                where: {
-                    status: "PAID",
-                    appointment: { doctorId: userId },
-                },
-                _sum: { amount: true },
-            }),
-=======
-            // FIX [PERFORMANCE]: Using database aggregate instead of fetching all records
             this._prisma.payment.aggregate({
                 where: {
                     appointment: { doctorId: userId, status: "COMPLETED" },
@@ -191,7 +173,6 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
                 },
                 _sum: { amount: true }
             })
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
         ]);
 
         let finalTodayAppointments = todayAppointmentsResult;
@@ -222,11 +203,7 @@ export class DoctorRepository implements IDoctorProfileRepository, IDoctorStatsR
             }
         }
 
-<<<<<<< HEAD
-        const totalEarnings = earningsAggregate._sum.amount ?? 0;
-=======
         const totalEarnings = earningsResult._sum.amount || 0;
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
         return {
             totalAppointments,

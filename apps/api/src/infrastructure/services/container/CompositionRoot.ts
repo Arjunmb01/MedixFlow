@@ -99,21 +99,18 @@ import { GetConsultationDetailsUseCase } from "@/application/use-cases/consultat
 import { GetDoctorQueueUseCase } from "@/application/use-cases/consultation/getDoctorQueue.usecase";
 import { GetPatientHistoryUseCase } from "@/application/use-cases/consultation/getPatientHistory.usecase";
 import { StartConsultationUseCase } from "@/application/use-cases/consultation/startConsultation.usecase";
-<<<<<<< HEAD
 import { JoinVideoWaitingRoomUseCase } from "@/application/use-cases/consultation/JoinVideoWaitingRoomUseCase";
 import { StartVideoConsultationUseCase } from "@/application/use-cases/consultation/StartVideoConsultationUseCase";
 import { AdmitPatientUseCase } from "@/application/use-cases/consultation/AdmitPatientUseCase";
 import { EndVideoConsultationUseCase } from "@/application/use-cases/consultation/EndVideoConsultationUseCase";
 import { GetVideoSessionStateUseCase } from "@/application/use-cases/consultation/GetVideoSessionStateUseCase";
 import { SendConsultationChatUseCase } from "@/application/use-cases/consultation/SendConsultationChatUseCase";
-=======
 import { SaveConsultationDraftUseCase } from "@/application/use-cases/consultation/saveConsultationDraft.usecase";
 import { GetConsultationDraftUseCase } from "@/application/use-cases/consultation/getConsultationDraft.usecase";
 import { CreateFollowUpConsultationUseCase } from "@/application/use-cases/consultation/createFollowUpConsultation.usecase";
 import { ScheduleFollowUpUseCase } from "@/application/use-cases/consultation/scheduleFollowUp.usecase";
 import { GenerateConsultationPDFUseCase } from "@/application/use-cases/consultation/generateConsultationPDF.usecase";
 import { ReviewLabTestUseCase } from "@/application/use-cases/consultation/reviewLabTest.usecase";
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
 // Use Cases - Doctor
 import { GetAllDoctorsUseCase } from "@/application/use-cases/doctor/getAllDoctors.usecase";
@@ -233,13 +230,8 @@ export class CompositionRoot {
         const jwtTokenService = new JwtTokenService(jwtConfig);
         const googleAuthService = new GoogleAuthService();
         const patientIdGenerator = new PatientIdGenerator(prisma);
-<<<<<<< HEAD
         const notificationCacheService = new NotificationCacheService(redisClient);
         const razorpayService = getRazorpayService();
-=======
-        const notificationCacheService = new NotificationCacheService(redisClient as any);
-        const razorpayService = new RazorpayService();
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
         const queueService = new RedisQueueService();
         const consultationRoomService = new RedisConsultationRoomService();
 
@@ -252,16 +244,12 @@ export class CompositionRoot {
         const consultationRepository = new ConsultationRepository(prisma, consultationMapper, dateTimeService);
         const consultationSessionRepository = new ConsultationSessionRepository(prisma);
         const appointmentRepository = new AppointmentRepository(prisma, appointmentMapper, dateTimeService);
-<<<<<<< HEAD
         const consultationAccessPolicy = new ConsultationAccessPolicy(
             appointmentRepository,
             consultationSessionRepository,
             dateTimeService
         );
-        const appointmentCleanupService = new AppointmentCleanupService(appointmentRepository);
-=======
         const appointmentCleanupService = new AppointmentCleanupService(appointmentRepository, lockService);
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
         const leaveRepository = new DoctorLeaveRepository(prisma);
         const notificationRepository = new NotificationRepository(prisma, notificationMapper);
         const paymentRepository = new PaymentRepository(prisma);

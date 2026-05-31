@@ -208,10 +208,6 @@ export class AppointmentMapper {
                 amount: prismaApp.payment.amount,
                 status: prismaApp.payment.status,
                 paymentMethod: prismaApp.payment.paymentMethod,
-<<<<<<< HEAD
-                transactionId: (prismaApp.payment as any).razorpayPaymentId || (prismaApp.payment as any).stripeSessionId || (prismaApp.payment as any).paypalOrderId
-            } : undefined
-=======
                 transactionId: prismaApp.payment.razorpayPaymentId || prismaApp.payment.stripeSessionId || prismaApp.payment.paypalOrderId || prismaApp.payment.id
             } : undefined,
             consultation: prismaApp.consultation ? {
@@ -242,7 +238,6 @@ export class AppointmentMapper {
                     })),
                 } : null,
             } : null,
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
         };
     }
 

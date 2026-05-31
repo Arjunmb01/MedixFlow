@@ -25,7 +25,6 @@ app.use(
 );
 app.use(cookieParser());
 
-<<<<<<< HEAD
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
@@ -58,10 +57,6 @@ app.use("/api", (_req, res, next) => {
     });
     return;
   }
-=======
-app.post("/api/payments/webhook/stripe", express.raw({ type: 'application/json' }), (req, res, next) => {
-  (req as any).rawBody = req.body;
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
   next();
 });
 

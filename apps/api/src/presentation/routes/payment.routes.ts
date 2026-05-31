@@ -16,48 +16,5 @@ export default function createPaymentRoutes(): Router {
   router.get("/verify/paypal/:orderId", paymentController.verifyPayPalPayment.bind(paymentController));
   router.post("/verify/razorpay", paymentController.verifyRazorpayPayment.bind(paymentController));
 
-<<<<<<< HEAD
   return router;
 }
-=======
-// Stripe Webhook
-router.post(
-  "/webhook/stripe",
-  paymentController.handleStripeWebhook.bind(paymentController)
-);
-
-router.post(
-  "/webhook/paypal",
-  paymentController.handlePayPalWebhook.bind(paymentController)
-);
-
-// Protected routes
-router.use(auth.authenticatePatient);
-
-router.post(
-    "/simulate",
-    paymentController.simulatePayment.bind(paymentController)
-);
-
-router.post(
-    "/retry",
-    paymentController.retryPayment.bind(paymentController)
-);
-
-router.get(
-    "/verify/stripe/:sessionId",
-    paymentController.verifyStripePayment.bind(paymentController)
-);
-
-router.get(
-    "/verify/paypal/:orderId",
-    paymentController.verifyPayPalPayment.bind(paymentController)
-);
-
-router.post(
-    "/verify/razorpay",
-    paymentController.verifyRazorpayPayment.bind(paymentController)
-);
-
-export default router;
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909

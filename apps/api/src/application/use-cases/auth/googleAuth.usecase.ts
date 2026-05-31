@@ -45,11 +45,7 @@ export class GoogleAuthUseCase {
     const accessToken = this.tokenService.generateAccessToken(user.id, user.role as UserRole, user.email, sessionId);
     const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as UserRole, user.email, sessionId);
 
-<<<<<<< HEAD
-    await this.sessionService.saveSession(user.id, user.role as UserRole, refreshToken);
-=======
     await this.sessionService.saveSession(user.id, user.role as UserRole, refreshToken, sessionId);
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
     return { 
       accessToken, 

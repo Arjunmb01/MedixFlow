@@ -9,6 +9,9 @@ export interface PatientDashboardStats {
         slotStart: string;
         doctorName: string;
         specialty: string;
+        consultationType?: "VIDEO" | "CLINIC";
+        hasConsultation?: boolean;
+        status?: string;
     } | null;
     recentAppointments?: Array<{
         id: string;

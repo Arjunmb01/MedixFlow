@@ -3,14 +3,8 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import Sidebar from "../components/dashboard/Sidebar";
 import TopNav from "../components/dashboard/TopNav";
 import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile";
-<<<<<<< HEAD
-import { getPatientAppointments } from "@/infrastructure/api/patient.api";
-import { getLabTests, uploadLabTest } from "@/infrastructure/api/consultation.api";
-import { generatePrescriptionPdfBlob } from "../utils/generatePrescriptionPdf";
-=======
 import { getLabTests, uploadLabTest, generateConsultationPDF } from "@/infrastructure/api/consultation.api";
 import { getAppointmentById } from "@/infrastructure/api/appointment.api";
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 import { toast } from "sonner";
 import {
     ArrowLeft,
@@ -117,42 +111,7 @@ export default function PrescriptionDetail() {
 
     useEffect(() => {
         if (!loading && data && searchParams.get("download") === "true") {
-<<<<<<< HEAD
-            const triggerAutoDownload = async () => {
-                try {
-                    setIsDownloading(true);
-                    const rx = data.consultation.prescription!;
-                    const prescriptionId = `RX-${new Date(data.appointmentDate).getFullYear()}-${rx.id.slice(0, 4).toUpperCase()}`;
-                    
-                    const { default: PrescriptionPDF } = await import(
-                        "../components/prescription/PrescriptionPDF"
-                    );
-                    const blob = await generatePrescriptionPdfBlob(
-                        <PrescriptionPDF
-                            data={data}
-                            profile={profile}
-                            prescriptionId={prescriptionId}
-                        />
-                    );
-                    
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `Prescription-${prescriptionId}.pdf`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-                    toast.success("Prescription downloaded successfully");
-                } catch (error) {
-                    console.error("Auto-download failed:", error);
-                } finally {
-                    setIsDownloading(false);
-                }
-            };
-            
-            triggerAutoDownload();
-=======
             handleDownloadOfficialReport();
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
         }
     }, [loading, data, searchParams]);
 
@@ -251,26 +210,6 @@ export default function PrescriptionDetail() {
             setIsDownloading(true);
             const response = await generateConsultationPDF(data.consultation.id, "patient");
             
-<<<<<<< HEAD
-            const { default: PrescriptionPDF } = await import(
-                "../components/prescription/PrescriptionPDF"
-            );
-            const blob = await generatePrescriptionPdfBlob(
-                <PrescriptionPDF
-                    data={data}
-                    profile={profile}
-                    prescriptionId={prescriptionId}
-                />
-            );
-            
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Prescription-${prescriptionId}.pdf`;
-            link.click();
-            URL.revokeObjectURL(url);
-            toast.success("Prescription downloaded successfully");
-=======
             if (response.pdfUrl) {
                 const link = document.createElement("a");
                 link.href = response.pdfUrl;
@@ -280,7 +219,6 @@ export default function PrescriptionDetail() {
                 document.body.removeChild(link);
                 toast.success("Official Clinical Report downloaded successfully");
             }
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
         } catch (error) {
             console.error("Official report generation failed:", error);
             toast.error("Failed to download official report.");

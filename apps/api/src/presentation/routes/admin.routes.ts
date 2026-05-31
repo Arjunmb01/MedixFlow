@@ -8,12 +8,8 @@ export default function createAdminRoutes(): Router {
     authMiddleware: auth,
   } = getContainer();
 
-<<<<<<< HEAD
   const router = Router();
   router.use(auth.authenticateAdmin);
-=======
-router.use(auth.authenticateAdmin);
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
   router.get("/patients", adminController.getAllPatients);
   router.get("/patients/:id", adminController.getPatientById);

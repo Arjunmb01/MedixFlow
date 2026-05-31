@@ -44,11 +44,7 @@ export class PaymentController {
         limit: validatedQuery.limit,
         search: validatedQuery.search,
         sortBy: validatedQuery.sortBy,
-<<<<<<< HEAD
-        sortOrder: validatedQuery.sortOrder
-=======
-        sortOrder: (validatedQuery.sortOrder || 'desc') as any
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
+        sortOrder: validatedQuery.sortOrder || 'desc'
       });
       res.status(StatusCode.OK).json(result);
     } catch (error: any) {
@@ -158,32 +154,19 @@ export class PaymentController {
 
   async getFinancialActivity(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-<<<<<<< HEAD
-      const patientId = (req as any).user.id;
-=======
       const patientId = req.user.id;
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
       const validatedQuery = getFinancialActivityQuerySchema.parse(req.query);
       
       const result = await this.getFinancialActivityUseCase.execute(patientId, { 
         page: validatedQuery.page, 
         limit: validatedQuery.limit, 
         search: validatedQuery.search, 
-<<<<<<< HEAD
         status: validatedQuery.status,
         startDate: validatedQuery.startDate,
         endDate: validatedQuery.endDate,
         method: validatedQuery.method,
         sortBy: validatedQuery.sortBy,
-        sortOrder: validatedQuery.sortOrder
-=======
-        status: validatedQuery.status as any,
-        startDate: validatedQuery.startDate,
-        endDate: validatedQuery.endDate,
-        method: validatedQuery.method as any,
-        sortBy: validatedQuery.sortBy,
-        sortOrder: (validatedQuery.sortOrder || 'desc') as any
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
+        sortOrder: validatedQuery.sortOrder || 'desc'
       });
       res.status(StatusCode.OK).json(result);
     } catch (error: any) {

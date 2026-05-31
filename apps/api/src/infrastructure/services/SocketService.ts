@@ -40,7 +40,10 @@ export class SocketService {
   }
 
   emitToUser(userId: string, event: string, data: unknown) {
-    this.io?.to(userId).emit(event, data);
+    if (this.io) {
+      this.io.to(userId).emit(event, data);
+      console.log(`[SocketService] Event '${event}' emitted to user=${userId}`);
+    }
   }
 
   sendNotification(userId: string, data: unknown) {
@@ -71,13 +74,6 @@ export class SocketService {
   emitStatusChanged(userId: string, appointmentId: string, status: string) {
     if (this.io) {
       this.io.to(userId).emit("appointment_status_changed", { appointmentId, status });
-    }
-  }
-
-  emitToUser(userId: string, event: string, data: any) {
-    if (this.io) {
-      this.io.to(userId).emit(event, data);
-      console.log(`[SocketService] Event '${event}' emitted to user=${userId}`);
     }
   }
 }

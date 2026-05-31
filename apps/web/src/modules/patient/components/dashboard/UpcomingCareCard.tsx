@@ -1,11 +1,6 @@
-<<<<<<< HEAD
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, Clock, MapPin, X, Loader2, CheckCircle, Video } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-=======
-import { useState, useEffect } from "react";
-import { Calendar, Clock, MapPin, X, Loader2, CheckCircle } from "lucide-react"
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 import { cancelAppointment } from "@/infrastructure/api/patient.api"
 import { checkIn } from "@/infrastructure/api/consultation.api"
 
@@ -14,11 +9,8 @@ interface Appointment {
     doctorName: string;
     date: string | Date;
     slotStart: string;
-<<<<<<< HEAD
     consultationType?: "VIDEO" | "CLINIC";
-=======
     hasConsultation?: boolean;
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 }
 
 interface Props {
@@ -187,7 +179,6 @@ export default function UpcomingCareCard({ appointment }: Props) {
                 </div>
             </div>
 
-            {/* Cancellation Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-50 flex items-center justify-center p-6">
                     <div className="bg-white rounded-[40px] p-10 max-w-lg w-full shadow-[0_40px_100px_rgba(0,0,0,0.3)] animate-in zoom-in-95 duration-300">
@@ -216,7 +207,6 @@ export default function UpcomingCareCard({ appointment }: Props) {
                                     />
                                 </div>
 
-                                {/* Refund Preference Toggle */}
                                 <div className="p-6 bg-emerald-50 rounded-[2rem] border border-emerald-100/50">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">

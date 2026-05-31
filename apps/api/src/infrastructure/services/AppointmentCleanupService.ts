@@ -1,11 +1,7 @@
 import cron from "node-cron";
 import { IAppointmentRepository } from "../../domain/repositories/IAppointmentRepository";
-<<<<<<< HEAD
 import { env } from "@/shared/config/env";
-=======
-import { socketService } from "./SocketService";
 import { ILockService } from "@/application/interfaces/ILockService";
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
 export class AppointmentCleanupService {
     constructor(

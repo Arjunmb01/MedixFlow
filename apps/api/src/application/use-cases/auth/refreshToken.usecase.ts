@@ -28,11 +28,7 @@ export class RefreshTokenUseCase {
       throw new Error(MESSAGES.INVALID_ROLE_SESSION);
     }
 
-<<<<<<< HEAD
-    const storedToken = await this.sessionService.getSession(userId, expectedRole);
-=======
     const storedToken = await this.sessionService.getSession(userId, expectedRole, sessionId);
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
     if (!storedToken || storedToken !== refreshToken) {
       throw new Error(MESSAGES.SESSION_EXPIRED);
     }
@@ -40,21 +36,13 @@ export class RefreshTokenUseCase {
     // Check if user is blocked/inactive using IAuthRepository
     const result = await this.authRepository.findUserById(userId);
     if (!result) {
-<<<<<<< HEAD
-      await this.sessionService.deleteSession(userId, expectedRole);
-=======
       await this.sessionService.deleteSession(userId, expectedRole, sessionId);
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
       throw new Error(MESSAGES.ACCOUNT_BLOCKED);
     }
 
     const { user, patientId } = result;
     if (user.status === "INACTIVE" || user.status === "SUSPENDED") {
-<<<<<<< HEAD
-      await this.sessionService.deleteSession(userId, expectedRole);
-=======
       await this.sessionService.deleteSession(userId, expectedRole, sessionId);
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
       throw new Error(MESSAGES.ACCOUNT_BLOCKED);
     }
 

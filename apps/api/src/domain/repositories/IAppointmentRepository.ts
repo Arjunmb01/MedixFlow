@@ -126,8 +126,6 @@ export interface AppointmentWithDoctorAndPatient extends AppointmentRecord {
     paymentMethod: string;
     transactionId?: string;
   };
-<<<<<<< HEAD
-=======
   consultation?: {
     id: string;
     status: string;
@@ -156,7 +154,6 @@ export interface AppointmentWithDoctorAndPatient extends AppointmentRecord {
       }>;
     } | null;
   } | null;
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 }
 
 
@@ -262,10 +259,7 @@ export interface IAppointmentRepository {
   findActiveBookingByPatient(patientId: string, date: Date, doctorId?: string, slotStart?: string): Promise<AppointmentRecord | null>;
 
   getAppointmentsByPatientId(patientId: string, filter?: DoctorAppointmentFilter): Promise<PaginatedResponse<AppointmentWithConsultation>>;
-<<<<<<< HEAD
   getPatientDashboardSummary(patientId: string): Promise<PatientDashboardSummary>;
-=======
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
   findById(id: string): Promise<AppointmentWithDoctorAndPatient | null>;
   cancelAppointment(id: string, reason: string): Promise<AppointmentRecord>;
   rescheduleAppointment(id: string, appointmentDate: Date, slotStart: string, slotEnd: string): Promise<AppointmentRecord>;

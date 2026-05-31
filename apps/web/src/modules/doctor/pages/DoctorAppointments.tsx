@@ -25,10 +25,12 @@ import { useNavigate } from "react-router-dom";
 import Badge from "../../patient/components/ui/Badge";
 import { RescheduleModal } from "@/modules/shared/components/RescheduleModal";
 import type { Appointment } from "@/domain/appointment/types";
-<<<<<<< HEAD
 import { canJoinVideoConsultation } from "@/application/consultation/utils/videoWindow";
-=======
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
+
+type PrescriptionPreview = {
+    medicines?: Array<{ name: string; dosage: string; frequency: string; duration: string }>;
+    instructions?: string | null;
+};
 
 export default function DoctorAppointments() {
     const navigate = useNavigate();
@@ -41,13 +43,8 @@ export default function DoctorAppointments() {
     const [sortBy, setSortBy] = useState("appointmentDate");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
     const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
-<<<<<<< HEAD
-    const [selectedPrescription, setSelectedPrescription] = useState<Appointment | null>(null);
+    const [selectedPrescription, setSelectedPrescription] = useState<PrescriptionPreview | null>(null);
     const [rescheduleApt, setRescheduleApt] = useState<Appointment | null>(null);
-=======
-    const [selectedPrescription, setSelectedPrescription] = useState<any | null>(null);
-    const [rescheduleApt, setRescheduleApt] = useState<any | null>(null);
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
     const apiFilters = {
         status: (statusFilter === "ALL" || statusFilter === "UPCOMING") ? undefined : statusFilter,

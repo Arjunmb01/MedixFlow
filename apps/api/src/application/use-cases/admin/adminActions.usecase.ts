@@ -15,11 +15,7 @@ export class ToggleBlockPatientUseCase {
     const result = await this.patientRepository.toggleBlock(id, status);
 
     if (status === UserStatus.SUSPENDED || status === UserStatus.INACTIVE) {
-<<<<<<< HEAD
-        await this.sessionService.deleteSession(id, UserRole.PATIENT);
-=======
         await this.sessionService.deleteAllSessions(id, UserRole.PATIENT);
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
     }
 
     return result;

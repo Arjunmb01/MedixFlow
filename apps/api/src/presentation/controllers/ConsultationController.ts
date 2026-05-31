@@ -105,8 +105,6 @@ export class ConsultationController {
         }
     }
 
-<<<<<<< HEAD
-=======
     saveDraft = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const { id } = consultationIdSchema.parse(req.params);
@@ -167,7 +165,6 @@ export class ConsultationController {
         }
     }
 
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
     getDetails = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const doctorId = req.user.id;

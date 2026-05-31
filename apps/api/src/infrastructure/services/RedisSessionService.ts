@@ -7,28 +7,6 @@ export class RedisSessionService implements ISessionService {
 
   constructor(private readonly redisClient: IRedisClient) {}
 
-<<<<<<< HEAD
-  private getSessionKey(userId: string, role: UserRole): string {
-    return `session:${role.toLowerCase()}:${userId}`;
-  }
-
-  async saveSession(userId: string, role: UserRole, refreshToken: string) {
-    await this.redisClient.set(this.getSessionKey(userId, role), refreshToken, {
-      EX: 60 * 60 * 24 * 7
-    });
-  }
-
-  async getSession(userId: string, role: UserRole) {
-    return this.redisClient.get(this.getSessionKey(userId, role));
-  }
-
-  async deleteSession(userId: string, role: UserRole) {
-    await this.redisClient.del(this.getSessionKey(userId, role));
-  }
-
-  async verifySession(userId: string, role: UserRole, refreshToken: string) {
-    const storedToken = await this.getSession(userId, role);
-=======
   private getSessionKey(userId: string, role: UserRole, sessionId: string): string {
     return `session:${role.toLowerCase()}:${userId}:${sessionId}`;
   }
@@ -46,7 +24,6 @@ export class RedisSessionService implements ISessionService {
       this.redisClient.sAdd(userSessionsKey, sessionId),
     ]);
     
-    // Set expiry on the set as well to cleanup eventually
     await this.redisClient.expire(userSessionsKey, this.TTL + 3600);
   }
 
@@ -80,8 +57,6 @@ export class RedisSessionService implements ISessionService {
 
   async verifySession(userId: string, role: UserRole, sessionId: string, refreshToken: string) {
     const storedToken = await this.getSession(userId, role, sessionId);
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
     return storedToken === refreshToken;
   }
 }
-

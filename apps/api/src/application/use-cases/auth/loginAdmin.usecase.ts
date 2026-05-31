@@ -31,16 +31,10 @@ export class LoginAdminUseCase {
     const valid = await this.passwordHasher.compare(data.password, user.passwordHash);
     if (!valid) throw new Error(MESSAGES.LOGIN_FAILED);
 
-<<<<<<< HEAD
-    const accessToken = this.tokenService.generateAccessToken(user.id, user.role as UserRole, user.email);
-    const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as UserRole, user.email);
-    await this.sessionService.saveSession(user.id, user.role as UserRole, refreshToken);
-=======
     const sessionId = uuidv4();
     const accessToken = this.tokenService.generateAccessToken(user.id, user.role as UserRole, user.email, sessionId);
     const refreshToken = this.tokenService.generateRefreshToken(user.id, user.role as UserRole, user.email, sessionId);
     await this.sessionService.saveSession(user.id, user.role as UserRole, refreshToken, sessionId);
->>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
     return { 
       accessToken, 
