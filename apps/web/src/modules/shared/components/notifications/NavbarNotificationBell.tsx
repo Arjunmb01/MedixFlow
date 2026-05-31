@@ -86,9 +86,19 @@ const NavbarNotificationBell: React.FC = () => {
                       <div className="flex items-center gap-1 mt-2 text-[10px] text-gray-400">
                         <Clock size={10} />
                         <span>
+<<<<<<< HEAD
                           {formatDistanceToNow(new Date(notification.createdAt), {
                             addSuffix: true,
                           })}
+=======
+                          {(() => {
+                            try {
+                              return formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true });
+                            } catch (e) {
+                              return "some time ago";
+                            }
+                          })()}
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
                         </span>
                       </div>
                     </div>

@@ -14,7 +14,7 @@ export class GetDoctorDashboardStatsUseCase {
     // Sort logic moved from repository to Use Case (SRP)
     const sortedTodayAppointments = raw.todayAppointments
         .sort((a, b) => {
-            const getStatusPriority = (apt: any) => {
+            const getStatusPriority = (apt: typeof sortedTodayAppointments[0]) => {
                 if (apt.consultation?.status === "IN_PROGRESS") return 3;
                 if (apt.consultation?.status === "WAITING") return 2;
                 if (apt.consultation?.status === "COMPLETED") return 1;
@@ -53,8 +53,8 @@ export class GetDoctorDashboardStatsUseCase {
             consultationType: (apt as { consultationType?: "VIDEO" | "CLINIC" }).consultationType ?? "CLINIC",
         })),
         todayAppointmentsCount: raw.todayAppointments.length,
-        pendingToday: raw.todayAppointments.filter((a: any) => ["PENDING", "BOOKED"].includes(a.status)).length,
-        completedToday: raw.todayAppointments.filter((a: any) => a.status === "COMPLETED").length,
+        pendingToday: raw.todayAppointments.filter(a => ["PENDING", "BOOKED"].includes(a.status)).length,
+        completedToday: raw.todayAppointments.filter(a => a.status === "COMPLETED").length,
         totalEarnings: raw.totalEarnings,
         dashboardDate: raw.dashboardDate
     };

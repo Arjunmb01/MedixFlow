@@ -34,6 +34,7 @@ export class SystemDateTimeService implements IDateTimeService {
     return diff <= 30 && diff >= -10;
   }
 
+<<<<<<< HEAD
   /** Video join window: 15 min before slot start through 60 min after slot end. */
   isWithinVideoConsultationWindow(
     date: Date,
@@ -46,5 +47,24 @@ export class SystemDateTimeService implements IDateTimeService {
     const minutesBeforeStart = (start.getTime() - now.getTime()) / (1000 * 60);
     const minutesAfterEnd = (now.getTime() - end.getTime()) / (1000 * 60);
     return minutesBeforeStart <= 15 && minutesAfterEnd <= 60;
+=======
+  getDaysDifference(date1: Date, date2: Date): number {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    d1.setUTCHours(0, 0, 0, 0);
+    d2.setUTCHours(0, 0, 0, 0);
+    const diffTime = Math.abs(d2.getTime() - d1.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  addDays(date: Date, days: number): Date {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  }
+
+  combineDateAndTimeString(date: Date, time: string): Date {
+    return this.toDateTime(date, time);
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
   }
 }

@@ -83,8 +83,13 @@ export class PatientAuthController {
 
     logout = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
+<<<<<<< HEAD
             const userId = req.user.id;
             await this.logoutUseCase.execute(userId, UserRole.PATIENT);
+=======
+            const { id: userId, sessionId } = req.user;
+            await this.logoutUseCase.execute(userId, UserRole.PATIENT, sessionId);
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
             res.clearCookie(AUTH_COOKIES.PATIENT.ACCESS);
             res.clearCookie(AUTH_COOKIES.PATIENT.REFRESH);

@@ -17,6 +17,7 @@ export class NotificationRepository implements INotificationRepository {
         title: data.title,
         message: data.message,
         type: data.type,
+        metadata: data.metadata || undefined,
       },
     });
     return this.mapper.toRecord(result);

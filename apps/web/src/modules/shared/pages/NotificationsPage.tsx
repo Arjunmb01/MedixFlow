@@ -70,7 +70,15 @@ const NotificationsPage: React.FC = () => {
                       </h4>
                       <div className="flex items-center gap-1 text-[11px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">
                         <Clock size={12} />
-                        <span>{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}</span>
+                        <span>
+                          {(() => {
+                            try {
+                              return formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true });
+                            } catch (e) {
+                              return "some time ago";
+                            }
+                          })()}
+                        </span>
                       </div>
                     </div>
                     <p className={`mt-2 text-sm leading-relaxed ${!notification.isRead ? "text-gray-700 font-medium" : "text-gray-400 font-normal"}`}>

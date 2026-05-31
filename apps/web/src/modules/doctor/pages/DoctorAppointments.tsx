@@ -25,7 +25,10 @@ import { useNavigate } from "react-router-dom";
 import Badge from "../../patient/components/ui/Badge";
 import { RescheduleModal } from "@/modules/shared/components/RescheduleModal";
 import type { Appointment } from "@/domain/appointment/types";
+<<<<<<< HEAD
 import { canJoinVideoConsultation } from "@/application/consultation/utils/videoWindow";
+=======
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
 export default function DoctorAppointments() {
     const navigate = useNavigate();
@@ -38,8 +41,13 @@ export default function DoctorAppointments() {
     const [sortBy, setSortBy] = useState("appointmentDate");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
     const [selectedApt, setSelectedApt] = useState<Appointment | null>(null);
+<<<<<<< HEAD
     const [selectedPrescription, setSelectedPrescription] = useState<Appointment | null>(null);
     const [rescheduleApt, setRescheduleApt] = useState<Appointment | null>(null);
+=======
+    const [selectedPrescription, setSelectedPrescription] = useState<any | null>(null);
+    const [rescheduleApt, setRescheduleApt] = useState<any | null>(null);
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
     const apiFilters = {
         status: (statusFilter === "ALL" || statusFilter === "UPCOMING") ? undefined : statusFilter,
@@ -468,8 +476,8 @@ export default function DoctorAppointments() {
             {rescheduleApt && (
                 <RescheduleModal
                     appointmentId={rescheduleApt.id}
-                    patientId={rescheduleApt.patient?.id || rescheduleApt.patientId}
-                    doctorId={rescheduleApt.doctorId ?? rescheduleApt.doctor?.id}
+                    patientId={rescheduleApt.patient?.id || (rescheduleApt as any).patientId}
+                    doctorId={(rescheduleApt as any).doctorId ?? rescheduleApt.doctor?.id}
                     role="doctor"
                     onSuccess={refreshAppointments}
                     onClose={() => setRescheduleApt(null)}

@@ -25,7 +25,10 @@ import { getPatientAppointments, cancelAppointment } from "@/infrastructure/api/
 import Badge from "../components/ui/Badge";
 import { toast } from "sonner";
 import type { Appointment, PaginationMeta } from "@/domain/appointment/types";
+<<<<<<< HEAD
 import { canJoinVideoConsultation } from "@/application/consultation/utils/videoWindow";
+=======
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 import { RescheduleModal } from "@/modules/shared/components/RescheduleModal";
 
 const ITEMS_PER_PAGE = 4;
@@ -39,7 +42,11 @@ export default function PatientAppointments() {
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("UPCOMING");
     const [currentPage, setCurrentPage] = useState(1);
+<<<<<<< HEAD
     const [sortBy, setSortBy] = useState("appointmentDate");
+=======
+    const [sortBy, setSortBy] = useState("lastStatusChangedAt");
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
     const [meta, setMeta] = useState<PaginationMeta | null>(null);
     const [dateRange] = useState({ from: "", to: "" });
@@ -169,6 +176,10 @@ export default function PatientAppointments() {
                                 className="px-6 py-3.5 bg-white border border-[#E2E8F0] rounded-2xl text-sm font-bold text-[#475569] focus:outline-none focus:border-[#3B82F6] transition-all cursor-pointer shadow-sm appearance-none pr-10 relative"
                                 style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748B\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.25rem' }}
                             >
+<<<<<<< HEAD
+=======
+                                <option value="lastStatusChangedAt-desc">Latest Updates</option>
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
                                 <option value="appointmentDate-desc">Newest First</option>
                                 <option value="appointmentDate-asc">Oldest First</option>
                                 <option value="status-asc">Status (A-Z)</option>

@@ -28,7 +28,28 @@ export interface IDoctorStatsRepository {
         completedAppointments: number;
         pendingAppointments: number;
         uniquePatientsCount: number;
-        todayAppointments: any[];
+        todayAppointments: Array<{
+            id: string;
+            patientId: string;
+            patient: {
+                id: string;
+                patientId: string;
+                firstName: string;
+                lastName: string;
+                gender: string | null;
+            };
+            slotStart: string;
+            slotEnd: string;
+            status: string;
+            appointmentDate: Date;
+            doctorId: string;
+            createdAt: Date;
+            lastStatusChangedAt?: Date;
+            consultation?: {
+                id: string;
+                status: string;
+            };
+        }>;
         totalEarnings: number;
         dashboardDate: Date;
     }>;

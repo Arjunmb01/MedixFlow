@@ -9,7 +9,19 @@ export interface NotificationDTO {
   createdAt: string;
 }
 
-export const getNotifications = async (limit: number = 10, offset: number = 0): Promise<NotificationDTO[]> => {
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: PaginationMeta;
+}
+
+export const getNotifications = async (limit: number = 10, offset: number = 0): Promise<PaginatedResponse<NotificationDTO>> => {
   const { data } = await api.get("/notifications", {
     params: { limit, offset },
   });

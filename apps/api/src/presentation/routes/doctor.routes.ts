@@ -12,8 +12,12 @@ export default function createDoctorRoutes(): Router {
     authMiddleware: auth,
   } = getContainer();
 
+<<<<<<< HEAD
   const router = Router();
   router.use(auth.authenticateDoctor);
+=======
+router.use(auth.authenticateDoctor);
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
   router.get("/profile", profileController.getDoctorProfile);
   router.put("/profile", profileController.updateDoctorProfile);
@@ -25,6 +29,7 @@ export default function createDoctorRoutes(): Router {
   router.post("/leave/process", appointmentController.processLeave);
   router.put("/schedules", appointmentController.updateDoctorSchedules);
 
+<<<<<<< HEAD
   router.get("/consultations/queue", consultationController.getQueue);
   router.get("/consultations/patient-history", consultationController.getPatientHistory);
   router.patch("/consultations/:id/start", consultationController.start);
@@ -32,6 +37,24 @@ export default function createDoctorRoutes(): Router {
   router.get("/consultations/:id", consultationController.getDetails);
   router.post("/consultations/:id/lab-tests", consultationController.requestLabTest);
   router.get("/consultations/:id/lab-tests", consultationController.getLabTests);
+=======
+// Consultation routes (must be before /:doctorId wildcard)
+router.get("/consultations/queue", consultationController.getQueue);
+router.get("/consultations/patient-history", consultationController.getPatientHistory);
+router.patch("/consultations/:id/start", consultationController.start);
+router.patch("/consultations/:id/complete", consultationController.complete);
+router.get("/consultations/:id", consultationController.getDetails);
+router.post("/consultations/:id/lab-tests", consultationController.requestLabTest);
+router.get("/consultations/:id/lab-tests", consultationController.getLabTests);
+router.patch("/consultations/:id/lab-tests/:labTestId/review", consultationController.reviewLabTest);
+
+// New Workspace Routes
+router.post("/consultations/:id/draft", consultationController.saveDraft);
+router.get("/consultations/:id/draft", consultationController.getDraft);
+router.post("/consultations/:id/follow-up", consultationController.createFollowUp);
+router.post("/consultations/follow-ups/schedule", consultationController.scheduleFollowUp);
+router.get("/consultations/:id/pdf", consultationController.generatePDF);
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
   router.post("/video/appointments/:appointmentId/start", videoController.doctorStart);
   router.post("/video/sessions/:sessionId/admit", videoController.doctorAdmit);

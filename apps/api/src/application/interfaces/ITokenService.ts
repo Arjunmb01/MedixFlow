@@ -4,11 +4,12 @@ export interface TokenPayload {
   id: string;
   role: UserRole;
   email?: string;
+  sessionId: string;
 }
 
 export interface ITokenService {
-  generateAccessToken(userId: string, role: UserRole, email?: string): string;
-  generateRefreshToken(userId: string, role: UserRole, email?: string): string;
+  generateAccessToken(userId: string, role: UserRole, email?: string, sessionId?: string): string;
+  generateRefreshToken(userId: string, role: UserRole, email?: string, sessionId?: string): string;
   verifyAccessToken(token: string): TokenPayload;
   verifyRefreshToken(token: string): TokenPayload;
 }

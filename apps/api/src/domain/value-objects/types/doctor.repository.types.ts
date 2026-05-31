@@ -18,7 +18,7 @@ export interface DoctorProfile {
     schedules?: DoctorSchedule[];
 }
 
-export interface AppointmentPreview {
+export interface DoctorAppointmentPreview {
     id: string;
     patientId: string;
     patient: {
@@ -43,7 +43,7 @@ export interface DoctorDashboardStats {
     completedAppointments: number;
     pendingAppointments: number;
     totalPatients: number;
-    todayAppointments: AppointmentPreview[];
+    todayAppointments: DoctorAppointmentPreview[];
     todayAppointmentsCount: number;
     pendingToday: number;
     completedToday: number;

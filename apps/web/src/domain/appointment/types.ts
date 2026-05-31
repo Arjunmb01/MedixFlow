@@ -4,7 +4,10 @@ export interface Appointment {
     slotStart: string;
     slotEnd: string;
     status: "PENDING" | "BOOKED" | "COMPLETED" | "CANCELLED" | "NOT_ATTENDED";
+<<<<<<< HEAD
     consultationType?: "VIDEO" | "CLINIC";
+=======
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
     patient: {
         id: string;
         patientId: string;

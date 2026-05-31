@@ -9,6 +9,8 @@ export enum NotificationType {
   RESCHEDULE_PROPOSAL = "RESCHEDULE_PROPOSAL",
   DOCTOR_UNAVAILABLE = "DOCTOR_UNAVAILABLE",
   REASSIGNED = "REASSIGNED",
+  FOLLOW_UP_SCHEDULED = "FOLLOW_UP_SCHEDULED",
+  LAB_REPORT_UPLOADED = "LAB_REPORT_UPLOADED",
 }
 
 export interface NotificationRecord {
@@ -18,6 +20,7 @@ export interface NotificationRecord {
   message: string;
   type: NotificationType;
   isRead: boolean;
+  metadata?: any;
   createdAt: Date;
 }
 
@@ -26,4 +29,5 @@ export interface CreateNotificationInput {
   title: string;
   message: string;
   type: NotificationType;
+  metadata?: any;
 }

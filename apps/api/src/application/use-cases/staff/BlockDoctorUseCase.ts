@@ -19,7 +19,11 @@ export class BlockDoctorUseCase {
         await this.staffRepository.blockDoctor(id, status);
         
         if (status === UserStatus.SUSPENDED || status === UserStatus.INACTIVE) {
+<<<<<<< HEAD
             await this.sessionService.deleteSession(id, UserRole.DOCTOR);
+=======
+            await this.sessionService.deleteAllSessions(id, UserRole.DOCTOR);
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
         }
     }
 }

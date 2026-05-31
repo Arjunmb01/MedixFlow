@@ -22,6 +22,7 @@ export class DoctorAuthController {
     login = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const validatedData = loginSchema.parse(req.body);
+            console.log("Validate Data :  ",validatedData)
             const result = await this.loginDoctorUseCase.execute(validatedData);
 
             const { accessToken, refreshToken } = result;
@@ -55,8 +56,13 @@ export class DoctorAuthController {
 
     logout = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
+<<<<<<< HEAD
             const userId = req.user.id;
             await this.logoutUseCase.execute(userId, UserRole.DOCTOR);
+=======
+            const { id: userId, sessionId } = req.user;
+            await this.logoutUseCase.execute(userId, UserRole.DOCTOR, sessionId);
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 
             res.clearCookie(AUTH_COOKIES.DOCTOR.ACCESS);
             res.clearCookie(AUTH_COOKIES.DOCTOR.REFRESH);

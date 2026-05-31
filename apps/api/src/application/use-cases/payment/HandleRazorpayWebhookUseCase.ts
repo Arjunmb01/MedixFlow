@@ -9,6 +9,28 @@ import { TransactionType } from "../../../domain/value-objects/enums/Transaction
 import { NotificationType } from "../../../domain/value-objects/types/notification.types";
 import { IQueueService } from "../../../domain/services/IQueueService";
 import { SocketService } from "../../../infrastructure/services/SocketService";
+import { ConfirmPaymentUseCase } from "./confirmPayment.usecase";
+
+interface RazorpayWebhookPayload {
+  event: string;
+  payload: {
+    order?: {
+      entity: {
+        id: string;
+        amount: number;
+        notes?: Record<string, any>;
+      };
+    };
+    payment?: {
+      entity: {
+        id: string;
+        amount: number;
+        order_id: string;
+        notes?: Record<string, any>;
+      };
+    };
+  };
+}
 
 export class HandleRazorpayWebhookUseCase {
   constructor(
@@ -18,10 +40,11 @@ export class HandleRazorpayWebhookUseCase {
     private readonly appointmentRepo: IAppointmentRepository,
     private readonly sendNotificationUseCase: SendNotificationUseCase,
     private readonly queueService: IQueueService,
-    private readonly socketService: SocketService
+    private readonly socketService: SocketService,
+    private readonly confirmPaymentUseCase: ConfirmPaymentUseCase
   ) {}
 
-  async execute(signature: string, payload: any, rawBody: string, webhookSecret: string): Promise<void> {
+  async execute(signature: string, payload: RazorpayWebhookPayload, rawBody: string, webhookSecret: string): Promise<void> {
     const isValid = this.razorpayService.verifyWebhookSignature(rawBody, signature, webhookSecret);
 
     if (!isValid) {
@@ -44,7 +67,12 @@ export class HandleRazorpayWebhookUseCase {
         return;
       }
 
-      const amount = (payment?.amount || order?.amount) / 100;
+      const rawAmount = payment?.amount ?? order?.amount;
+      if (rawAmount === undefined) {
+          console.error("No amount found in Razorpay webhook payload");
+          return;
+      }
+      const amount = rawAmount / 100;
 
       if (type === "TOP_UP") {
         console.log(`[Webhook] Processing TOP_UP for patient ${patientId}, amount: ${amount}`);
@@ -89,7 +117,13 @@ export class HandleRazorpayWebhookUseCase {
         return;
       }
 
-      const paymentRecord = await this.paymentRepo.findByOrderId(order?.id || payment?.order_id);
+      const orderId = order?.id || payment?.order_id;
+      if (!orderId) {
+          console.error("No orderId found in Razorpay webhook payload");
+          return;
+      }
+
+      const paymentRecord = await this.paymentRepo.findByOrderId(orderId);
       if (!paymentRecord) {
         console.error(`Payment record not found for order ${order?.id || payment?.order_id}`);
         return;
@@ -100,36 +134,22 @@ export class HandleRazorpayWebhookUseCase {
         return;
       }
 
-      await this.paymentRepo.updateStatus(paymentRecord.id, PaymentStatus.PAID, { 
-        razorpayPaymentId, 
-        razorpaySignature 
+      console.log(`[Webhook] Confirming payment ${paymentRecord.id} via ConfirmPaymentUseCase`);
+      await this.confirmPaymentUseCase.execute({
+        paymentId: paymentRecord.id,
+        gatewayData: {
+          razorpayPaymentId,
+          razorpaySignature
+        }
       });
-
-      await this.appointmentRepo.updateStatus(appointmentId, AppointmentStatus.BOOKED);
-      
-      const appointment = await this.appointmentRepo.findById(appointmentId);
-      if (appointment) {
-        // Assign Queue Number
-        const queueNumber = await this.queueService.addToQueue(appointment.doctorId, appointment.appointmentDate, appointmentId);
-        await this.appointmentRepo.updateQueuePosition(appointmentId, queueNumber);
-
-        // Notify via Sockets
-        this.socketService.emitAppointmentBooked(appointment.doctorId, { ...appointment, queueNumber, status: AppointmentStatus.BOOKED });
-        const fullQueue = await this.appointmentRepo.getTodaysQueue(appointment.doctorId);
-        this.socketService.emitQueueUpdated(appointment.doctorId, appointment.appointmentDate, fullQueue);
-        await this.sendNotificationUseCase.execute({
-          recipientId: appointment.doctorId,
-          title: "New Appointment BOOKED",
-          message: `Appointment for ${appointment.appointmentDate.toLocaleDateString()} at ${appointment.slotStart} has been BOOKED.`,
-          type: NotificationType.BOOKED,
-        });
-
-        await this.sendNotificationUseCase.execute({
-          recipientId: appointment.patientId,
-          title: "Booking BOOKED",
-          message: `Your payment was successful. Your appointment for ${appointment.appointmentDate.toLocaleDateString()} at ${appointment.slotStart} is now BOOKED.`,
-          type: NotificationType.BOOKED,
-        });
+    } else if (event === "payment.failed") {
+      const payment = payload.payload.payment?.entity;
+      const orderId = payment?.order_id;
+      if (orderId) {
+        const paymentRecord = await this.paymentRepo.findByOrderId(orderId);
+        if (paymentRecord && paymentRecord.status === PaymentStatus.PENDING) {
+          await this.paymentRepo.updateStatus(paymentRecord.id, PaymentStatus.FAILED);
+        }
       }
     } else if (event === "payment.failed") {
       const payment = payload.payload.payment?.entity;

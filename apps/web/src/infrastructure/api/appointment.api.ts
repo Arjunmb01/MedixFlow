@@ -92,3 +92,7 @@ export const checkRescheduleConflict = async (params: {
     const { data } = await api.get("/appointments/check-conflict", { params });
     return data.data;
 };
+export const getAppointmentById = async (id: string) => {
+    const { data } = await api.get(`/appointments/${id}`);
+    return data.data;
+};

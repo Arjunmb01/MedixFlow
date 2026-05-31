@@ -5,17 +5,17 @@ import { UserRole } from "@/domain/value-objects/enums/UserRole";
 export class JwtTokenService implements ITokenService {
     constructor(private readonly config: { JWT_ACCESS_SECRET: string; JWT_REFRESH_SECRET: string }) {}
 
-    generateAccessToken(userId: string, role: UserRole, email?: string): string {
+    generateAccessToken(userId: string, role: UserRole, email?: string, sessionId?: string): string {
         return jwt.sign(
-            { id: userId, role, email },
+            { id: userId, role, email, sessionId },
             this.config.JWT_ACCESS_SECRET,
             { expiresIn: "1h" }
         );
     }
 
-    generateRefreshToken(userId: string, role: UserRole, email?: string): string {
+    generateRefreshToken(userId: string, role: UserRole, email?: string, sessionId?: string): string {
         return jwt.sign(
-            { id: userId, role, email },
+            { id: userId, role, email, sessionId },
             this.config.JWT_REFRESH_SECRET,
             { expiresIn: "7d" }
         );

@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
+import { AuthenticatedRequest } from "@/shared/middlewares/auth.middleware";
 import { HandleRazorpayWebhookUseCase } from "../../application/use-cases/payment/HandleRazorpayWebhookUseCase";
 import { GetWalletBalanceUseCase } from "../../application/use-cases/patient/GetWalletBalanceUseCase";
 import { CreateWalletTopUpUseCase } from "../../application/use-cases/patient/CreateWalletTopUpUseCase";
@@ -43,7 +44,11 @@ export class PaymentController {
         limit: validatedQuery.limit,
         search: validatedQuery.search,
         sortBy: validatedQuery.sortBy,
+<<<<<<< HEAD
         sortOrder: validatedQuery.sortOrder
+=======
+        sortOrder: (validatedQuery.sortOrder || 'desc') as any
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
       });
       res.status(StatusCode.OK).json(result);
     } catch (error: any) {
@@ -54,20 +59,21 @@ export class PaymentController {
   async handleWebhook(req: Request, res: Response): Promise<void> {
     const sig = req.headers["x-razorpay-signature"] as string;
     const payload = req.body;
-    const rawBody = (req as any).rawBody; 
+    const rawBody = (req as AuthenticatedRequest).rawBody; 
 
     try {
-      await this.handleWebhookUseCase.execute(sig, payload, rawBody, config.RAZORPAY_WEBHOOK_SECRET);
+      await this.handleWebhookUseCase.execute(sig, payload, rawBody || "", config.RAZORPAY_WEBHOOK_SECRET);
       res.status(StatusCode.OK).json({ received: true });
-    } catch (error: any) {
-      console.error("Razorpay Webhook Error:", error.message);
-      res.status(StatusCode.BAD_REQUEST).json({ message: error.message });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Bad Request";
+      console.error("Razorpay Webhook Error:", message);
+      res.status(StatusCode.BAD_REQUEST).json({ message });
     }
   }
 
   async handleStripeWebhook(req: Request, res: Response): Promise<void> {
     const sig = req.headers["stripe-signature"] as string;
-    const payload = (req as any).rawBody || req.body; // Stripe needs raw body for verification
+    const payload = (req as AuthenticatedRequest).rawBody || req.body; 
 
     try {
       await this.handleStripeWebhookUseCase.execute(payload, sig, config.STRIPE_WEBHOOK_SECRET);
@@ -91,9 +97,9 @@ export class PaymentController {
     }
   }
 
-  async getWalletBalance(req: Request, res: Response): Promise<void> {
+  async getWalletBalance(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const patientId = (req as any).user.id; // Assuming user is attached via middleware
+      const patientId = req.user.id; 
       const result = await this.getWalletBalanceUseCase.execute(patientId);
       res.status(StatusCode.OK).json(result);
     } catch (error: any) {
@@ -101,9 +107,9 @@ export class PaymentController {
     }
   }
 
-  async topUpWallet(req: Request, res: Response): Promise<void> {
+  async topUpWallet(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const patientId = (req as any).user.id;
+      const patientId = req.user.id;
       const { amount } = req.body;
 
       if (!amount || amount <= 0) {
@@ -114,7 +120,7 @@ export class PaymentController {
       const result = await this.topUpWalletUseCase.execute({
         patientId,
         amount,
-        customerEmail: (req as any).user.email
+        customerEmail: req.user.email
       });
 
       res.status(StatusCode.OK).json(result);
@@ -123,9 +129,9 @@ export class PaymentController {
     }
   }
 
-  async verifyWalletTopUp(req: Request, res: Response): Promise<void> {
+  async verifyWalletTopUp(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const patientId = (req as any).user.id;
+      const patientId = req.user.id;
       const { razorpayOrderId, razorpayPaymentId, razorpaySignature, amount } = req.body;
 
       if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature || !amount) {
@@ -150,21 +156,34 @@ export class PaymentController {
     }
   }
 
-  async getFinancialActivity(req: Request, res: Response): Promise<void> {
+  async getFinancialActivity(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
+<<<<<<< HEAD
       const patientId = (req as any).user.id;
+=======
+      const patientId = req.user.id;
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
       const validatedQuery = getFinancialActivityQuerySchema.parse(req.query);
       
       const result = await this.getFinancialActivityUseCase.execute(patientId, { 
         page: validatedQuery.page, 
         limit: validatedQuery.limit, 
         search: validatedQuery.search, 
+<<<<<<< HEAD
         status: validatedQuery.status,
         startDate: validatedQuery.startDate,
         endDate: validatedQuery.endDate,
         method: validatedQuery.method,
         sortBy: validatedQuery.sortBy,
         sortOrder: validatedQuery.sortOrder
+=======
+        status: validatedQuery.status as any,
+        startDate: validatedQuery.startDate,
+        endDate: validatedQuery.endDate,
+        method: validatedQuery.method as any,
+        sortBy: validatedQuery.sortBy,
+        sortOrder: (validatedQuery.sortOrder || 'desc') as any
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
       });
       res.status(StatusCode.OK).json(result);
     } catch (error: any) {

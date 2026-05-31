@@ -1,109 +1,43 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { completeConsultation, getConsultationDetails, getPatientHistory, requestLabTests, getLabTests } from "@/infrastructure/api/consultation.api";
-import { getDoctorProfile } from "@/infrastructure/api/doctor.api";
-import { Loader2, ArrowLeft, Save, FileText, Activity, Stethoscope, Pill, History, ChevronDown, ChevronUp, AlertTriangle, X, Check, FlaskConical, ExternalLink } from "lucide-react";
+import { 
+    completeConsultation, 
+    getConsultationDetails, 
+    getPatientHistory, 
+    requestLabTests, 
+    getLabTests,
+    getConsultationDraft,
+    generateConsultationPDF,
+    scheduleFollowUp,
+    reviewLabTest
+} from "@/infrastructure/api/consultation.api";
+import { 
+    Loader2, ArrowLeft, Save, CloudCheck, CloudUpload, FileDown, AlertCircle
+} from "lucide-react";
+import { toast } from "sonner";
+
 import DoctorSidebar from "../components/DoctorSidebar";
-import DoctorTopNav from "../components/DoctorTopNav";
 
-interface LabTest {
-    id: string;
-    testName: string;
-    status: string;
-    reportUrl?: string;
-    createdAt: string;
-}
+// Refactored Components
+import { VitalsEntry } from "../components/consultation/VitalsEntry";
+import { ClinicalAssessment } from "../components/consultation/ClinicalAssessment";
+import { PrescriptionBuilder } from "../components/consultation/PrescriptionBuilder";
+import { LabTestManager } from "../components/consultation/LabTestManager";
+import { PatientVisitHistory } from "../components/consultation/PatientVisitHistory";
+import { PatientInfoCard } from "../components/consultation/PatientInfoCard";
+import { ConsultationSummaryModal } from "../components/consultation/ConsultationSummaryModal";
+import { FollowUpScheduler } from "../components/consultation/FollowUpScheduler";
 
-interface PastVisit {
-    id: string;
-    completedAt: string;
-    appointment: {
-        appointmentDate: string;
-        slotStart: string;
-    };
-    doctor: {
-        firstName: string;
-        lastName: string;
-        specialization: { name: string };
-    };
-    medicalRecord: {
-        symptoms: string;
-        diagnosis: string;
-        notes: string | null;
-        planForManagement?: string | null;
-    } | null;
-    prescription: {
-        instructions: string | null;
-        medicines: {
-            id: string;
-            name: string;
-            dosage: string;
-            frequency: string;
-            duration: string;
-            instructions?: string | null;
-        }[];
-    } | null;
-    vitals: {
-        bloodPressure: string | null;
-        heartRate: number | null;
-        temperature: number | null;
-        weight: number | null;
-    }[];
-}
-
-interface ConsultationDetails {
-    id: string;
-    patientId: string;
-    doctorId: string;
-    status: string;
-    patient: {
-        firstName: string;
-        lastName: string;
-        phone: string;
-        dob: string | null;
-        gender: string | null;
-        bloodGroup: string | null;
-    };
-    appointment: {
-        appointmentDate: string;
-        slotStart: string;
-    };
-    vitals?: Array<{
-        bloodPressure: string | null;
-        heartRate: number | null;
-        temperature: number | null;
-        weight: number | null;
-    }>;
-    medicalRecord?: {
-        symptoms: string;
-        diagnosis: string;
-        notes: string | null;
-        planForManagement?: string | null;
-    } | null;
-    prescription?: {
-        instructions: string | null;
-        medicines: Array<{
-            name: string;
-            dosage: string;
-            frequency: string;
-            duration: string;
-            instructions?: string | null;
-        }>;
-    } | null;
-    labTests?: LabTest[];
-}
+// Custom Hook
+import { useConsultationAutoSave } from "../hooks/useConsultationAutoSave";
 
 export default function ConsultationWorkspace() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
 
-    const [consultation, setConsultation] = useState<ConsultationDetails | null>(null);
-    const [doctorProfile, setDoctorProfile] = useState<any>(null);
-    const [pastVisits, setPastVisits] = useState<PastVisit[]>([]);
-    const [labTests, setLabTests] = useState<LabTest[]>([]);
-    const [requestedTestName, setRequestedTestName] = useState("");
-    const [isRequestingLab, setIsRequestingLab] = useState(false);
-    const [expandedVisit, setExpandedVisit] = useState<string | null>(null);
+    const [consultation, setConsultation] = useState<any | null>(null);
+    const [pastVisits, setPastVisits] = useState<any[]>([]);
+    const [labTests, setLabTests] = useState<any[]>([]);
     const [isLoadingDetails, setIsLoadingDetails] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -125,122 +59,135 @@ export default function ConsultationWorkspace() {
 
     const [prescription, setPrescription] = useState({
         instructions: "",
-        medicines: [] as { name: string; dosage: string; frequency: string; duration: string; instructions?: string }[],
+        medicines: [] as any[],
     });
+    const [followUp, setFollowUp] = useState<any | null>(null);
 
-    const [customMedicine, setCustomMedicine] = useState({
-        name: "",
-        dosage: "",
-        frequency: "",
-        duration: "",
-        instructions: "",
-    });
+    // Unified Form State for Auto-save
+    const formData = useMemo(() => ({
+        vitals,
+        medicalRecord,
+        prescription
+    }), [vitals, medicalRecord, prescription]);
+
+    const { isSaving, lastSaved } = useConsultationAutoSave(
+        id, 
+        formData, 
+        isLoadingDetails || consultation?.status === "COMPLETED"
+    );
 
     useEffect(() => {
-        if (id) fetchConsultation();
-        fetchProfile();
+        if (id) fetchInitialData();
     }, [id]);
 
-    const fetchProfile = async () => {
-        try {
-            const profile = await getDoctorProfile();
-            setDoctorProfile(profile);
-        } catch (error) {
-            console.error("Failed to fetch doctor profile", error);
-        }
-    };
 
-    const fetchConsultation = async () => {
+    const fetchInitialData = async () => {
+        if (!id) return;
         try {
             setIsLoadingDetails(true);
-            const data = await getConsultationDetails(id!);
+            
+            // 1. Fetch Draft First
+            const draft = await getConsultationDraft(id);
+
+            // 2. Fetch Consultation Details
+            const data = await getConsultationDetails(id);
+            if (!data) {
+                toast.error("Consultation record not found");
+                navigate("/doctor/queue");
+                return;
+            }
             setConsultation(data);
-            // Once we have patient ID, load history
+
+            // 3. Load History
             if (data.patientId) {
                 const history = await getPatientHistory(data.patientId);
-                // Filter out current consultation from history
-                setPastVisits(history.filter((h: PastVisit) => h.id !== id));
+                setPastVisits(history.filter((h: any) => h.id !== id));
             }
 
-            // Fetch Lab Tests
-            if (id) {
-                const tests = await getLabTests(id, "doctor");
-                setLabTests(tests);
-            }
+            // 4. Fetch Lab Tests
+            const tests = await getLabTests(id, "doctor");
+            setLabTests(tests);
 
-            // Pre-populate form if data exists (e.g. for completed or resumed consultations)
-            if (data.vitals && data.vitals.length > 0) {
-                const latestVitals = data.vitals[0];
-                setVitals({
-                    bloodPressure: latestVitals.bloodPressure || "",
-                    heartRate: latestVitals.heartRate?.toString() || "",
-                    temperature: latestVitals.temperature?.toString() || "",
-                    weight: latestVitals.weight?.toString() || "",
-                });
-            }
-            if (data.medicalRecord) {
-                setMedicalRecord({
-                    symptoms: data.medicalRecord.symptoms || "",
-                    diagnosis: data.medicalRecord.diagnosis || "",
-                    notes: data.medicalRecord.notes || "",
-                    planForManagement: data.medicalRecord.planForManagement || "",
-                });
-            }
-            if (data.prescription) {
-                setPrescription({
-                    instructions: data.prescription.instructions || "",
-                    medicines: data.prescription.medicines || [],
-                });
+            // 5. Populate Form (Draft takes priority over actual record, unless it's already completed)
+            const isCompleted = data.status === "COMPLETED";
+            const hasDraftData = !isCompleted && draft && (draft.vitals || draft.medicalRecord || draft.prescription);
+            
+            if (hasDraftData) {
+                toast.success("Resumed from auto-saved draft");
+                if (draft.vitals) setVitals(draft.vitals);
+                if (draft.medicalRecord) setMedicalRecord(draft.medicalRecord);
+                if (draft.prescription) setPrescription(draft.prescription);
+            } else {
+                // Populate from record if it's completed/started
+                if (data.vitals && data.vitals.length > 0) {
+                    const latest = data.vitals[0];
+                    setVitals({
+                        bloodPressure: latest.bloodPressure || "",
+                        heartRate: latest.heartRate?.toString() || "",
+                        temperature: latest.temperature?.toString() || "",
+                        weight: latest.weight?.toString() || "",
+                    });
+                }
+                if (data.medicalRecord) {
+                    setMedicalRecord({
+                        symptoms: data.medicalRecord.symptoms || "",
+                        diagnosis: data.medicalRecord.diagnosis || "",
+                        notes: data.medicalRecord.notes || "",
+                        planForManagement: data.medicalRecord.planForManagement || "",
+                    });
+                }
+                if (data.prescription) {
+                    setPrescription({
+                        instructions: data.prescription.instructions || "",
+                        medicines: data.prescription.medicines || [],
+                    });
+                }
+                if (data.followUp) {
+                    setFollowUp(data.followUp);
+                }
             }
         } catch (error) {
-            console.error("Failed to fetch consultation details", error);
+            console.error("Failed to fetch data", error);
+            toast.error("Failed to load workspace data");
         } finally {
             setIsLoadingDetails(false);
         }
     };
 
-    const handleAddMedicine = () => {
-        if (!customMedicine.name || !customMedicine.dosage) return;
-        setPrescription((prev) => ({
-            ...prev,
-            medicines: [...prev.medicines, customMedicine],
-        }));
-        setCustomMedicine({ name: "", dosage: "", frequency: "", duration: "", instructions: "" });
-    };
-
-    const handleRemoveMedicine = (index: number) => {
-        setPrescription((prev) => ({
-            ...prev,
-            medicines: prev.medicines.filter((_, i) => i !== index),
-        }));
-    };
-
-    const handleRequestLabTest = async () => {
-        if (!requestedTestName.trim() || !id) return;
-        setIsRequestingLab(true);
+    const handleLabRequest = async (testName: string, urgency: string, fastingRequired: boolean) => {
+        if (!id) return;
         try {
-            await requestLabTests(id, [{ testName: requestedTestName.trim() }]);
-            setRequestedTestName("");
-
+            await requestLabTests(id, [{ testName, urgency, fastingRequired }]);
             const tests = await getLabTests(id, "doctor");
             setLabTests(tests);
+            toast.success(`Lab test "${testName}" requested.`);
         } catch (error) {
-            console.error("Failed to request lab test", error);
-            alert("Failed to request lab test.");
-        } finally {
-            setIsRequestingLab(false);
+            toast.error("Failed to request lab test.");
         }
     };
 
-    const handleRequestComplete = () => {
+    const handleLabReview = async (labTestId: string, comments: string, isAbnormal: boolean) => {
+        if (!id) return;
+        try {
+            await reviewLabTest(id, labTestId, comments, isAbnormal);
+            const tests = await getLabTests(id, "doctor");
+            setLabTests(tests);
+            toast.success("Lab test reviewed successfully.");
+        } catch (error) {
+            toast.error("Failed to review lab test.");
+        }
+    };
+
+
+    const handleComplete = async () => {
         if (!medicalRecord.symptoms || !medicalRecord.diagnosis) {
-            alert("Symptoms and Diagnosis are required to complete a consultation.");
+            toast.error("Symptoms and Diagnosis are mandatory.");
             return;
         }
         setShowConfirmModal(true);
     };
 
-    const handleConfirmComplete = async () => {
+    const confirmComplete = async () => {
         if (!id) return;
         setIsSubmitting(true);
         try {
@@ -252,8 +199,7 @@ export default function ConsultationWorkspace() {
                     weight: vitals.weight ? parseFloat(vitals.weight) : undefined,
                 },
                 medicalRecord: {
-                    symptoms: medicalRecord.symptoms,
-                    diagnosis: medicalRecord.diagnosis,
+                    ...medicalRecord,
                     notes: medicalRecord.notes || undefined,
                     planForManagement: medicalRecord.planForManagement || undefined,
                 },
@@ -261,21 +207,61 @@ export default function ConsultationWorkspace() {
                     instructions: prescription.instructions || undefined,
                     medicines: prescription.medicines,
                 },
+                followUp: followUp ? {
+                    ...followUp,
+                    scheduledDate: new Date(followUp.scheduledDate).toISOString(),
+                } : undefined
             };
 
+            // 1. Complete Consultation
             await completeConsultation(id, payload);
-            navigate("/doctor/queue");
-        } catch (error) {
-            console.error("Failed to complete consultation", error);
-            alert("Failed to save and complete consultation.");
+
+            // 2. Schedule Follow-up if exists
+            if (followUp && !consultation.followUp) {
+                await scheduleFollowUp({
+                    consultationId: id,
+                    patientId: consultation.patientId,
+                    doctorId: consultation.doctorId,
+                    ...followUp
+                });
+            }
+            toast.success("Consultation completed successfully");
+            
+            // Trigger auto-download of the report
+            handleExportPDF();
+            
+            // Stay on page to show completed state, or navigate after a delay
+            setTimeout(() => {
+                navigate("/doctor/queue");
+            }, 3000);
+        } catch (error: any) {
+            const message = error.response?.data?.message || "Failed to complete consultation.";
+            toast.error(message);
         } finally {
             setIsSubmitting(false);
             setShowConfirmModal(false);
         }
     };
 
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const handleExportPDF = async () => {
+        if (!id) return;
+        try {
+            const response = await generateConsultationPDF(id, "doctor");
+            
+            if (response.pdfUrl) {
+                const link = document.createElement("a");
+                link.href = response.pdfUrl;
+                link.download = `ClinicalReport-${id.slice(0, 8)}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                toast.success("Clinical Report downloaded successfully");
+            } else {
+                toast.error("Failed to generate PDF URL.");
+            }
+        } catch (error) {
+            toast.error("Failed to generate PDF.");
+        }
     };
 
     if (isLoadingDetails) {
@@ -283,15 +269,38 @@ export default function ConsultationWorkspace() {
             <div className="flex h-screen bg-gray-50">
                 <DoctorSidebar />
                 <div className="flex-1 flex flex-col overflow-hidden">
-                    <DoctorTopNav 
-                        doctorName={doctorProfile ? `Dr. ${doctorProfile.firstName} ${doctorProfile.lastName}` : "Loading..."}
-                        doctorSpecialty={doctorProfile?.specialty}
-                        avatarUrl={doctorProfile?.avatarUrl}
-                    />
                     <div className="flex-1 flex items-center justify-center">
                         <div className="text-center">
-                            <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto mb-3" />
-                            <p className="text-gray-500 font-medium">Loading consultation workspace...</p>
+                            <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+                            <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Initializing Secure Workspace...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isLoadingDetails && !consultation) {
+        return (
+            <div className="flex h-screen bg-gray-50">
+                <DoctorSidebar />
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="flex-1 flex items-center justify-center p-4">
+                        <div className="max-w-md w-full text-center">
+                            <div className="w-20 h-20 bg-red-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-sm border border-red-100">
+                                <AlertCircle className="w-10 h-10 text-red-600" />
+                            </div>
+                            <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Consultation Not Found</h2>
+                            <p className="text-gray-500 font-medium mb-10 text-lg leading-relaxed">
+                                We couldn't retrieve the details for this consultation. It may have been completed, cancelled, or you may not have permission to view it.
+                            </p>
+                            <button 
+                                onClick={() => navigate("/doctor/queue")}
+                                className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-2xl shadow-gray-200 flex items-center justify-center gap-3"
+                            >
+                                <ArrowLeft className="w-5 h-5" />
+                                Return to Patient Queue
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -300,34 +309,72 @@ export default function ConsultationWorkspace() {
     }
 
     return (
-        <div className="flex h-screen bg-gray-50 flex-col">
+        <div className="flex h-screen bg-gray-50 flex-col overflow-hidden">
             {/* Header */}
-            <header className="bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
-                <div className="flex items-center gap-4">
+            <header className="bg-white border-b border-gray-200 px-8 py-5 flex justify-between items-center shadow-sm z-20">
+                <div className="flex items-center gap-6">
                     <button 
                         onClick={() => navigate("/doctor/queue")}
-                        className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+                        className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all text-gray-500 hover:text-gray-900 border border-gray-100"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </button>
                     <div>
-                        <h1 className="text-xl font-bold text-gray-900">
-                            Consultation — {consultation?.patient.firstName} {consultation?.patient.lastName}
-                        </h1>
-                        <p className={`text-sm font-medium flex items-center gap-1.5 mt-0.5 ${consultation?.status === 'COMPLETED' ? 'text-blue-600' : 'text-green-600'}`}>
-                            <span className={`w-2 h-2 rounded-full animate-pulse ${consultation?.status === 'COMPLETED' ? 'bg-blue-500' : 'bg-green-500'}`}></span>
-                            {consultation?.status === 'COMPLETED' ? 'Consultation Completed (Edit Mode)' : 'In Progress'}
-                        </p>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+                                Workspace
+                            </h1>
+                            <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                            <p className="text-gray-500 font-bold text-lg">
+                                Consultation with {consultation?.patient?.firstName} {consultation?.patient?.lastName}
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-4 mt-1">
+                            <p className={`text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${consultation?.status === 'COMPLETED' ? 'text-blue-600' : 'text-green-600'}`}>
+                                <span className={`w-2 h-2 rounded-full ${consultation?.status === 'COMPLETED' ? 'bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.5)]' : 'bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]'}`}></span>
+                                {consultation?.status === 'COMPLETED' ? 'Record Completed' : 'Live Consultation Session'}
+                            </p>
+                            
+                            {/* Auto-save Status Indicator */}
+                            <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
+                                {isSaving ? (
+                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                                        <CloudUpload className="w-3.5 h-3.5 animate-bounce" />
+                                        Syncing...
+                                    </div>
+                                ) : consultation?.status === "COMPLETED" ? (
+                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-500 uppercase tracking-widest">
+                                        <AlertCircle className="w-3.5 h-3.5" />
+                                        Manual Update Mode
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                        <CloudCheck className="w-3.5 h-3.5" />
+                                        {lastSaved ? `Saved at ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : "Saved to cloud"}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div>
+                
+                <div className="flex items-center gap-3">
+                    {consultation?.status === "COMPLETED" && (
+                        <button 
+                            onClick={handleExportPDF}
+                            className="bg-white border border-gray-200 hover:border-blue-600 hover:text-blue-600 text-gray-600 px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-sm"
+                        >
+                            <FileDown className="w-4 h-4" />
+                            EMR Report
+                        </button>
+                    )}
                     <button 
-                        onClick={handleRequestComplete}
+                        onClick={handleComplete}
                         disabled={isSubmitting}
-                        className="bg-[#0066cc] hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all disabled:opacity-70 shadow-lg shadow-blue-200"
+                        className="bg-[#0066cc] hover:bg-blue-700 text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center gap-2 transition-all disabled:opacity-70 shadow-xl shadow-blue-100 hover:scale-[1.02] active:scale-[0.98]"
                     >
                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        {consultation?.status === 'COMPLETED' ? 'Update Consultation' : 'Complete & Save EMR'}
+                        {consultation?.status === 'COMPLETED' ? 'Update & Commit' : 'Finalize & Save'}
                     </button>
                 </div>
             </header>
@@ -336,454 +383,56 @@ export default function ConsultationWorkspace() {
             <main className="flex-1 overflow-hidden flex">
                 
                 {/* Left Panel: Vitals & History */}
-                <div className="w-1/3 border-r border-gray-200 bg-white overflow-y-auto pl-8 pr-6 py-6">
-                    {/* Patient Info Card */}
-                    {consultation?.patient && (
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-5 mb-6 border border-blue-100">
-                            <h3 className="font-bold text-gray-900 text-lg mb-2">
-                                {consultation.patient.firstName} {consultation.patient.lastName}
-                            </h3>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                                {consultation.patient.gender && (
-                                    <span className="text-gray-600"><span className="font-bold text-gray-500">Gender:</span> {consultation.patient.gender}</span>
-                                )}
-                                {consultation.patient.bloodGroup && (
-                                    <span className="text-gray-600"><span className="font-bold text-gray-500">Blood:</span> {consultation.patient.bloodGroup}</span>
-                                )}
-                                {consultation.patient.phone && (
-                                    <span className="text-gray-600 col-span-2"><span className="font-bold text-gray-500">Phone:</span> {consultation.patient.phone}</span>
-                                )}
-                            </div>
-                        </div>
-                    )}
+                <div className="w-[32%] border-r border-gray-200 bg-white overflow-y-auto px-8 py-8 custom-scrollbar">
+                    <PatientInfoCard patient={consultation?.patient || null} />
+                    
+                    <VitalsEntry 
+                        vitals={vitals} 
+                        onChange={setVitals} 
+                        disabled={consultation?.status === 'COMPLETED' && false} // Allow editing in completed mode for now as per "update" logic
+                    />
 
-                    {/* Vitals Entry */}
-                    <div className="flex items-center gap-2 mb-6 text-gray-900 font-bold text-lg">
-                        <Activity className="w-5 h-5 text-blue-500" />
-                        Vitals Entry
-                    </div>
-
-                    <div className="space-y-4 mb-8">
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Blood Pressure (mmHg)</label>
-                            <input 
-                                type="text" placeholder="e.g. 120/80"
-                                value={vitals.bloodPressure} onChange={(e) => setVitals({...vitals, bloodPressure: e.target.value})}
-                                maxLength={20}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Heart Rate (bpm)</label>
-                            <input 
-                                type="number" placeholder="e.g. 75"
-                                value={vitals.heartRate} onChange={(e) => setVitals({...vitals, heartRate: e.target.value})}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                            />
-                        </div>
-                        <div className="flex gap-4">
-                            <div className="flex-1">
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Temp (°F)</label>
-                                <input 
-                                    type="number" step="0.1" placeholder="98.6"
-                                    value={vitals.temperature} onChange={(e) => setVitals({...vitals, temperature: e.target.value})}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                />
-                            </div>
-                            <div className="flex-1">
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Weight (kg)</label>
-                                <input 
-                                    type="number" step="0.1" placeholder="70"
-                                    value={vitals.weight} onChange={(e) => setVitals({...vitals, weight: e.target.value})}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Patient History Section */}
-                    <div className="border-t border-gray-100 pt-6">
-                        <div className="flex items-center gap-2 mb-4 text-gray-900 font-bold text-lg">
-                            <History className="w-5 h-5 text-amber-500" />
-                            Past Visit History
-                            {pastVisits.length > 0 && (
-                                <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-0.5 rounded-full ml-auto">
-                                    {pastVisits.length} visit{pastVisits.length > 1 ? "s" : ""}
-                                </span>
-                            )}
-                        </div>
-
-                        {pastVisits.length === 0 ? (
-                            <div className="bg-gray-50 rounded-2xl p-6 text-center border border-gray-100">
-                                <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                                <p className="text-sm text-gray-500 font-medium">No previous visits recorded for this patient.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                {pastVisits.map((visit) => (
-                                    <div key={visit.id} className="bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden transition-all">
-                                        <button
-                                            onClick={() => setExpandedVisit(expandedVisit === visit.id ? null : visit.id)}
-                                            className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-100/50 transition-colors"
-                                        >
-                                            <div>
-                                                <p className="text-sm font-bold text-gray-900">
-                                                    {formatDate(visit.appointment.appointmentDate)}
-                                                </p>
-                                                <p className="text-xs text-gray-500 mt-0.5">
-                                                    {visit.medicalRecord?.diagnosis || "No diagnosis recorded"}
-                                                </p>
-                                            </div>
-                                            {expandedVisit === visit.id ? (
-                                                <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                            ) : (
-                                                <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                            )}
-                                        </button>
-                                        
-                                        {expandedVisit === visit.id && (
-                                            <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
-                                                {visit.medicalRecord && (
-                                                    <div className="pt-3">
-                                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Symptoms</p>
-                                                        <p className="text-sm text-gray-700">{visit.medicalRecord.symptoms}</p>
-                                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 mt-2">Diagnosis</p>
-                                                        <p className="text-sm text-gray-900 font-semibold">{visit.medicalRecord.diagnosis}</p>
-                                                        {visit.medicalRecord.notes && (
-                                                            <>
-                                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 mt-2">Notes</p>
-                                                                <p className="text-sm text-gray-600 italic">{visit.medicalRecord.notes}</p>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                )}
-                                                {visit.vitals.length > 0 && (
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {visit.vitals[0].bloodPressure && (
-                                                            <span className="text-xs bg-white border border-gray-200 rounded-lg px-2 py-1 font-medium">BP: {visit.vitals[0].bloodPressure}</span>
-                                                        )}
-                                                        {visit.vitals[0].heartRate && (
-                                                            <span className="text-xs bg-white border border-gray-200 rounded-lg px-2 py-1 font-medium">HR: {visit.vitals[0].heartRate} bpm</span>
-                                                        )}
-                                                        {visit.vitals[0].temperature && (
-                                                            <span className="text-xs bg-white border border-gray-200 rounded-lg px-2 py-1 font-medium">Temp: {visit.vitals[0].temperature}°F</span>
-                                                        )}
-                                                    </div>
-                                                )}
-                                                {visit.prescription && visit.prescription.medicines.length > 0 && (
-                                                    <div>
-                                                        <p className="text-[10px] font-bold text-teal-600 uppercase tracking-wider mb-1">Rx — Previous Prescription</p>
-                                                        <div className="space-y-1">
-                                                            {visit.prescription.medicines.map((med) => (
-                                                                <div key={med.id} className="text-xs text-gray-700 bg-white rounded-lg px-3 py-2 border border-gray-200">
-                                                                    <span className="font-bold">{med.name}</span> — {med.dosage}, {med.frequency}, {med.duration}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    <PatientVisitHistory visits={pastVisits} />
                 </div>
 
                 {/* Right Panel: Clinical Assessment & Prescription */}
-                <div className="w-2/3 bg-gray-50/50 overflow-y-auto px-8 py-6">
+                <div className="flex-1 bg-gray-50/30 overflow-y-auto px-10 py-8 custom-scrollbar">
                     
-                    {/* Medical Record */}
-                    <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm mb-6">
-                        <div className="flex items-center gap-2 mb-6 text-gray-900 font-bold text-lg">
-                            <Stethoscope className="w-5 h-5 text-purple-500" />
-                            Clinical Assessment
-                        </div>
-                        
-                        <div className="space-y-6">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Subjective Symptoms <span className="text-red-500">*</span></label>
-                                <textarea 
-                                    rows={3} placeholder="Patient complains of..."
-                                    value={medicalRecord.symptoms} onChange={(e) => setMedicalRecord({...medicalRecord, symptoms: e.target.value})}
-                                    maxLength={2000}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none font-medium"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Clinical Diagnosis <span className="text-red-500">*</span></label>
-                                <textarea 
-                                    rows={2} placeholder="e.g. Acute Viral Pharyngitis"
-                                    value={medicalRecord.diagnosis} onChange={(e) => setMedicalRecord({...medicalRecord, diagnosis: e.target.value})}
-                                    maxLength={255}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-bold text-gray-900 resize-none"
-                                />
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Plan for Management (Preventions)</label>
-                                    <textarea 
-                                        rows={3} placeholder="Steps for patient to take..."
-                                        value={medicalRecord.planForManagement} onChange={(e) => setMedicalRecord({...medicalRecord, planForManagement: e.target.value})}
-                                        maxLength={1000}
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none text-[13px]"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Follow-up</label>
-                                    <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 font-medium text-gray-400 italic text-[13px] h-[98px]">
-                                        Follow-up details not editable in this version
-                                    </div>
-                                </div>
-                            </div>
+                    <ClinicalAssessment 
+                        medicalRecord={medicalRecord} 
+                        onChange={setMedicalRecord} 
+                    />
 
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Additional Clinical Notes (Optional)</label>
-                                <textarea 
-                                    rows={2} placeholder="Internal observations..."
-                                    value={medicalRecord.notes} onChange={(e) => setMedicalRecord({...medicalRecord, notes: e.target.value})}
-                                    maxLength={2000}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none text-[13px]"
-                                />
-                            </div>
-                        </div>
-                    </div>
+                    <LabTestManager 
+                        labTests={labTests} 
+                        onRequest={handleLabRequest} 
+                        onReview={handleLabReview}
+                    />
 
-                    {/* Lab Test Management */}
-                    <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm mb-6">
-                        <div className="flex items-center gap-2 mb-6 text-gray-900 font-bold text-lg">
-                            <FlaskConical className="w-5 h-5 text-orange-500" />
-                            Lab Test Requests
-                        </div>
+                    <PrescriptionBuilder 
+                        prescription={prescription} 
+                        onChange={setPrescription} 
+                    />
 
-                        <div className="flex gap-3 mb-6">
-                            <input 
-                                type="text" placeholder="Search or enter Lab Test name..."
-                                value={requestedTestName} onChange={(e) => setRequestedTestName(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleRequestLabTest()}
-                                className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 transition-all font-medium"
-                            />
-                            <button 
-                                onClick={handleRequestLabTest}
-                                disabled={isRequestingLab || !requestedTestName.trim()}
-                                className="bg-orange-600 hover:bg-orange-700 text-white px-6 rounded-xl font-bold transition-all disabled:opacity-50"
-                            >
-                                {isRequestingLab ? <Loader2 className="w-4 h-4 animate-spin" /> : "Request"}
-                            </button>
-                        </div>
-
-                        {labTests.length > 0 ? (
-                            <div className="space-y-3">
-                                {labTests.map((test) => (
-                                    <div key={test.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                        <div>
-                                            <p className="font-bold text-gray-900">{test.testName}</p>
-                                            <p className="text-xs text-gray-500 mt-1">Requested on {new Date(test.createdAt).toLocaleDateString()}</p>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                                                test.status === 'UPLOADED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                                            }`}>
-                                                {test.status}
-                                            </span>
-                                            {test.reportUrl && (
-                                                <a 
-                                                    href={test.reportUrl} target="_blank" rel="noopener noreferrer"
-                                                    className="p-2 bg-white border border-gray-200 rounded-lg text-blue-600 hover:bg-blue-50 transition-all"
-                                                >
-                                                    <ExternalLink className="w-4 h-4" />
-                                                </a>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl">
-                                <FlaskConical className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-                                <p className="text-sm text-gray-400 font-medium">No lab tests requested yet</p>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Digital Prescription */}
-                    <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-2 mb-6 text-gray-900 font-bold text-lg">
-                            <Pill className="w-5 h-5 text-teal-500" />
-                            Digital Prescription (Rx)
-                        </div>
-
-                        {/* Medicine Builder */}
-                        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 mb-6 flex items-end gap-3">
-                            <div className="flex-1">
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Medicine Name</label>
-                                <input 
-                                    type="text" placeholder="e.g. Amoxicillin"
-                                    value={customMedicine.name} onChange={(e) => setCustomMedicine({...customMedicine, name: e.target.value})}
-                                    maxLength={100}
-                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 transition-all font-medium text-gray-900"
-                                />
-                            </div>
-                            <div className="w-24">
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Dosage</label>
-                                <input 
-                                    type="text" placeholder="500mg"
-                                    value={customMedicine.dosage} onChange={(e) => setCustomMedicine({...customMedicine, dosage: e.target.value})}
-                                    maxLength={50}
-                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 transition-all"
-                                />
-                            </div>
-                            <div className="w-28">
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Frequency</label>
-                                <input 
-                                    type="text" placeholder="1-1-1"
-                                    value={customMedicine.frequency} onChange={(e) => setCustomMedicine({...customMedicine, frequency: e.target.value})}
-                                    maxLength={50}
-                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 transition-all"
-                                />
-                            </div>
-                            <div className="w-24">
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Duration</label>
-                                <input 
-                                    type="text" placeholder="5 Days"
-                                    value={customMedicine.duration} onChange={(e) => setCustomMedicine({...customMedicine, duration: e.target.value})}
-                                    maxLength={50}
-                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 transition-all"
-                                />
-                            </div>
-                            <div className="flex-1">
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Instructions (When to eat)</label>
-                                <input 
-                                    type="text" placeholder="e.g. After food"
-                                    value={customMedicine.instructions} onChange={(e) => setCustomMedicine({...customMedicine, instructions: e.target.value})}
-                                    maxLength={100}
-                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-teal-500 transition-all"
-                                />
-                            </div>
-                            <button 
-                                onClick={handleAddMedicine}
-                                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-bold text-sm h-[38px] transition-colors"
-                            >
-                                Add
-                            </button>
-                        </div>
-
-                        {/* Prescribed Items Table */}
-                        {prescription.medicines.length > 0 && (
-                            <div className="mb-6">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="text-[11px] text-gray-500 uppercase bg-gray-50 rounded-lg">
-                                        <tr>
-                                            <th className="px-4 py-3 font-bold rounded-l-lg">Medicine</th>
-                                            <th className="px-4 py-3 font-bold">Dosage</th>
-                                            <th className="px-4 py-3 font-bold">Frequency</th>
-                                            <th className="px-4 py-3 font-bold">Duration</th>
-                                            <th className="px-4 py-3 font-bold">Instructions</th>
-                                            <th className="px-4 py-3 font-bold text-right rounded-r-lg">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {prescription.medicines.map((med, idx) => (
-                                            <tr key={idx} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
-                                                <td className="px-4 py-3 font-bold text-gray-900">{med.name}</td>
-                                                <td className="px-4 py-3 text-gray-600">{med.dosage}</td>
-                                                <td className="px-4 py-3 text-gray-600 font-medium">{med.frequency}</td>
-                                                <td className="px-4 py-3 text-gray-600">{med.duration}</td>
-                                                <td className="px-4 py-3 text-gray-500 italic text-xs">{med.instructions || "—"}</td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <button onClick={() => handleRemoveMedicine(idx)} className="text-red-500 hover:text-red-700 font-semibold text-xs transition-colors">
-                                                        Remove
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-
-                        <div>
-                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">Pharmacy Instructions</label>
-                            <input 
-                                type="text" placeholder="E.g. Take medicines after food..."
-                                value={prescription.instructions} onChange={(e) => setPrescription({...prescription, instructions: e.target.value})}
-                                maxLength={255}
-                                className="w-full bg-white border-b-2 border-dashed border-gray-200 py-2 outline-none focus:border-teal-500 transition-all text-gray-700 text-sm"
-                            />
-                        </div>
-
-                    </div>
+                    <FollowUpScheduler 
+                        data={followUp} 
+                        onChange={setFollowUp}
+                        disabled={consultation?.status === 'COMPLETED' && !!consultation?.followUp}
+                    />
                 </div>
             </main>
 
-            {/* Confirmation Modal */}
-            {showConfirmModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-[#0F172A]/50 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)} />
-                    <div className="relative bg-white w-full max-w-lg rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-8">
-                            <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mb-6">
-                                <AlertTriangle className="w-7 h-7 text-amber-600" />
-                            </div>
-
-                            <h2 className="text-2xl font-black text-gray-900 mb-2">
-                                {consultation?.status === "COMPLETED" ? "Update Consultation details?" : "Complete & Save Consultation?"}
-                            </h2>
-                            <p className="text-gray-500 font-medium mb-6">
-                                {consultation?.status === "COMPLETED" 
-                                    ? "This action will update the existing clinical record. Please review the changes before confirming."
-                                    : "This action will finalize the EMR. Please review the summary below before confirming."}
-                            </p>
-
-                            {/* Summary */}
-                            <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 space-y-3 mb-6">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500 font-medium">Patient</span>
-                                    <span className="text-gray-900 font-bold">{consultation?.patient.firstName} {consultation?.patient.lastName}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500 font-medium">Diagnosis</span>
-                                    <span className="text-gray-900 font-bold">{medicalRecord.diagnosis || "—"}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500 font-medium">Vitals Recorded</span>
-                                    <span className="text-gray-900 font-bold">
-                                        {[vitals.bloodPressure, vitals.heartRate, vitals.temperature, vitals.weight].filter(Boolean).length} / 4
-                                    </span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500 font-medium">Medicines Prescribed</span>
-                                    <span className="text-gray-900 font-bold">{prescription.medicines.length} medicine{prescription.medicines.length !== 1 ? "s" : ""}</span>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowConfirmModal(false)}
-                                    className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
-                                >
-                                    <X className="w-4 h-4" />
-                                    Go Back
-                                </button>
-                                <button
-                                    onClick={handleConfirmComplete}
-                                    disabled={isSubmitting}
-                                    className="flex-1 py-4 bg-[#0066cc] text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-60 flex items-center justify-center gap-2"
-                                >
-                                    {isSubmitting ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                        <Check className="w-4 h-4" />
-                                    )}
-                                    {consultation?.status === "COMPLETED" ? "Confirm & Update" : "Confirm & Save"}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Modals */}
+            <ConsultationSummaryModal 
+                isOpen={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                onConfirm={confirmComplete}
+                isSubmitting={isSubmitting}
+                consultation={consultation}
+                medicalRecord={medicalRecord}
+                vitals={vitals}
+                prescription={prescription}
+            />
         </div>
     );
 }

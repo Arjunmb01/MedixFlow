@@ -11,6 +11,9 @@ export interface CreateAppointmentInput {
   startTime?: Date;
   endTime?: Date;
   paymentMethod?: PaymentMethod;
+  paymentStatus?: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  paymentAmount?: number;
+  status?: AppointmentStatus | string;
   useWallet?: boolean;
   reason?: string;
   expiresAt?: Date;
@@ -39,6 +42,7 @@ export interface DoctorAppointmentFilter extends PaginationQuery {
   fromDate?: Date;
   toDate?: Date;
   isUpcoming?: boolean;
+<<<<<<< HEAD
   /** When true, loads consultation, prescription, vitals (heavier query). */
   includeConsultationDetails?: boolean;
 }
@@ -60,4 +64,6 @@ export interface PatientDashboardSummary {
     date: Date;
     status: string;
   }>;
+=======
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 }

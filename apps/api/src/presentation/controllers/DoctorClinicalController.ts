@@ -26,7 +26,9 @@ export class DoctorClinicalController {
     getDoctorPrescriptions = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
         try {
             const userId = req.user.id;
+            console.log("User ID :  ===============",userId)
             const prescriptions = await this.getDoctorPrescriptionsUseCase.execute(userId);
+            console.log("Prescriptions :  ===============",prescriptions)
             res.json(prescriptions);
         } catch (error) {
             next(error);

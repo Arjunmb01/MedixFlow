@@ -20,6 +20,8 @@ import { PaymentGatewayFactory } from "../../../infrastructure/services/PaymentG
 import { AppError } from "@/shared/errors/AppError";
 import { StatusCode } from "@/shared/constants/statusCodes";
 
+import { ILockService } from "@/application/interfaces/ILockService";
+
 export class BookAppointmentUseCase {
     constructor(
         private readonly appointmentRepo: IAppointmentRepository,
@@ -32,7 +34,8 @@ export class BookAppointmentUseCase {
         private readonly doctorRepo: IDoctorProfileRepository,
         private readonly patientRepo: IPatientRepository,
         private readonly queueService: IQueueService,
-        private readonly socketService: SocketService
+        private readonly socketService: SocketService,
+        private readonly lockService: ILockService
     ) { }
 
     async execute(data: CreateAppointmentInput): Promise<AppointmentRecord & { 
@@ -56,6 +59,15 @@ export class BookAppointmentUseCase {
         if (!data.slotStart || !data.slotEnd) {
             throw new AppError("Invalid slot", StatusCode.BAD_REQUEST);
         }
+
+        const lockKey = `booking:${data.doctorId}:${data.appointmentDate.toISOString().split('T')[0]}:${data.slotStart}`;
+        const acquired = await this.lockService.acquireLock(lockKey, 10000); // 10s lock
+
+        if (!acquired) {
+            throw new AppError("This slot is currently being booked by another user. Please try again.", StatusCode.CONFLICT);
+        }
+
+        try {
 
         const now = this.dateTimeService.now();
         const year = data.appointmentDate.getUTCFullYear();
@@ -251,7 +263,10 @@ export class BookAppointmentUseCase {
         } else {
             throw new AppError(`Unsupported payment method: ${paymentMethod}`, StatusCode.BAD_REQUEST);
         }
+    } finally {
+        await this.lockService.releaseLock(lockKey);
     }
+}
 
     private async sendNotifications(data: CreateAppointmentInput, appointment: AppointmentRecord) {
         // Notify Doctor

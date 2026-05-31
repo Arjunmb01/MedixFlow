@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import { AppError } from "../errors/AppError";
 import { StatusCode } from "../constants/statusCodes";
 import { MESSAGES } from "../constants/messages";
+import { ZodError } from "zod";
+import { env } from "../config/env";
 
 export const errorMiddleware = (
     err: Error | AppError,
@@ -16,19 +18,22 @@ export const errorMiddleware = (
         statusCode = err.statusCode;
         message = err.message;
     } else if (err instanceof Error) {
-        // Handle Zod validation errors specifically if needed
-        if (err.name === "ZodError") {
+        if (err instanceof ZodError) {
             statusCode = StatusCode.BAD_REQUEST;
             message = MESSAGES.VALIDATION_ERROR;
             return res.status(statusCode).json({
                 success: false,
                 message,
-                errors: (err as any).errors,
+                errors: err.issues,
             });
         }
         
-        // Use the error message if it exists, otherwise default to INTERNAL_ERROR
-        message = err.message || MESSAGES.INTERNAL_ERROR;
+        // SECURITY: Do not leak internal error messages in production
+        if (env.NODE_ENV === "production") {
+            message = MESSAGES.INTERNAL_ERROR;
+        } else {
+            message = err.message || MESSAGES.INTERNAL_ERROR;
+        }
         
         // Log unexpected errors
         console.error(`[Error] ${err.stack}`);

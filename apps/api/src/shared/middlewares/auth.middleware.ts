@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { Request, Response, NextFunction, RequestHandler } from "express";
+=======
+import { Request, Response, NextFunction } from "express";
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 import { ITokenService, TokenPayload } from "@/application/interfaces/ITokenService";
 import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { AppError } from "../errors/AppError";
@@ -12,14 +16,23 @@ export interface AuthenticatedRequest extends Request {
         id: string;
         role: UserRole;
         email?: string;
+<<<<<<< HEAD
+=======
+        sessionId: string;
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
     };
+    rawBody?: string;
 }
 
 export function createAuthMiddleware(
     tokenService: ITokenService,
     authRepository: IAuthRepository
 ) {
+<<<<<<< HEAD
     const authenticate = async (req: Request, res: Response, next: NextFunction, requiredRoles?: UserRole[]) => {
+=======
+    const authenticate = async (req: AuthenticatedRequest, res: Response, next: NextFunction, requiredRoles?: UserRole[]) => {
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
         try {
             let token: string | undefined;
             let decoded: TokenPayload | undefined;
@@ -87,6 +100,10 @@ export function createAuthMiddleware(
                 id: decoded.id,
                 role: decoded.role as UserRole,
                 email: decoded.email,
+<<<<<<< HEAD
+=======
+                sessionId: decoded.sessionId,
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
             };
             next();
         } catch (error) {
@@ -95,6 +112,7 @@ export function createAuthMiddleware(
     };
 
     return {
+<<<<<<< HEAD
         authenticate: (async (req, res, next) => 
             authenticate(req, res, next)) as RequestHandler,
         
@@ -112,6 +130,25 @@ export function createAuthMiddleware(
 
         authorize: (roles: UserRole[]) => {
             return ((req: Request, res: Response, next: NextFunction) => {
+=======
+        authenticate: (req: AuthenticatedRequest, res: Response, next: NextFunction) => 
+            authenticate(req, res, next),
+        
+        authenticatePatient: (req: AuthenticatedRequest, res: Response, next: NextFunction) => 
+            authenticate(req, res, next, [UserRole.PATIENT]),
+        
+        authenticateDoctor: (req: AuthenticatedRequest, res: Response, next: NextFunction) => 
+            authenticate(req, res, next, [UserRole.DOCTOR]),
+        
+        authenticateAdmin: (req: AuthenticatedRequest, res: Response, next: NextFunction) => 
+            authenticate(req, res, next, [UserRole.ADMIN]),
+            
+        authenticateRoles: (roles: UserRole[]) => (req: AuthenticatedRequest, res: Response, next: NextFunction) => 
+            authenticate(req, res, next, roles),
+
+        authorize: (roles: UserRole[]) => {
+            return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
                 if (!req.user || !roles.includes(req.user.role)) {
                     throw new AppError(MESSAGES.INSUFFICIENT_PERMISSIONS, StatusCode.FORBIDDEN);
                 }

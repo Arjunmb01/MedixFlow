@@ -151,7 +151,7 @@ export class PatientRepository implements IPatientRepository {
     async toggleBlock(userId: string, status: UserStatus): Promise<void> {
         await this._prisma.user.update({
             where: { id: userId },
-            data: { status: status as any }
+            data: { status: status as PrismaUserStatus }
         });
     }
 
@@ -160,7 +160,7 @@ export class PatientRepository implements IPatientRepository {
             where: { id: userId },
             data: {
                 deletedAt: this.dateTimeService.now(),
-                status: UserStatus.INACTIVE as any
+                status: PrismaUserStatus.INACTIVE
             }
         });
     }
@@ -171,10 +171,10 @@ export class PatientRepository implements IPatientRepository {
                 where: { user: { deletedAt: null } }
             }),
             this._prisma.patientProfile.count({
-                where: { user: { status: UserStatus.ACTIVE as any, deletedAt: null } }
+                where: { user: { status: PrismaUserStatus.ACTIVE, deletedAt: null } }
             }),
             this._prisma.patientProfile.count({
-                where: { user: { status: UserStatus.INACTIVE as any, deletedAt: null } }
+                where: { user: { status: PrismaUserStatus.INACTIVE, deletedAt: null } }
             })
         ]);
 

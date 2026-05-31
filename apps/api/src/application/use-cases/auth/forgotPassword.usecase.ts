@@ -3,6 +3,7 @@ import { MESSAGES } from "@/shared/constants/index";
 import { IAuthRepository } from "@/domain/repositories/IAuthRepository";
 import { IEmailService } from "@/application/interfaces/IEmailService";
 import { UserRole } from "@/domain/value-objects/enums/UserRole";
+import { hashToken } from "@/shared/utils/hashToken";
 
 export interface ForgotPasswordPayload {
   email: string;
@@ -24,8 +25,9 @@ export class ForgotPasswordUseCase {
     const { user } = result;
 
     const token = crypto.randomBytes(32).toString("hex");
+    const hashedToken = hashToken(token);
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); 
-    await this.authRepository.createPasswordResetToken(user.id, token, expiresAt);
+    await this.authRepository.createPasswordResetToken(user.id, hashedToken, expiresAt);
 
     let userName = "User";
     if (user.role === UserRole.PATIENT) {

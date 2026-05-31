@@ -41,7 +41,13 @@ type PrismaAppointmentWithPatient = Prisma.AppointmentGetPayload<{
         patient: {
             include: { user: true }
         },
-        consultation: true
+        consultation: {
+            include: {
+                prescription: {
+                    include: { medicines: true }
+                }
+            }
+        }
     }
 }>;
 
@@ -53,7 +59,16 @@ type PrismaAppointmentWithDoctorAndPatient = Prisma.AppointmentGetPayload<{
         patient: {
             include: { user: true }
         },
-        payment: true
+        payment: true,
+        consultation: {
+            include: {
+                medicalRecord: true,
+                prescription: {
+                    include: { medicines: true }
+                },
+                vitals: true
+            }
+        }
     }
 }>;
 
@@ -74,7 +89,7 @@ type PrismaAppointmentWithPayment = Prisma.AppointmentGetPayload<{
 }>;
 
 export class AppointmentMapper {
-    toRecord(prismaApp: Appointment & { payment?: any }): AppointmentRecord {
+    toRecord(prismaApp: Appointment & { payment?: { amount: number; razorpayPaymentId?: string | null; id: string } | null }): AppointmentRecord {
         return {
             id: prismaApp.id,
             patientId: prismaApp.patientId,
@@ -87,7 +102,7 @@ export class AppointmentMapper {
             status: prismaApp.status,
             consultationType: (prismaApp as { consultationType?: "VIDEO" | "CLINIC" }).consultationType,
             paymentStatus: prismaApp.paymentStatus || undefined,
-            paymentMethod: prismaApp.paymentMethod || undefined,
+            paymentMethod: prismaApp.paymentStatus ? (prismaApp.paymentMethod || undefined) : undefined,
             reason: prismaApp.reason,
             notes: prismaApp.notes,
             paymentAmount: prismaApp.payment?.amount,
@@ -128,15 +143,18 @@ export class AppointmentMapper {
                     symptoms: prismaApp.consultation.medicalRecord.symptoms,
                     diagnosis: prismaApp.consultation.medicalRecord.diagnosis,
                     notes: prismaApp.consultation.medicalRecord.notes,
+                    planForManagement: prismaApp.consultation.medicalRecord.planForManagement,
                 } : null,
                 prescription: prismaApp.consultation.prescription ? {
                     id: prismaApp.consultation.prescription.id,
                     instructions: prismaApp.consultation.prescription.instructions,
                     medicines: prismaApp.consultation.prescription.medicines.map(m => ({
+                        id: m.id,
                         name: m.name,
                         dosage: m.dosage,
                         frequency: m.frequency,
                         duration: m.duration,
+                        instructions: m.instructions,
                     })),
                 } : null,
             } : null,
@@ -157,6 +175,18 @@ export class AppointmentMapper {
             consultation: prismaApp.consultation ? {
                 id: prismaApp.consultation.id,
                 status: prismaApp.consultation.status,
+                prescription: prismaApp.consultation.prescription ? {
+                    id: prismaApp.consultation.prescription.id,
+                    instructions: prismaApp.consultation.prescription.instructions,
+                    medicines: prismaApp.consultation.prescription.medicines.map(m => ({
+                        id: m.id,
+                        name: m.name,
+                        dosage: m.dosage,
+                        frequency: m.frequency,
+                        duration: m.duration,
+                        instructions: m.instructions,
+                    })),
+                } : null,
             } : null,
         };
     }
@@ -178,8 +208,41 @@ export class AppointmentMapper {
                 amount: prismaApp.payment.amount,
                 status: prismaApp.payment.status,
                 paymentMethod: prismaApp.payment.paymentMethod,
+<<<<<<< HEAD
                 transactionId: (prismaApp.payment as any).razorpayPaymentId || (prismaApp.payment as any).stripeSessionId || (prismaApp.payment as any).paypalOrderId
             } : undefined
+=======
+                transactionId: prismaApp.payment.razorpayPaymentId || prismaApp.payment.stripeSessionId || prismaApp.payment.paypalOrderId || prismaApp.payment.id
+            } : undefined,
+            consultation: prismaApp.consultation ? {
+                id: prismaApp.consultation.id,
+                status: prismaApp.consultation.status,
+                vitals: prismaApp.consultation.vitals.map(v => ({
+                    bloodPressure: v.bloodPressure,
+                    heartRate: v.heartRate,
+                    temperature: v.temperature,
+                    weight: v.weight,
+                })),
+                medicalRecord: prismaApp.consultation.medicalRecord ? {
+                    symptoms: prismaApp.consultation.medicalRecord.symptoms,
+                    diagnosis: prismaApp.consultation.medicalRecord.diagnosis,
+                    notes: prismaApp.consultation.medicalRecord.notes,
+                    planForManagement: prismaApp.consultation.medicalRecord.planForManagement,
+                } : null,
+                prescription: prismaApp.consultation.prescription ? {
+                    id: prismaApp.consultation.prescription.id,
+                    instructions: prismaApp.consultation.prescription.instructions,
+                    medicines: prismaApp.consultation.prescription.medicines.map(m => ({
+                        id: m.id,
+                        name: m.name,
+                        dosage: m.dosage,
+                        frequency: m.frequency,
+                        duration: m.duration,
+                        instructions: m.instructions,
+                    })),
+                } : null,
+            } : null,
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
         };
     }
 

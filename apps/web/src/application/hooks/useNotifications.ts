@@ -31,6 +31,7 @@ export const useNotifications = (options: UseNotificationsOptions = {}) => {
   const fetchInitialData = useCallback(async () => {
     if (!userId) return;
     try {
+<<<<<<< HEAD
       if (enableSocket) {
         const [notifs, count] = await Promise.all([
           getNotifications(10, 0),
@@ -42,6 +43,18 @@ export const useNotifications = (options: UseNotificationsOptions = {}) => {
         const count = await getUnreadCount();
         setUnreadCount(count);
       }
+=======
+      const [response, count] = await Promise.all([
+        getNotifications(10, 0),
+        getUnreadCount()
+      ]);
+      
+      // Handle both paginated and direct array responses for backward compatibility
+      const notifs = Array.isArray(response) ? response : (response?.data || []);
+      
+      setNotifications(notifs);
+      setUnreadCount(count);
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
     } catch (error) {
       console.error("[useNotifications] Failed to fetch notifications:", error);
     }

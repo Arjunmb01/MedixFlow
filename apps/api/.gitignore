@@ -1,47 +1,87 @@
-
+# ------------------------------
+# Dependencies
+# ------------------------------
 node_modules/
 
-
+# ------------------------------
+# Environment Variables
+# ------------------------------
 .env
 .env.*
 !.env.example
 
-
+# ------------------------------
+# Build Output
+# ------------------------------
 dist/
 .dev/
 build/
+coverage/
 
-
+# ------------------------------
+# Logs
+# ------------------------------
 logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-
+# ------------------------------
+# Cache Files
+# ------------------------------
 .cache/
+.tmp/
+temp/
+tmp/
 
-
+# ------------------------------
+# TypeScript
+# ------------------------------
 *.tsbuildinfo
 
+# ------------------------------
+# Prisma
+# ------------------------------
+node_modules/.prisma/
+/src/generated/prisma/
+/prisma/generated/
 
+# ------------------------------
+# Uploads / User Files
+# ------------------------------
+uploads/
+public/uploads/
 
-node_modules/.prisma
-/src/generated/prisma
+# ------------------------------
+# Test Files
+# ------------------------------
+jest-cache/
+.nyc_output/
+tests/unit
 
-
-
+# ------------------------------
+# OS Files
+# ------------------------------
 .DS_Store
 Thumbs.db
 
-
+# ------------------------------
+# IDE Files
+# ------------------------------
 .vscode/
 .idea/
 *.swp
 *.swo
 
+# ------------------------------
+# Docker
+# ------------------------------
+docker-data/
 
-tmp/
-temp/
-
-uploads/
+# ------------------------------
+# Misc
+# ------------------------------
+*.pid
+*.seed

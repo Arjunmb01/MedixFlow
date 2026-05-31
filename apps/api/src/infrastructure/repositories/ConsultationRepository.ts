@@ -1,4 +1,4 @@
-import { PrismaClient, ConsultationStatus, Consultation, Prisma } from "@prisma/client";
+import { PrismaClient, ConsultationStatus, Consultation, Prisma, LabTestUrgency } from "@prisma/client";
 import { IDateTimeService } from "@/domain/services/IDateTimeService";
 import { 
     IConsultationRepository, 
@@ -11,7 +11,9 @@ import {
     ConsultationQueueItem,
     ConsultationWithEMR,
     ConsultationHistoryItem,
-    LabTestRequestDTO
+    LabTestRequestDTO,
+    ConsultationDraftDTO,
+    LabTestRecord
 } from "../../domain/repositories/IConsultationRepository";
 
 import { 
@@ -31,7 +33,11 @@ export class ConsultationRepository implements IConsultationRepository {
     async create(data: CreateConsultationDTO): Promise<ConsultationRecord> {
         const result = await this.prisma.consultation.create({
             data: {
-                ...data,
+                appointmentId: data.appointmentId,
+                doctorId: data.doctorId,
+                patientId: data.patientId,
+                parentConsultationId: data.parentConsultationId,
+                followUpExpiry: data.followUpExpiry,
                 status: "WAITING"
             }
         });
@@ -57,7 +63,12 @@ export class ConsultationRepository implements IConsultationRepository {
                         medicines: true
                     }
                 },
-                labTests: true,
+                labTests: {
+                    include: {
+                        reports: true
+                    }
+                },
+                followUp: true,
                 appointment: true
             }
         });
@@ -75,7 +86,11 @@ export class ConsultationRepository implements IConsultationRepository {
                         medicines: true
                     }
                 },
-                labTests: true
+                labTests: {
+                    include: {
+                        reports: true
+                    }
+                }
             }
         });
         return result ? this.mapper.toWithEMR(result as PrismaConsultationWithEMR) : null;
@@ -136,7 +151,8 @@ export class ConsultationRepository implements IConsultationRepository {
         id: string,
         vitals?: SaveVitalsDTO,
         medicalRecord?: SaveMedicalRecordDTO,
-        prescription?: SavePrescriptionDTO
+        prescription?: SavePrescriptionDTO,
+        userId?: string
     ): Promise<ConsultationWithEMR> {
         return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
 
@@ -195,13 +211,35 @@ export class ConsultationRepository implements IConsultationRepository {
                 }
             }
 
+            // Revision tracking
+            if (userId) {
+                await tx.consultationRevision.create({
+                    data: {
+                        consultationId: id,
+                        revisedBy: userId,
+                        vitals: vitals as any,
+                        medicalRecord: medicalRecord as any,
+                        prescription: prescription as any
+                    }
+                });
+            }
+
+            // Delete draft upon finalization
+            await tx.consultationDraft.deleteMany({
+                where: { consultationId: id }
+            });
+
             const result = await tx.consultation.findUnique({
                 where: { id },
                 include: {
                     vitals: true,
                     medicalRecord: true,
                     prescription: { include: { medicines: true } },
-                    labTests: true
+                    labTests: {
+                        include: {
+                            reports: true
+                        }
+                    }
                 }
             });
 
@@ -228,8 +266,13 @@ export class ConsultationRepository implements IConsultationRepository {
                         medicines: true
                     }
                 },
-                labTests: true,
+                labTests: {
+                    include: {
+                        reports: true
+                    }
+                },
                 appointment: true,
+                followUp: true,
                 doctor: {
                     include: {
                         specialization: true
@@ -254,25 +297,146 @@ export class ConsultationRepository implements IConsultationRepository {
             data: tests.map(test => ({
                 consultationId,
                 testName: test.testName,
+                testType: test.testType,
+                instructions: test.instructions,
+                fastingRequired: test.fastingRequired,
+                urgency: (test.urgency as LabTestUrgency) || "NORMAL",
                 status: "PENDING"
             }))
         });
     }
 
-    async getLabTestsByConsultation(consultationId: string): Promise<any[]> {
-        return this.prisma.labTest.findMany({
+    async getLabTestsByConsultation(consultationId: string): Promise<LabTestRecord[]> {
+        const results = await this.prisma.labTest.findMany({
             where: { consultationId },
+            include: { reports: true },
             orderBy: { createdAt: "asc" }
         });
+        return results.map(l => ({
+            ...l,
+            urgency: l.urgency as any,
+            status: l.status as any,
+            reports: l.reports.map(r => ({
+                ...r,
+                fileType: r.fileType ?? null
+            }))
+        }));
     }
 
     async uploadLabTestReport(labTestId: string, reportUrl: string): Promise<void> {
         await this.prisma.labTest.update({
             where: { id: labTestId },
             data: {
-                reportUrl,
-                status: "UPLOADED"
+                status: "UPLOADED",
+                reports: {
+                    create: {
+                        fileUrl: reportUrl,
+                        fileName: "Diagnostic Report",
+                    }
+                }
             }
+        });
+    }
+
+    async reviewLabTest(labTestId: string, doctorId: string, comments?: string, isAbnormal?: boolean): Promise<void> {
+        await this.prisma.labTest.update({
+            where: { id: labTestId },
+            data: {
+                status: "REVIEWED",
+                reviewedBy: doctorId,
+                reviewerComments: comments,
+                isAbnormal: isAbnormal ?? false
+            }
+        });
+    }
+
+    async updateLabTestStatus(labTestId: string, status: 'PENDING' | 'UPLOADED' | 'REVIEWED'): Promise<void> {
+        await this.prisma.labTest.update({
+            where: { id: labTestId },
+            data: { status: status as any }
+        });
+    }
+
+    async saveDraft(consultationId: string, draft: ConsultationDraftDTO): Promise<void> {
+        await this.prisma.consultationDraft.upsert({
+            where: { consultationId },
+            create: {
+                consultationId,
+                vitals: draft.vitals as any,
+                medicalRecord: draft.medicalRecord as any,
+                prescription: draft.prescription as any,
+                labTests: draft.labTests as any
+            },
+            update: {
+                vitals: draft.vitals as any,
+                medicalRecord: draft.medicalRecord as any,
+                prescription: draft.prescription as any,
+                labTests: draft.labTests as any
+            }
+        });
+    }
+
+    async getDraft(consultationId: string): Promise<ConsultationDraftDTO | null> {
+        const draft = await this.prisma.consultationDraft.findUnique({
+            where: { consultationId }
+        });
+        if (!draft) return null;
+        return {
+            vitals: draft.vitals,
+            medicalRecord: draft.medicalRecord,
+            prescription: draft.prescription,
+            labTests: draft.labTests
+        };
+    }
+
+    async deleteDraft(consultationId: string): Promise<void> {
+        await this.prisma.consultationDraft.deleteMany({
+            where: { consultationId }
+        });
+    }
+
+    async getRevisions(consultationId: string): Promise<any[]> {
+        return this.prisma.consultationRevision.findMany({
+            where: { consultationId },
+            orderBy: { createdAt: "desc" }
+        });
+    }
+
+    // FollowUp methods
+    async scheduleFollowUp(data: any): Promise<any> {
+        const result = await this.prisma.followUp.create({
+            data: {
+                consultationId: data.consultationId,
+                patientId: data.patientId,
+                doctorId: data.doctorId,
+                scheduledDate: data.scheduledDate,
+                time: data.time,
+                type: data.type,
+                reason: data.reason,
+                notes: data.notes,
+                status: "SCHEDULED"
+            }
+        });
+        return result as any;
+    }
+
+    async getFollowUpByConsultation(consultationId: string): Promise<any | null> {
+        return this.prisma.followUp.findUnique({
+            where: { consultationId }
+        });
+    }
+
+    async getPatientFollowUps(patientId: string): Promise<any[]> {
+        return this.prisma.followUp.findMany({
+            where: { patientId },
+            orderBy: { scheduledDate: "asc" }
+        });
+    }
+
+    async updateFollowUpStatus(id: string, status: string): Promise<any> {
+        return this.prisma.followUp.update({
+            where: { id },
+            data: { status: status as any }
         });
     }
 }

@@ -32,7 +32,12 @@ export default function PatientDashboard() {
               doctorName: stats.nextAppointment.doctorName,
               date: stats.nextAppointment.date,
               slotStart: stats.nextAppointment.slotStart,
+<<<<<<< HEAD
               consultationType: stats.nextAppointment.consultationType,
+=======
+              hasConsultation: !!stats.nextAppointment.hasConsultation,
+              status: stats.nextAppointment.status
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
           }
         : null
 

@@ -2,6 +2,7 @@ import { IConsultationRepository, SaveVitalsDTO, SaveMedicalRecordDTO, SavePresc
 import { IAppointmentRepository } from "../../../domain/repositories/IAppointmentRepository";
 import { SendNotificationUseCase } from "../notification/SendNotificationUseCase";
 import { NotificationType } from "@/domain/value-objects/types/notification.types";
+import { socketService } from "@/infrastructure/services/SocketService";
 
 export class CompleteConsultationUseCase {
     constructor(
@@ -13,6 +14,7 @@ export class CompleteConsultationUseCase {
     async execute(
         consultationId: string, 
         doctorId: string,
+        userId: string,
         vitals?: SaveVitalsDTO,
         medicalRecord?: SaveMedicalRecordDTO,
         prescription?: SavePrescriptionDTO
@@ -31,8 +33,13 @@ export class CompleteConsultationUseCase {
             throw new Error(`Cannot modify consultation from status: ${consultation.status}`);
         }
 
-        // Save EMR Data via Repo
-        await this.consultationRepo.saveConsultationData(consultationId, vitals, medicalRecord, prescription);
+        // Production-grade validation: Mandatory diagnosis before finalizing
+        if (medicalRecord && !medicalRecord.diagnosis && consultation.status === "IN_PROGRESS") {
+            throw new Error("Clinical Diagnosis is mandatory to complete a consultation.");
+        }
+
+        // Save EMR Data via Repo with revision tracking
+        await this.consultationRepo.saveConsultationData(consultationId, vitals, medicalRecord, prescription, userId);
 
         // Update consultation status if it was in progress
         if (consultation.status === "IN_PROGRESS") {
@@ -44,18 +51,24 @@ export class CompleteConsultationUseCase {
             await this.sendNotificationUseCase.execute({
                 recipientId: consultation.patientId,
                 title: "Consultation Completed",
-                message: "Your consultation has been successfully completed.",
+                message: `Your consultation with Dr. ${consultation.doctor.lastName} has been completed.`,
                 type: NotificationType.COMPLETED,
             });
 
-            if (prescription) {
+            if (prescription && prescription.medicines.length > 0) {
                 await this.sendNotificationUseCase.execute({
                     recipientId: consultation.patientId,
                     title: "New Prescription",
-                    message: "A new prescription has been uploaded for your recent consultation.",
+                    message: "A new prescription has been added to your medical records.",
                     type: NotificationType.PRESCRIPTION,
                 });
             }
+
+            // Real-time update to patient/doctor dashboard
+            socketService.emitToUser(consultation.patientId, "consultation_completed", {
+                consultationId: consultation.id,
+                status: "COMPLETED"
+            });
         }
 
         return this.consultationRepo.findById(consultationId);

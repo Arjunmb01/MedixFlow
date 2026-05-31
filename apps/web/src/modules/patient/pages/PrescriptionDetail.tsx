@@ -3,9 +3,14 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import Sidebar from "../components/dashboard/Sidebar";
 import TopNav from "../components/dashboard/TopNav";
 import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile";
+<<<<<<< HEAD
 import { getPatientAppointments } from "@/infrastructure/api/patient.api";
 import { getLabTests, uploadLabTest } from "@/infrastructure/api/consultation.api";
 import { generatePrescriptionPdfBlob } from "../utils/generatePrescriptionPdf";
+=======
+import { getLabTests, uploadLabTest, generateConsultationPDF } from "@/infrastructure/api/consultation.api";
+import { getAppointmentById } from "@/infrastructure/api/appointment.api";
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
 import { toast } from "sonner";
 import {
     ArrowLeft,
@@ -52,6 +57,7 @@ interface Medicine {
     frequency: string;
     duration: string;
     instructions?: string | null;
+    foodTiming?: 'BEFORE_FOOD' | 'AFTER_FOOD' | 'WITH_FOOD' | 'EMPTY_STOMACH' | null;
 }
 
 interface LabTest {
@@ -111,6 +117,7 @@ export default function PrescriptionDetail() {
 
     useEffect(() => {
         if (!loading && data && searchParams.get("download") === "true") {
+<<<<<<< HEAD
             const triggerAutoDownload = async () => {
                 try {
                     setIsDownloading(true);
@@ -143,21 +150,27 @@ export default function PrescriptionDetail() {
             };
             
             triggerAutoDownload();
+=======
+            handleDownloadOfficialReport();
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
         }
     }, [loading, data, searchParams]);
 
     const fetchData = async () => {
         try {
             setLoading(true);
-            const response = await getPatientAppointments();
-            const appointments = response.appointments || [];
-            const apt = appointments.find((a: { id: string }) => a.id === appointmentId);
+            if (!appointmentId) return;
+            
+            const apt = await getAppointmentById(appointmentId);
+            
             if (apt && apt.consultation) {
                 setData(apt);
                 
                 // Fetch lab tests for this consultation
                 const tests = await getLabTests(apt.consultation.id, "patient");
                 setLabTests(tests);
+            } else {
+                console.error("Appointment or consultation not found");
             }
         } catch (error) {
             console.error("Failed to fetch prescription details:", error);
@@ -181,26 +194,33 @@ export default function PrescriptionDetail() {
             
             // 1. Upload to Cloudinary (Need to implement or use existing service)
             // For now, I'll simulate the upload process logic 
-            // but in a real app, you'd send to an upload endpoint first.
             const formData = new FormData();
             formData.append('file', file);
             formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ml_default');
 
             const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dck5be4et';
+            const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ml_default';
+
+            console.log("Uploading to Cloudinary...", { cloudName, uploadPreset });
+
             const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
                 method: 'POST',
                 body: formData
             });
+
+            if (!uploadRes.ok) {
+                const errorData = await uploadRes.json();
+                console.error("Cloudinary upload failed:", errorData);
+                throw new Error(errorData.error?.message || "Failed to upload to Cloudinary");
+            }
+
             const uploadData = await uploadRes.json();
-            
-            if (uploadData.secure_url) {
-                // 2. Save URL to backend
+            console.log("Cloudinary upload success:", uploadData.secure_url);
+
+            if (data?.consultation?.id) {
                 await uploadLabTest(data.consultation.id, labTestId, uploadData.secure_url);
-                toast.success("Report uploaded successfully!");
-                
-                // 3. Refresh lab tests
-                const tests = await getLabTests(data.consultation.id, "patient");
-                setLabTests(tests);
+                toast.success("Lab report uploaded successfully!");
+                await fetchData(); // Refresh UI to show 'Uploaded' status
             } else {
                 throw new Error("Upload failed");
             }
@@ -224,14 +244,14 @@ export default function PrescriptionDetail() {
 
     const [isDownloading, setIsDownloading] = useState(false);
 
-    const handleDownloadPDF = async () => {
-        if (!data || !data.consultation.prescription) return;
+    const handleDownloadOfficialReport = async () => {
+        if (!data || !data.consultation) return;
         
         try {
             setIsDownloading(true);
-            const rx = data.consultation.prescription!;
-            const prescriptionId = `RX-${new Date(data.appointmentDate).getFullYear()}-${rx.id.slice(0, 4).toUpperCase()}`;
+            const response = await generateConsultationPDF(data.consultation.id, "patient");
             
+<<<<<<< HEAD
             const { default: PrescriptionPDF } = await import(
                 "../components/prescription/PrescriptionPDF"
             );
@@ -250,13 +270,25 @@ export default function PrescriptionDetail() {
             link.click();
             URL.revokeObjectURL(url);
             toast.success("Prescription downloaded successfully");
+=======
+            if (response.pdfUrl) {
+                const link = document.createElement("a");
+                link.href = response.pdfUrl;
+                link.download = `ClinicalReport-${data.consultation.id.slice(0, 8)}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                toast.success("Official Clinical Report downloaded successfully");
+            }
+>>>>>>> 141ec674faa5e8dec8f62adfdfa63bd47aaf7909
         } catch (error) {
-            console.error("PDF generation failed:", error);
-            toast.error("Failed to generate PDF. Please try printing instead.");
+            console.error("Official report generation failed:", error);
+            toast.error("Failed to download official report.");
         } finally {
             setIsDownloading(false);
         }
     };
+
 
     if (loading) {
         return (
@@ -272,7 +304,7 @@ export default function PrescriptionDetail() {
         );
     }
 
-    if (!data || !data.consultation?.prescription) {
+    if (!data || !data.consultation) {
         return (
             <div className="min-h-screen bg-[#F8FAFC] flex font-outfit">
                 <Sidebar />
@@ -292,7 +324,9 @@ export default function PrescriptionDetail() {
     const vitals = data.consultation.vitals?.[0];
     const record = data.consultation.medicalRecord;
     const rx = data.consultation.prescription;
-    const prescriptionId = `RX-${new Date(data.appointmentDate).getFullYear()}-${rx.id.slice(0, 4).toUpperCase()}`;
+    const prescriptionId = rx 
+        ? `RX-${new Date(data.appointmentDate).getFullYear()}-${rx.id.slice(0, 4).toUpperCase()}`
+        : `CONSULT-${new Date(data.appointmentDate).getFullYear()}-${data.consultation.id.slice(0, 4).toUpperCase()}`;
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] flex font-outfit">
@@ -317,15 +351,15 @@ export default function PrescriptionDetail() {
                             <button onClick={handlePrint} className="px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all flex items-center gap-2">
                                 <Printer className="w-4 h-4" />
                                 Print Prescription
-                            </button>
-                             <button 
-                                onClick={handleDownloadPDF} 
+                            </button>                             <button 
+                                onClick={handleDownloadOfficialReport} 
                                 disabled={isDownloading}
-                                className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200 disabled:opacity-50"
+                                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200 disabled:opacity-50"
                              >
                                 {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                                {isDownloading ? "Generating..." : "Download PDF"}
+                                {isDownloading ? "Generating..." : "Download Clinical Report"}
                             </button>
+
                         </div>
                     </div>
 
@@ -434,39 +468,49 @@ export default function PrescriptionDetail() {
                             )}
 
                             {/* Treatment / Medications Table */}
-                            <section>
-                                <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-4">
-                                    <Pill style={{ color: COLORS.teal500 }} className="w-4 h-4 text-teal-500" />
-                                    Treatment / Medications
-                                </h2>
-                                <div style={{ borderColor: COLORS.gray100 }} className="border border-gray-100 rounded-2xl overflow-hidden">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr style={{ backgroundColor: COLORS.gray50, borderBottomColor: COLORS.gray100 }} className="bg-gray-50 border-b border-gray-100">
-                                                <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Medicine Name</th>
-                                                <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Dosage / Freq</th>
-                                                <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Duration</th>
-                                                <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Instructions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {rx.medicines.map((med, idx) => (
-                                                <tr key={med.id || idx} style={{ borderBottomColor: COLORS.gray50 }} className={`${idx < rx.medicines.length - 1 ? "border-b border-gray-50" : ""} hover:bg-blue-50/30`}>
-                                                    <td className="px-6 py-4">
-                                                        <p style={{ color: COLORS.blue700 }} className="font-black text-blue-700">{med.name}</p>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <p style={{ color: COLORS.gray900 }} className="text-sm font-bold text-gray-900">{med.dosage}</p>
-                                                        <p style={{ color: COLORS.gray500 }} className="text-[10px] font-bold text-gray-500 uppercase">{med.frequency}</p>
-                                                    </td>
-                                                    <td style={{ color: COLORS.gray700 }} className="px-6 py-4 text-gray-700 font-medium">{med.duration}</td>
-                                                    <td style={{ color: COLORS.gray700 }} className="px-6 py-4 text-gray-700 text-xs italic">{med.instructions || "—"}</td>
+                            {rx && rx.medicines && rx.medicines.length > 0 && (
+                                <section>
+                                    <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-4">
+                                        <Pill style={{ color: COLORS.teal500 }} className="w-4 h-4 text-teal-500" />
+                                        Treatment / Medications
+                                    </h2>
+                                    <div style={{ borderColor: COLORS.gray100 }} className="border border-gray-100 rounded-2xl overflow-hidden">
+                                        <table className="w-full text-sm">
+                                            <thead>
+                                                <tr style={{ backgroundColor: COLORS.gray50, borderBottomColor: COLORS.gray100 }} className="bg-gray-50 border-b border-gray-100">
+                                                    <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Medicine Name</th>
+                                                    <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Dosage / Freq</th>
+                                                    <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Timing</th>
+                                                    <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Duration</th>
+                                                    <th style={{ color: COLORS.gray500 }} className="text-left px-6 py-3.5 text-[11px] font-black text-gray-500 uppercase tracking-wider">Instructions</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
+                                            </thead>
+                                            <tbody>
+                                                {rx.medicines.map((med, idx) => (
+                                                    <tr key={med.id || idx} style={{ borderBottomColor: COLORS.gray50 }} className={`${idx < rx.medicines.length - 1 ? "border-b border-gray-50" : ""} hover:bg-blue-50/30`}>
+                                                        <td className="px-6 py-4">
+                                                            <p style={{ color: COLORS.blue700 }} className="font-black text-blue-700">{med.name}</p>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <p style={{ color: COLORS.gray900 }} className="text-sm font-bold text-gray-900">{med.dosage}</p>
+                                                            <p style={{ color: COLORS.gray500 }} className="text-[10px] font-bold text-gray-500 uppercase">{med.frequency}</p>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
+                                                                med.foodTiming === 'BEFORE_FOOD' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-green-50 text-green-700 border border-green-100'
+                                                            }`}>
+                                                                {med.foodTiming?.replace('_', ' ') || 'AFTER FOOD'}
+                                                            </span>
+                                                        </td>
+                                                        <td style={{ color: COLORS.gray700 }} className="px-6 py-4 text-gray-700 font-medium">{med.duration}</td>
+                                                        <td style={{ color: COLORS.gray700 }} className="px-6 py-4 text-gray-700 text-xs italic">{med.instructions || "—"}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </section>
+                            )}
 
                             {/* Lab Test Requests (Patient Actionable) */}
                             {labTests.length > 0 && (
@@ -537,7 +581,7 @@ export default function PrescriptionDetail() {
                                                 Follow-Up Advice
                                             </h2>
                                             <p style={{ color: COLORS.gray700 }} className="text-sm text-gray-700">
-                                                {rx.instructions || "No specific follow-up specified by the doctor."}
+                                                {rx?.instructions || "No specific follow-up specified by the doctor."}
                                             </p>
                                         </div>
                                     </div>
@@ -555,13 +599,13 @@ export default function PrescriptionDetail() {
                             )}
 
                             {/* Pharmacy Instructions */}
-                            {rx.instructions && !record?.notes && (
+                            {rx?.instructions && !record?.notes && (
                                 <section>
                                     <h2 style={{ color: COLORS.gray900 }} className="text-xs font-black text-gray-900 uppercase tracking-widest flex items-center gap-2 mb-3">
                                         <ClipboardList style={{ color: COLORS.purple500 }} className="w-4 h-4 text-purple-500" />
                                         Pharmacy Instructions
                                     </h2>
-                                    <p style={{ color: COLORS.gray700 }} className="text-sm text-gray-700 leading-relaxed">{rx.instructions}</p>
+                                    <p style={{ color: COLORS.gray700 }} className="text-sm text-gray-700 leading-relaxed">{rx?.instructions}</p>
                                 </section>
                             )}
 

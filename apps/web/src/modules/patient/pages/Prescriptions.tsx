@@ -30,7 +30,7 @@ export default function Prescriptions() {
         try {
             setLoading(true);
             const response = await getPatientAppointments();
-            const appointments = response.appointments || [];
+            const appointments = response.data || [];
             // Filter only completed appointments that have prescriptions
             const items: PrescriptionItem[] = appointments
                 .filter((apt: { status: string; consultation?: { prescription?: { medicines: unknown[] } } }) =>

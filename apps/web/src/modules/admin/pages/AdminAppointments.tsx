@@ -54,9 +54,6 @@ export default function AdminAppointments() {
     const paginatedAppointments = appointments;
 
 
-    const totalPages = Math.ceil(totalAppointments / itemsPerPage)
-
-
     const formatDate = (date: string | Date) => {
         return new Date(date).toLocaleDateString('en-IN', {
             month: 'short',
@@ -308,8 +305,8 @@ export default function AdminAppointments() {
             {rescheduleApt && (
                 <RescheduleModal
                     appointmentId={rescheduleApt.id}
-                    patientId={rescheduleApt.patient?.id || rescheduleApt.patientId}
-                    doctorId={rescheduleApt.doctor?.id ?? rescheduleApt.doctorId}
+                    patientId={rescheduleApt.patient?.id || (rescheduleApt as any).patientId}
+                    doctorId={(rescheduleApt as any).doctorId ?? rescheduleApt.doctor?.id}
                     role="admin"
                     onSuccess={fetchData}
                     onClose={() => setRescheduleApt(null)}
