@@ -355,7 +355,7 @@ Authentication uses **HTTP-only cookies** for access and refresh tokens. Authent
 
 ### API (Render)
 
-`apps/api/render.yaml` defines a Render web service (`medixflow-api`) with Node 20, linked PostgreSQL, and generated JWT secrets. Set remaining secrets (SMTP, Cloudinary, payment keys, `FRONTEND_URL`, `REDIS_URL`) in the Render dashboard.
+`render.yaml` at the repo root defines a Render web service (`medixflow-api`) with Node 20, linked PostgreSQL, and generated JWT secrets. Set remaining secrets (SMTP, Cloudinary, payment keys, `FRONTEND_URL`, `REDIS_URL`) in the Render dashboard.
 
 Typical deploy flow:
 
