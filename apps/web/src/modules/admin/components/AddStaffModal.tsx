@@ -8,6 +8,7 @@ import ConfirmModal from "./ConfirmModal"
 import { createDoctor, updateStaffDoctor } from "@/infrastructure/api/staff.api"
 import type { DoctorProfile } from "@/domain/doctor/types/doctor.types"
 import { SPECIALTY_OPTIONS } from "../types/specialty"
+import { copyToClipboard } from "@/core/utils/browser"
 
 const schema = z.object({
     firstName: z.string()
@@ -211,9 +212,13 @@ export default function AddStaffModal({ isOpen, onClose, onSuccess, staffToEdit 
                                 <code className="text-[11px] text-gray-600 font-mono break-all line-clamp-1 flex-1 text-left">{setupUrl}</code>
                                 <button 
                                     type="button"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(setupUrl)
-                                        toast.success("Link copied to clipboard!")
+                                    onClick={async () => {
+                                        const copied = await copyToClipboard(setupUrl)
+                                        if (copied) {
+                                            toast.success("Link copied to clipboard!")
+                                        } else {
+                                            toast.error("Could not copy. Please select and copy the link manually.")
+                                        }
                                     }}
                                     className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-95 whitespace-nowrap"
                                 >

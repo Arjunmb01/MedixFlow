@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom"
 import { SPECIALTY_OPTIONS } from "../../admin/types/specialty"
 import { usePatientProfile } from "@/application/patient/hooks/usePatientProfile"
 import { useFindDoctors } from "@/application/doctor/hooks/useFindDoctors"
+import { scrollToTopSmooth } from "@/core/utils/browser"
 
 export default function FindDoctors() {
     const navigate = useNavigate()
@@ -63,7 +64,7 @@ export default function FindDoctors() {
     const handlePageChange = (newPage: number) => {
         setCurrentPage(newPage)
         updateFilters({ page: newPage })
-        window.scrollTo({ top: 0, behavior: 'smooth' })
+        scrollToTopSmooth()
     }
 
     if (!profile && profileLoading) {

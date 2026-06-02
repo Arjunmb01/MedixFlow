@@ -23,4 +23,47 @@
 
 body {
   @apply antialiased text-gray-900 bg-white;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Fallback when backdrop-filter is unsupported (older Firefox, some Android WebViews) */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .backdrop-blur-sm,
+  .backdrop-blur-md,
+  .backdrop-blur-xl {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .bg-white\/80.backdrop-blur-sm,
+  .bg-white\/80.backdrop-blur-md,
+  .bg-white\/80.backdrop-blur-xl,
+  .bg-white\/95.backdrop-blur-md {
+    background-color: rgb(255 255 255 / 0.97);
+  }
+
+  .bg-black\/50.backdrop-blur-sm,
+  .bg-black\/60.backdrop-blur-sm,
+  .bg-black\/60.backdrop-blur-xl,
+  .bg-\[\#0F172A\]\/40.backdrop-blur-sm,
+  .bg-\[\#0F172A\]\/50.backdrop-blur-sm,
+  .bg-gray-900\/40.backdrop-blur-sm,
+  .bg-gray-900\/60.backdrop-blur-sm {
+    background-color: rgb(15 23 42 / 0.72);
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

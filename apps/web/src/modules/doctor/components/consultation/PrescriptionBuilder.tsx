@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Pill, Sun, Cloud, Moon, Trash2, Plus, Info, Search, AlertCircle, CheckCircle2 } from "lucide-react";
+import { scrollToTopSmooth } from "@/core/utils/browser";
 
 interface Medicine {
     name: string;
@@ -93,7 +94,7 @@ export const PrescriptionBuilder: React.FC<PrescriptionBuilderProps> = ({ prescr
         setCustomMedicine(prescription.medicines[index]);
         setEditingIndex(index);
         // Scroll to top of builder
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        scrollToTopSmooth();
     };
 
     const handleRemoveMedicine = (index: number) => {

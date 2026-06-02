@@ -51,6 +51,7 @@ function startServer(): void {
   httpServer.listen(PORT, () => {
     mark("listening");
     console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`  CORS allowed origins: ${config.ALLOWED_ORIGINS.join(", ") || "(none)"}`);
     console.log("  GET /health — ready now");
     console.log("  /api/*     — loading (see 'API routes ready' below)...\n");
 

@@ -1,10 +1,18 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import legacy from "@vitejs/plugin-legacy";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    legacy({
+      targets: ["> 0.5%", "last 2 versions", "Firefox ESR", "not dead", "not IE 11"],
+      modernPolyfills: true,
+    }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -37,7 +45,6 @@ export default defineConfig({
     exclude: ["@react-pdf/renderer"],
   },
   build: {
-    target: "es2022",
     sourcemap: false,
     rollupOptions: {
       output: {

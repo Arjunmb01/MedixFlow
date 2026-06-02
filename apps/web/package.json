@@ -34,6 +34,13 @@
     "sonner": "^2.0.7",
     "zod": "^4.3.6"
   },
+  "browserslist": [
+    "> 0.5%",
+    "last 2 versions",
+    "Firefox ESR",
+    "not dead",
+    "not IE 11"
+  ],
   "optionalDependencies": {
     "@rollup/rollup-linux-x64-gnu": "4.60.3",
     "@tailwindcss/oxide-linux-x64-gnu": "4.2.4",
@@ -46,12 +53,14 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-legacy": "^7.2.1",
     "@vitejs/plugin-react": "^5.1.1",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "tailwindcss": "4.2.4",
+    "terser": "^5.48.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
     "vite": "^7.3.1"

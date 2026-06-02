@@ -74,10 +74,17 @@ if (!_env.success) {
 
 const data = _env.data;
 
+/** Normalize origins for CORS (no trailing slash; browser Origin header never has one). */
+function normalizeOrigin(origin: string): string {
+    return origin.trim().replace(/\/+$/, "");
+}
+
+const allowedOrigins = data.FRONTEND_URL.map(normalizeOrigin).filter(Boolean);
+
 export const env = {
     ...data,
-    FRONTEND_URL: data.FRONTEND_URL[0],
-    ALLOWED_ORIGINS: data.FRONTEND_URL,
+    FRONTEND_URL: allowedOrigins[0] ?? "",
+    ALLOWED_ORIGINS: allowedOrigins,
     smtp: {
         host: data.SMTP_HOST || "",
         port: data.SMTP_PORT || 587,
