@@ -10,6 +10,7 @@ import { NotificationType } from "../../../domain/value-objects/types/notificati
 import { IQueueService } from "../../../domain/services/IQueueService";
 import { SocketService } from "../../../infrastructure/services/SocketService";
 import { ConfirmPaymentUseCase } from "./confirmPayment.usecase";
+import { RazorpayNotConfiguredError } from "@/shared/errors/RazorpayNotConfiguredError";
 
 interface RazorpayWebhookPayload {
   event: string;
@@ -34,7 +35,7 @@ interface RazorpayWebhookPayload {
 
 export class HandleRazorpayWebhookUseCase {
   constructor(
-    private readonly razorpayService: IRazorpayService,
+    private readonly razorpayService: IRazorpayService | null,
     private readonly paymentRepo: IPaymentRepository,
     private readonly walletRepo: IWalletRepository,
     private readonly appointmentRepo: IAppointmentRepository,
@@ -45,6 +46,9 @@ export class HandleRazorpayWebhookUseCase {
   ) {}
 
   async execute(signature: string, payload: RazorpayWebhookPayload, rawBody: string, webhookSecret: string): Promise<void> {
+    if (!this.razorpayService) {
+      throw new RazorpayNotConfiguredError();
+    }
     const isValid = this.razorpayService.verifyWebhookSignature(rawBody, signature, webhookSecret);
 
     if (!isValid) {

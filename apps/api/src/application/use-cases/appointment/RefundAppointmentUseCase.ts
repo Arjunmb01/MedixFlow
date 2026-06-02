@@ -6,13 +6,14 @@ import { PaymentStatus } from "../../../domain/value-objects/enums/PaymentStatus
 import { PaymentMethod } from "../../../domain/value-objects/enums/PaymentMethod";
 import { TransactionType } from "../../../domain/value-objects/enums/TransactionType";
 import { PaymentGatewayFactory } from "../../../infrastructure/services/PaymentGatewayFactory";
+import { RazorpayNotConfiguredError } from "@/shared/errors/RazorpayNotConfiguredError";
 
 export class RefundAppointmentUseCase {
   constructor(
     private readonly paymentRepo: IPaymentRepository,
     private readonly walletRepo: IWalletRepository,
     private readonly appointmentRepo: IAppointmentRepository,
-    private readonly razorpayService: IRazorpayService
+    private readonly razorpayService: IRazorpayService | null
   ) {}
 
   async execute(appointmentId: string, patientId: string, refundToWallet: boolean): Promise<void> {
@@ -54,6 +55,11 @@ export class RefundAppointmentUseCase {
           const gateway = PaymentGatewayFactory.getGateway(PaymentMethod.STRIPE);
           await gateway.refund(payment.stripePaymentIntentId, gatewayRefundAmount);
         } else if (payment.paymentMethod === PaymentMethod.RAZORPAY && payment.razorpayPaymentId) {
+          if (!this.razorpayService) {
+            throw new RazorpayNotConfiguredError(
+              "Cannot refund Razorpay payment: Razorpay is not configured. Use refund to wallet instead."
+            );
+          }
           await this.razorpayService.refundPayment(payment.razorpayPaymentId, gatewayRefundAmount);
         }
       }

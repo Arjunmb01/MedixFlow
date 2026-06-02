@@ -2,6 +2,7 @@ import { IPaymentRepository } from "../../../domain/repositories/IPaymentReposit
 import { IRazorpayService } from "../../../domain/services/IRazorpayService";
 import { ConfirmPaymentUseCase } from "./confirmPayment.usecase";
 import { PaymentStatus } from "../../../domain/value-objects/enums/PaymentStatus";
+import { RazorpayNotConfiguredError } from "@/shared/errors/RazorpayNotConfiguredError";
 
 export interface VerifyRazorpayPaymentInput {
     razorpayOrderId: string;
@@ -12,11 +13,14 @@ export interface VerifyRazorpayPaymentInput {
 export class VerifyRazorpayPaymentUseCase {
     constructor(
         private readonly paymentRepo: IPaymentRepository,
-        private readonly razorpayService: IRazorpayService,
+        private readonly razorpayService: IRazorpayService | null,
         private readonly confirmPaymentUseCase: ConfirmPaymentUseCase
     ) {}
 
     async execute(data: VerifyRazorpayPaymentInput): Promise<{ success: boolean }> {
+        if (!this.razorpayService) {
+            throw new RazorpayNotConfiguredError();
+        }
         console.log(`[VerifyRazorpayPayment] Verifying order: ${data.razorpayOrderId}`);
 
         // 1. Verify signature

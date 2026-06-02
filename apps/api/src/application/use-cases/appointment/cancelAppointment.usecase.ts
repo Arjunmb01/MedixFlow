@@ -3,7 +3,6 @@ import { IConsultationRepository } from "@/domain/repositories/IConsultationRepo
 import { SendNotificationUseCase } from "../notification/SendNotificationUseCase";
 import { NotificationType } from "@/domain/value-objects/types/notification.types";
 import { IPaymentRepository } from "@/domain/repositories/IPaymentRepository";
-import { IRazorpayService } from "@/domain/services/IRazorpayService";
 import { IWalletRepository } from "@/domain/repositories/IWalletRepository";
 import { PaymentStatus } from "@/domain/value-objects/enums/PaymentStatus";
 import { PaymentMethod } from "@/domain/value-objects/enums/PaymentMethod";
@@ -20,7 +19,6 @@ export class CancelAppointmentUseCase {
         private readonly consultationRepo : IConsultationRepository,
         private readonly sendNotificationUseCase: SendNotificationUseCase,
         private readonly paymentRepo: IPaymentRepository,
-        private readonly razorpayService: IRazorpayService,
         private readonly walletRepo: IWalletRepository,
         private readonly queueService: IQueueService,
         private readonly socketService: SocketService,

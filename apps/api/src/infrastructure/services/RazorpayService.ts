@@ -2,11 +2,16 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import { IRazorpayService, CreateRazorpayOrderInput, RazorpayOrder } from "../../domain/services/IRazorpayService";
 import { env as config } from "@/shared/config/env";
+import { isRazorpayEnabled } from "@/shared/config/payments";
+import { RazorpayNotConfiguredError } from "@/shared/errors/RazorpayNotConfiguredError";
 
 export class RazorpayService implements IRazorpayService {
   private readonly razorpay: Razorpay;
 
   constructor() {
+    if (!isRazorpayEnabled()) {
+      throw new RazorpayNotConfiguredError();
+    }
     this.razorpay = new Razorpay({
       key_id: config.RAZORPAY_KEY_ID,
       key_secret: config.RAZORPAY_KEY_SECRET,

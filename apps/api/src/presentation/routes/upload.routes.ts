@@ -4,6 +4,7 @@ import { MESSAGES } from "@/shared/constants";
 import { uploadFile } from "@/presentation/controllers/UploadController";
 import { getCloudinaryStorage } from "@/infrastructure/services/cloudinary.loader";
 import { getContainer } from "@/infrastructure/services/container/CompositionRoot";
+import { getPublicPaymentConfig } from "@/shared/config/payments";
 
 export default function createUploadRoutes(): Router {
   const { authMiddleware: auth } = getContainer();
@@ -29,6 +30,10 @@ export default function createUploadRoutes(): Router {
       next(error);
     }
   };
+
+  router.get("/config", (_req, res) => {
+    res.json({ payments: getPublicPaymentConfig() });
+  });
 
   router.post("/upload/image", auth.authenticate, uploadMiddleware, uploadFile);
 

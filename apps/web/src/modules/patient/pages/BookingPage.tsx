@@ -15,6 +15,7 @@ import { Calendar } from "../components/booking/Calendar";
 import { SlotPicker } from "../components/booking/SlotPicker";
 import type { SlotInfo } from "../components/booking/SlotPicker";
 import { getAvailableSlots, bookAppointment, getWalletBalance } from "@/infrastructure/api/appointment.api";
+import { getPaymentProvidersConfig } from "@/infrastructure/api/config.api";
 import { toast } from "sonner";
 import api from "@/core/api/axios";
 
@@ -37,6 +38,7 @@ export default function BookingPage() {
     const [isBooking, setIsBooking] = useState(false);
     const [bookingSuccess, setBookingSuccess] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<"RAZORPAY" | "WALLET" | "STRIPE" | "PAYPAL">("STRIPE");
+    const [razorpayEnabled, setRazorpayEnabled] = useState(false);
     const [walletBalance, setWalletBalance] = useState<number | null>(null);
     const [pendingAppointmentId, setPendingAppointmentId] = useState<string | null>(null);
     const [useWallet, setUseWallet] = useState(false);
@@ -53,8 +55,20 @@ export default function BookingPage() {
         return Math.min(doctor.consultationFee, walletBalance);
     }, [doctor, useWallet, walletBalance]);
 
-    // Load Razorpay Script
     useEffect(() => {
+        getPaymentProvidersConfig()
+            .then((config) => setRazorpayEnabled(config.razorpay))
+            .catch(() => setRazorpayEnabled(false));
+    }, []);
+
+    useEffect(() => {
+        if (!razorpayEnabled && paymentMethod === "RAZORPAY") {
+            setPaymentMethod("STRIPE");
+        }
+    }, [razorpayEnabled, paymentMethod]);
+
+    useEffect(() => {
+        if (!razorpayEnabled) return;
         const script = document.createElement("script");
         script.src = "https://checkout.razorpay.com/v1/checkout.js";
         script.async = true;
@@ -62,7 +76,7 @@ export default function BookingPage() {
         return () => {
             document.body.removeChild(script);
         };
-    }, []);
+    }, [razorpayEnabled]);
 
     // Fetch wallet balance
     useEffect(() => {
@@ -442,6 +456,7 @@ export default function BookingPage() {
                                             </div>}
                                         </button> */}
 
+                                        {razorpayEnabled && (
                                         <button
                                             onClick={() => setPaymentMethod("RAZORPAY")}
                                             className={`p-6 rounded-2xl border-2 flex items-center justify-between transition-all ${
@@ -465,6 +480,7 @@ export default function BookingPage() {
                                                 <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                                             </div>}
                                         </button>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="p-8 bg-emerald-50 rounded-2xl border-2 border-emerald-200 border-dashed text-center">

@@ -18,6 +18,7 @@ import { IQueueService } from "../../../domain/services/IQueueService";
 import { SocketService } from "../../../infrastructure/services/SocketService";
 import { PaymentGatewayFactory } from "../../../infrastructure/services/PaymentGatewayFactory";
 import { AppError } from "@/shared/errors/AppError";
+import { RazorpayNotConfiguredError } from "@/shared/errors/RazorpayNotConfiguredError";
 import { StatusCode } from "@/shared/constants/statusCodes";
 
 import { ILockService } from "@/application/interfaces/ILockService";
@@ -30,7 +31,7 @@ export class BookAppointmentUseCase {
         private readonly sendNotificationUseCase: SendNotificationUseCase,
         private readonly paymentRepo: IPaymentRepository,
         private readonly walletRepo: IWalletRepository,
-        private readonly razorpayService: IRazorpayService,
+        private readonly razorpayService: IRazorpayService | null,
         private readonly doctorRepo: IDoctorProfileRepository,
         private readonly patientRepo: IPatientRepository,
         private readonly queueService: IQueueService,
@@ -207,6 +208,9 @@ export class BookAppointmentUseCase {
                 currency
             };
         } else if (paymentMethod === PaymentMethod.RAZORPAY) {
+            if (!this.razorpayService) {
+                throw new RazorpayNotConfiguredError();
+            }
             const razorpayOrder = await this.razorpayService.createOrder({
                 amount: remainingAmount,
                 currency,

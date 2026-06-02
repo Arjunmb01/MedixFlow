@@ -312,7 +312,6 @@ export class CompositionRoot {
             consultationRepository, 
             sendNotificationUseCase,
             paymentRepository,
-            razorpayService,
             walletRepository,
             queueService,
             socketService,

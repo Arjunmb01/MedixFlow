@@ -3,11 +3,41 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+/** Trim and strip wrapping quotes (common when pasting into Render/Vercel). */
+function normalizeEnvString(val: unknown): unknown {
+    if (typeof val !== "string") return val;
+    let s = val.trim();
+    if (
+        (s.startsWith('"') && s.endsWith('"')) ||
+        (s.startsWith("'") && s.endsWith("'"))
+    ) {
+        s = s.slice(1, -1).trim();
+    }
+    return s;
+}
+
+const postgresUrl = z
+    .string()
+    .min(1, "DATABASE_URL is required")
+    .refine(
+        (val) => /^postgres(ql)?:\/\//i.test(val),
+        "DATABASE_URL must start with postgres:// or postgresql://"
+    );
+
+const redisUrl = z
+    .string()
+    .refine(
+        (val) => val === "" || /^rediss?:\/\//i.test(val),
+        "REDIS_URL must start with redis:// or rediss://"
+    )
+    .optional()
+    .transform((val) => (val === "" ? undefined : val));
+
 const envSchema = z.object({
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
     PORT: z.string().default("5000").transform((val) => parseInt(val, 10)),
-    DATABASE_URL: z.string().url(),
-    REDIS_URL: z.string().url().optional(),
+    DATABASE_URL: postgresUrl,
+    REDIS_URL: redisUrl,
     JWT_ACCESS_SECRET: z.string().min(32),
     JWT_REFRESH_SECRET: z.string().min(32),
     FRONTEND_URL: z.string().transform((val) => val.split(",")),
@@ -31,7 +61,11 @@ const envSchema = z.object({
     PAYPAL_MODE: z.enum(["sandbox", "live"]).default("sandbox"),
 });
 
-const _env = envSchema.safeParse(process.env);
+const normalizedEnv = Object.fromEntries(
+    Object.entries(process.env).map(([key, value]) => [key, normalizeEnvString(value)])
+);
+
+const _env = envSchema.safeParse(normalizedEnv);
 
 if (!_env.success) {
     console.error("❌ Invalid environment variables:", _env.error.format());

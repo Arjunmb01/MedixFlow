@@ -1,4 +1,5 @@
 import { IRazorpayService } from "../../../domain/services/IRazorpayService";
+import { RazorpayNotConfiguredError } from "@/shared/errors/RazorpayNotConfiguredError";
 import { IWalletRepository } from "../../../domain/repositories/IWalletRepository";
 import { TransactionType } from "../../../domain/value-objects/enums/TransactionType";
 import { Wallet } from "@/domain/entities/Wallet";
@@ -13,11 +14,14 @@ export interface VerifyWalletTopUpInput {
 
 export class VerifyWalletTopUpUseCase {
   constructor(
-    private readonly razorpayService: IRazorpayService,
+    private readonly razorpayService: IRazorpayService | null,
     private readonly walletRepo: IWalletRepository
   ) {}
 
   async execute(input: VerifyWalletTopUpInput): Promise<Wallet> {
+    if (!this.razorpayService) {
+      throw new RazorpayNotConfiguredError();
+    }
     const isValid = this.razorpayService.verifyPaymentSignature(
       input.razorpayOrderId,
       input.razorpayPaymentId,
